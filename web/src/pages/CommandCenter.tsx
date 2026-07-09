@@ -32,17 +32,22 @@ export function CommandCenter() {
     <>
       <PageHeader
         title="Command Center"
-        subtitle="Every control opens a confirmation with scope / options. Mutating calls need HMAC in production."
+        subtitle="Every control opens a confirmation with scope / options. Mutating calls need HMAC in production. Full operator console: Manual Control."
         actions={
-          <ActionMenu
-            label="Emergency"
-            variant="danger"
-            items={[
-              { label: "Activate kill…", onClick: () => setKillModal(true) },
-              { label: "Flatten all…", onClick: () => setFlattenModal(true) },
-              { label: "Send DMS heartbeat", onClick: () => push("HEARTBEAT signed") },
-            ]}
-          />
+          <>
+            <Link className="btn primary" to="/manual-control">
+              Manual Control
+            </Link>
+            <ActionMenu
+              label="Emergency"
+              variant="danger"
+              items={[
+                { label: "Activate kill…", onClick: () => setKillModal(true) },
+                { label: "Flatten all…", onClick: () => setFlattenModal(true) },
+                { label: "Send DMS heartbeat", onClick: () => push("HEARTBEAT signed") },
+              ]}
+            />
+          </>
         }
       />
 

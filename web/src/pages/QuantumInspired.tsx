@@ -119,7 +119,10 @@ export function QuantumInspired() {
                       {(laneView === "kelly" || laneView === "compare") && (
                         <td>
                           <Tag kind={kellyOn ? "healthy" : diverge ? "watch" : "neutral"}>
-                            {kellyOn ? "funded" : qi.kelly.excluded[lane.pipeline_id] ?? "—"}
+                            {kellyOn
+                              ? "funded"
+                              : (qi.kelly.excluded as Record<string, string>)[lane.pipeline_id] ??
+                                "—"}
                           </Tag>
                         </td>
                       )}

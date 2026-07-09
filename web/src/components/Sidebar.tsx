@@ -30,6 +30,7 @@ import {
   Flame,
   Timer,
   Atom,
+  SlidersHorizontal,
 } from "lucide-react";
 import { portfolio, pnl, formatPnl } from "@/lib/data";
 
@@ -39,6 +40,7 @@ export const NAV = [
     items: [
       { to: "/", icon: LayoutDashboard, label: "Dashboard" },
       { to: "/command", icon: Command, label: "Command Center" },
+      { to: "/manual-control", icon: SlidersHorizontal, label: "Manual Control" },
       { to: "/capital", icon: Wallet, label: "Capital & Wallets" },
       { to: "/wallets", icon: ScanLine, label: "Wallet Tracker" },
       { to: "/pnl", icon: TrendingUp, label: "PnL" },

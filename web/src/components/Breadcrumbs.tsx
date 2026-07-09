@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 const GROUP: Record<string, string> = {
   "/": "Control",
   "/command": "Control",
+  "/manual-control": "Control",
   "/capital": "Control",
   "/wallets": "Control",
   "/pnl": "Control",

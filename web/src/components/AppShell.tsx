@@ -11,6 +11,7 @@ import { portfolio, pnl, formatPnl } from "@/lib/data";
 const TITLES: Record<string, string> = {
   "/": "Dashboard",
   "/command": "Command Center",
+  "/manual-control": "Manual Control",
   "/capital": "Capital & Wallets",
   "/wallets": "Wallet Tracker",
   "/pnl": "PnL",

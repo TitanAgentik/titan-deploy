@@ -2230,3 +2230,108 @@ export async function probeHealth(
     return { reachable: false, overall: "unreachable", services: [] };
   }
 }
+
+/** Manual Control console — demo state for operator command center (wire to :19001/:19008 later). */
+export type WindDownMode = "none" | "safe" | "derisk" | "flatten";
+export type HeraldAlertLevel = "all" | "high" | "critical" | "muted";
+export type PipelineRunState = "running" | "halted" | "paper" | "gated";
+export type GateReceiptState = "fresh" | "stale" | "missing";
+export type BftPosture = "quorum_ready" | "degraded" | "hold";
+
+export type ManualPipelineControl = {
+  id: string;
+  name: string;
+  phase: string;
+  runState: PipelineRunState;
+  advisoryEnabled: boolean;
+  edge: string;
+  memecoin?: boolean;
+  flash?: boolean;
+  humanYesRequired?: boolean;
+};
+
+export const manualControl = {
+  overallPosture: "HARDENED" as "HARDENED" | "LOCKDOWN" | "DEGRADED",
+  tradingHalted: false,
+  killActive: portfolio.killActive,
+  signingHalted: false,
+  capitalProfile: portfolio.capitalProfile,
+  equityUsd: portfolio.equityUsd,
+  availableUsd: portfolio.availableUsd,
+  drawdownPct: portfolio.drawdownPct,
+  windDownMode: "none" as WindDownMode,
+  evolutionFrozen: portfolio.evolutionFrozen,
+  quantumDormant: true,
+  quantumEnabled: false,
+  honeypotArmed: true,
+  huntMode: true,
+  edgeFailClosed: true,
+  lockdownDryRunOnly: true,
+  promotionHold: true,
+  bftPosture: "quorum_ready" as BftPosture,
+  confidenceFloor: 0.7,
+  gateReceipt: {
+    state: "fresh" as GateReceiptState,
+    ttlSec: 30,
+    lastIssuedAt: "2026-07-09T13:02:11Z",
+    code: "GATE_ALLOW",
+  },
+  maxActivePipelines: 4,
+  selectedEdgePop: edgeMesh.defaultPop,
+  heraldAlertLevel: "high" as HeraldAlertLevel,
+  heraldMutedUntil: null as string | null,
+  pillars: {
+    impenetrable: "ARMED",
+    evasion: "ACTIVE",
+    stalking: "HUNTING",
+    predatory: "ENGAGED",
+  },
+  inferenceTiers: modelTiers.map((t) => ({
+    tier: t.tier,
+    port: t.port,
+    model: t.model,
+    role: t.role,
+    live: t.live,
+    status: t.live ? ("online" as const) : ("offline_rd" as const),
+  })),
+  controlPlaneServices: services,
+  pipelines: pipelinesCatalog.map((p): ManualPipelineControl => {
+    const funded = p.phase === "funded";
+    const gated = p.phase === "pending_yes" || Boolean("memecoin" in p && p.memecoin);
+    return {
+      id: p.id,
+      name: p.name,
+      phase: p.phase,
+      runState: gated
+        ? "gated"
+        : funded
+          ? "running"
+          : p.phase === "defunded"
+            ? "halted"
+            : "paper",
+      advisoryEnabled: funded || p.phase === "micro_live" || p.phase === "paper",
+      edge: p.edge,
+      memecoin: "memecoin" in p ? Boolean(p.memecoin) : undefined,
+      flash: "flash" in p ? Boolean(p.flash) : undefined,
+      humanYesRequired: p.phase === "pending_yes" || Boolean("memecoin" in p && p.memecoin),
+    };
+  }),
+  allocator: {
+    advisoryOnly: true,
+    lastPlanAt: "2026-07-09T12:55:00Z",
+    selectedIds: quantumInspired.result.selected_pipeline_ids,
+    maxActive: 4,
+    cliRefresh: "titan-safety qi demo --seed 42 --k 4 --compare-kelly",
+  },
+  autonomyNotes: [
+    { action: "Trade >1% equity", gate: "Human YES (promotion gate)" },
+    { action: "New pipeline activation", gate: "Human YES" },
+    { action: "Model/skill promotion to live", gate: "Human YES (Phase 5)" },
+    { action: "Evolution deploy live", gate: "Shadow only · YES for live" },
+    { action: "Flash-loan live", gate: "Human YES" },
+    { action: "P22 Memecoin live", gate: "Phase 5 YES + live profile" },
+    { action: "Lockdown execute", gate: "HMAC · dry-run default" },
+    { action: "Kill deactivate / RESUME", gate: "Signed RESUME + HMAC" },
+  ],
+  actionLogSeed: [] as string[],
+};

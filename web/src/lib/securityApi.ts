@@ -116,3 +116,15 @@ export async function postSecurityLockdownDryRun(
     dry_run: true,
   });
 }
+
+/** Live lockdown execute — HMAC required; prefer Manual Control confirm UI. */
+export async function postSecurityLockdownExecute(
+  operator: string,
+  reason: string,
+): Promise<{ ok: boolean; detail: string }> {
+  return postSecurity("/api/security/v1/lockdown", {
+    operator,
+    reason,
+    dry_run: false,
+  });
+}

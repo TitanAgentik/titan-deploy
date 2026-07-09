@@ -49,14 +49,25 @@ function buildEntries(onAction: (msg: string, tone: "ok" | "warn" | "danger") =>
       },
     },
     {
+      id: "act:manual",
+      group: "Actions",
+      label: "Open Manual Control",
+      hint: "operator command center",
+      icon: Shield,
+      run: (navigate) => {
+        onAction("Manual Control — full operator console", "ok");
+        navigate("/manual-control");
+      },
+    },
+    {
       id: "act:kill",
       group: "Actions",
       label: "Open kill switch",
       hint: "requires confirm",
       icon: Skull,
       run: (navigate) => {
-        onAction("Kill switch requires confirmation in Command Center", "warn");
-        navigate("/command");
+        onAction("Kill switch requires confirmation in Manual Control", "warn");
+        navigate("/manual-control");
       },
     },
     {
@@ -66,8 +77,8 @@ function buildEntries(onAction: (msg: string, tone: "ok" | "warn" | "danger") =>
       hint: "shadow-only deploys",
       icon: Snowflake,
       run: (navigate) => {
-        onAction("Evolution freeze is managed from Command Center", "warn");
-        navigate("/command");
+        onAction("Evolution freeze is managed from Manual Control", "warn");
+        navigate("/manual-control");
       },
     },
     {
@@ -77,8 +88,8 @@ function buildEntries(onAction: (msg: string, tone: "ok" | "warn" | "danger") =>
       hint: "impenetrable · predatory",
       icon: Shield,
       run: (navigate) => {
-        onAction("Open Security Ops → lockdown confirm", "warn");
-        navigate("/security");
+        onAction("Open Manual Control → lockdown confirm", "warn");
+        navigate("/manual-control");
       },
     },
     {

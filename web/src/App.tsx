@@ -30,6 +30,7 @@ import { CryptoTwitter } from "@/pages/CryptoTwitter";
 import { CryptoNews } from "@/pages/CryptoNews";
 import { Latency } from "@/pages/Latency";
 import { QuantumInspired } from "@/pages/QuantumInspired";
+import { ManualControl } from "@/pages/ManualControl";
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route index element={<Dashboard />} />
           <Route path="command" element={<CommandCenter />} />
+          <Route path="manual-control" element={<ManualControl />} />
           <Route path="capital" element={<Capital />} />
           <Route path="wallets" element={<WalletTracker />} />
           <Route path="pnl" element={<Pnl />} />
