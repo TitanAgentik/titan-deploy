@@ -6,10 +6,12 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 from .allocator import AllocatorConfig, CapitalAllocator, LaneEdge
+from .quantum_inspired import QiConfig, compare_to_kelly, optimize_lanes, synthetic_demo_lanes
 from .audit_chain import AuditChainWriter, DecisionLogEntry, VersionFingerprint, build_fingerprint
 from .auth import sign_control_command
 from .capital import CapitalManager, load_capital_config
@@ -718,6 +720,64 @@ def cmd_tca_profit_loop(args: argparse.Namespace) -> int:
     return 0
 
 
+def _lanes_from_json(lanes_raw: list[dict[str, Any]]) -> list[LaneEdge]:
+    return [
+        LaneEdge(
+            pipeline_id=str(l.get("pipeline_id", "")),
+            net_bps=float(l.get("net_bps", 0.0)),
+            return_std=float(l.get("return_std", 0.0)),
+            trade_count=int(l.get("trade_count", 0)),
+            capacity_usd=float(l.get("capacity_usd", 0.0)),
+            decaying=bool(l.get("decaying", False)),
+            cluster=str(l.get("cluster", "")),
+        )
+        for l in lanes_raw
+    ]
+
+
+def cmd_qi_demo(args: argparse.Namespace) -> int:
+    lanes = synthetic_demo_lanes()
+    cfg = QiConfig(k=args.k, seed=args.seed)
+    out: dict[str, Any] = {
+        "demo": True,
+        "lanes": [asdict(lane) for lane in lanes],
+        "result": optimize_lanes(lanes, cfg).to_dict(),
+    }
+    if args.compare_kelly:
+        out["comparison"] = compare_to_kelly(
+            lanes,
+            args.equity,
+            qi_config=cfg,
+            regime=args.regime,
+            drawdown_pct=args.drawdown_pct,
+        )
+    print(json.dumps(out, indent=2))
+    return 0
+
+
+def cmd_qi_optimize(args: argparse.Namespace) -> int:
+    lanes_raw = json.loads(args.lanes_json)
+    lanes = _lanes_from_json(lanes_raw)
+    cfg = QiConfig(
+        k=args.k,
+        seed=args.seed,
+        sweeps=args.sweeps,
+        risk_lambda=args.risk_lambda,
+        cluster_penalty=args.cluster_penalty,
+    )
+    out: dict[str, Any] = {"result": optimize_lanes(lanes, cfg).to_dict()}
+    if args.compare_kelly:
+        out["comparison"] = compare_to_kelly(
+            lanes,
+            args.equity,
+            qi_config=cfg,
+            regime=args.regime,
+            drawdown_pct=args.drawdown_pct,
+        )
+    print(json.dumps(out, indent=2))
+    return 0
+
+
 def cmd_edge_route(args: argparse.Namespace) -> int:
     from .edge_router import EdgeRouter
 
@@ -1047,6 +1107,29 @@ def main(argv: list[str] | None = None) -> int:
     mcst = mc_sub.add_parser("status", help="P22 adapter / policy status")
     mcst.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
     mcst.set_defaults(func=cmd_memecoin_status)
+
+    p_qi = sub.add_parser("qi", help="Quantum-inspired lane selection (offline classical SA)")
+    qi_sub = p_qi.add_subparsers(dest="qi_cmd", required=True)
+    qd = qi_sub.add_parser("demo", help="Synthetic P1/P5/P11/P12/P22/P29 lane demo")
+    qd.add_argument("--seed", type=int, default=42)
+    qd.add_argument("--k", type=int, default=4)
+    qd.add_argument("--compare-kelly", action="store_true")
+    qd.add_argument("--equity", type=float, default=10000.0)
+    qd.add_argument("--regime", default="neutral")
+    qd.add_argument("--drawdown-pct", type=float, default=0.0)
+    qd.set_defaults(func=cmd_qi_demo)
+    qo = qi_sub.add_parser("optimize", help="Optimize lane subset from JSON lane edges")
+    qo.add_argument("--lanes-json", required=True, help="JSON list of lane edge dicts")
+    qo.add_argument("--k", type=int, default=4)
+    qo.add_argument("--seed", type=int, default=42)
+    qo.add_argument("--sweeps", type=int, default=5000)
+    qo.add_argument("--risk-lambda", type=float, default=1.0)
+    qo.add_argument("--cluster-penalty", type=float, default=2.0)
+    qo.add_argument("--compare-kelly", action="store_true")
+    qo.add_argument("--equity", type=float, default=10000.0)
+    qo.add_argument("--regime", default="neutral")
+    qo.add_argument("--drawdown-pct", type=float, default=0.0)
+    qo.set_defaults(func=cmd_qi_optimize)
 
     args = parser.parse_args(argv)
     return args.func(args)
