@@ -1,0 +1,35 @@
+# Self-improvement promotion playbook — air-gapped staging required
+version: "1.0"
+air_gapped_staging: true
+staging_path: ~/.openclaw/staging/
+production_path: ~/.openclaw/
+
+phases:
+  - name: shadow_only
+    duration_days: 3
+    description: Evolution outputs shadow trades only; no live capital impact
+  - name: paper_validation
+    duration_days: 3
+    description: Full paper trading with divergence metrics vs champion
+  - name: red_team_review
+    required: true
+    checklist: playbooks/red_team_checklist.yaml
+  - name: operator_yes
+    command: titan-safety promotion approve --response YES
+    categories:
+      - strategy_promotion
+      - evolution_deploy
+      - phase5_go_nogo
+
+constitutional_blocks:
+  - SOUL.md
+  - iron-laws.md
+  - risk_kernel/
+  - safety/titan_safety/kernel.py
+  - safety/titan_safety/kill_switch.py
+  - workspace/skills/trade_execution/
+  - workspace/skills/trench_ops_execution/
+
+rollback:
+  on_failure: revert_to_champion
+  audit: promotion_audit.jsonl

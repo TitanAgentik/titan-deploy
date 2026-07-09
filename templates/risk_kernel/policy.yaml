@@ -1,0 +1,194 @@
+# TITAN Independent Risk Kernel — deterministic out-of-process guard
+# Deploy target: ~/.openclaw/risk_kernel/policy.yaml
+# Agents propose; kernel vetoes. Cannot be modified by agent runtime.
+
+version: "2.1"
+mode: enforce
+
+trading_limits:
+  max_notional_usd_per_trade: 500.0
+  max_aggregate_exposure_usd: 2500.0
+  max_leverage: 3.0
+  max_loss_velocity_usd_per_60s: 150.0
+  max_open_positions: 8
+  max_slippage_bps: 50
+  equity_usd: 2500.0
+
+allowed_venues:
+  - paper
+  - binance_spot
+  - uniswap_v3
+
+allowed_contracts:
+  - "0x0000000000000000000000000000000000000000"  # paper sentinel
+  - "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
+
+position_limits:
+  max_equity_pct_per_trade: 2.0
+  human_approval_above_pct: 1.0
+  flash_loan_live_requires_approval: true
+  leverage_change_requires_approval: true
+  new_pipeline_requires_approval: true
+
+drawdown_tiers:
+  - pct: 2.0
+    action: alert_operator
+  - pct: 5.0
+    action: soft_pause_new_entries
+  - pct: 8.0
+    action: reduce_exposure_50pct
+  - pct: 10.0
+    action: critical_alert_human_required
+  - pct: 12.0
+    action: full_halt_flatten
+
+drawdown_velocity:
+  max_loss_usd_per_60s: 150.0
+  max_loss_usd_per_15m: 400.0
+  note: "Velocity breakers — faster than tier drawdown; independent of 24h PnL"
+
+portfolio_risk:
+  var_confidence: 0.95
+  max_var_pct_equity: 8.0
+  max_cvar_pct_equity: 12.0
+  max_correlated_cluster_pct: 25.0
+  min_return_samples: 20
+  augur_regime_stub: neutral
+  # Live: set augur_feed to file|http; AUGUR agent writes augur_regime.json
+  augur_feed: stub
+  # augur_regime_file: ~/.openclaw/safety/augur_regime.json
+  regime_limits:
+    risk_off: 50.0
+    neutral: 100.0
+    risk_on: 120.0
+  correlation_groups:
+    defi_yield: ["P1", "P3", "P7", "P8"]
+    mev_arb: ["P29", "P30", "P41"]
+    liquidations: ["P6", "P11", "P18"]
+
+reconciliation:
+  divergence_threshold_usd: 25.0
+  divergence_threshold_pct: 1.0
+  # PAPER DEFAULT: mock is allowed only while allowed_venues is paper-only.
+  # LIVE PROFILE: set adapter to "live" (or "exchange"/"onchain") and wire a fetcher.
+  # enforce mode + any non-paper venue + adapter=mock → MOCK_ADAPTER_FORBIDDEN (startup + execution gate).
+  adapter: mock
+  live_profile_note: "Before real capital: adapter=live, withdrawal_adapter≠mock, 48h zero-divergence"
+
+# Control-plane HMAC auth (X-Titan-Auth) required on mutating POSTs:
+# FLATTEN, REGIME, HEARTBEAT, TCA_INGEST, PROFIT_LOOP, REFUND, ALLOCATE
+control_plane:
+  auth_required: true
+  max_age_seconds: 300
+  # Prefer dedicated control_plane.secret (0600). Falls back to kill_switch.secret.
+  # Isolate from agent-writable paths; do not sync to staging/ or skills/.
+  secret_file: control_plane.secret
+  secret_mode: "0600"
+  note: "Host compromise = auth compromise — keep secret off agent FS where possible"
+
+# Capital allocator — attribution -> forward fractional-Kelly allocation.
+# Humans own the gross envelope (base_gross_pct); the machine allocates within it.
+allocator:
+  kelly_fraction: 0.25            # 1/4-Kelly — geometric-growth sweet spot, not full Kelly
+  base_gross_pct: 100.0           # gross exposure cap as % equity (risk envelope)
+  max_lane_pct: 25.0              # per-lane cap as % equity
+  max_cluster_pct: 40.0           # per-correlation-cluster cap as % equity
+  min_net_bps: 1.0               # lanes below this net-of-cost edge get zero capital
+  min_trades: 100                # lanes below this sample size get zero capital
+  max_active_pipelines: 4        # hard concentration cap — fund few HEALTHY lanes
+  regime_multipliers:
+    risk_off: 0.5
+    neutral: 1.0
+    risk_on: 1.2
+  degross_ladder:                 # [drawdown_pct, gross_multiplier] — progressive de-grossing
+    - [3.0, 0.75]
+    - [5.0, 0.5]
+    - [7.0, 0.25]
+    - [10.0, 0.0]
+
+# Execution-quality / transaction-cost analysis thresholds.
+tca:
+  window: 500
+  min_fills_for_verdict: 30
+  healthy_net_bps: 5.0
+  marginal_net_bps: 0.0
+  max_tip_efficiency: 0.40        # tips > 40% of gross MEV => lane is bleeding
+  max_slippage_bps: 20.0
+  min_fill_rate: 0.80
+
+# Statistical evidence required before a strategy touches live capital.
+# Replaces the old "Sharpe>=0, 20 trades, auto-promote" criteria.
+promotion_stats:
+  min_trades: 200
+  min_deflated_sharpe: 0.90       # DSR probability, corrects for multiple-testing/overfit
+  min_psr: 0.90                   # probabilistic Sharpe vs zero
+  max_shadow_divergence_pct: 15.0 # live/shadow Sharpe must track backtest
+  min_net_bps: 1.0
+  require_cost_model: true         # backtests with zero modeled cost are rejected
+
+promotion_gates:
+  phase5_requires_human_yes: true
+  paper_minimum_days: 3
+  timeout_policy: hold_derisk
+  air_gapped_staging_required: true
+  shadow_only_evolution:
+    - dgm-h
+    - gepa
+    - hyevo
+    - sia-lora
+    - eurekagent
+    - gris-model-swap
+  pending_state: PENDING_PROMOTION_APPROVAL
+  constitutional_blocks:
+    - SOUL.md
+    - iron-laws.md
+    - risk_kernel/
+    - safety/titan_safety/
+
+dead_mans_switch:
+  operator_heartbeat_hours: 48
+  flatten_after_hours: 72
+  on_miss: derisk_flatten
+  never_auto_promote: true
+
+bft:
+  note: "Orchestrator voters share GLM-5.2 — correlated, not independent BFT"
+  require_kernel_veto: true
+
+quantum:
+  enabled: false
+  note: "Permanently disabled for live capital — classical-only execution; no cuQuantum/Wukong/Tier 3 dispatch"
+
+power_loss:
+  on_ups_battery: halt_trading
+  on_mains_loss: halt_trading
+  flatten_open_positions: true
+  revoke_session_keys: true
+  require_operator_ack_to_resume: true
+  ups_required_for_live_capital: true
+  policy_ref: ~/.openclaw/infra/power_requirements.yaml
+  note: "Power-loss = HALT — no discretionary signing during outage"
+
+signing:
+  isolated_node_required: true
+  endpoint: http://127.0.0.1:19010
+  config_ref: ~/.openclaw/infra/signing_node.yaml
+  blind_sign_rejected: true
+  require_gate_receipt: true
+  max_receipt_age_seconds: 30
+  on_env_compromised: halt_all_signing
+
+# Evolution freeze — set freeze_during_live true; CLI: titan-safety evolution freeze
+evolution:
+  freeze_during_live: true
+  flag_file: ~/.openclaw/safety/EVOLUTION_FROZEN
+
+service:
+  risk_kernel_port: 19001
+  reconciliation_port: 19002
+  status_aggregator_port: 19003
+  portfolio_risk_port: 19004
+  dead_mans_switch_port: 19005
+  allocator_port: 19006
+  tca_port: 19007
+  signing_node_port: 19010

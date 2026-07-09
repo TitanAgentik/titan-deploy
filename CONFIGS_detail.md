@@ -1,0 +1,1 @@
+configs_detail.md

@@ -1,0 +1,14 @@
+[Unit]
+Description=TITAN Position Reconciliation Service
+After=network.target titan-risk-kernel.service
+
+[Service]
+Type=simple
+Environment=TITAN_POLICY_PATH=%h/.openclaw/risk_kernel/policy.yaml
+Environment=PYTHONPATH=%h/.openclaw/safety
+ExecStart=/usr/bin/python3 -m titan_safety.reconciliation_service
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=TITAN Dead-Man's Switch Daemon
+After=network.target titan-risk-kernel.service
+
+[Service]
+Type=simple
+Environment=TITAN_POLICY_PATH=%h/.openclaw/risk_kernel/policy.yaml
+Environment=PYTHONPATH=%h/.openclaw/safety
+ExecStart=/usr/bin/python3 -m titan_safety.dead_mans_service --poll 60
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

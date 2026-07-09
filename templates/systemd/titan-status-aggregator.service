@@ -1,0 +1,14 @@
+[Unit]
+Description=TITAN Safety Status Aggregator
+After=network.target titan-risk-kernel.service titan-reconciliation.service
+
+[Service]
+Type=simple
+Environment=TITAN_POLICY_PATH=%h/.openclaw/risk_kernel/policy.yaml
+Environment=PYTHONPATH=%h/.openclaw/safety
+ExecStart=/usr/bin/python3 -m titan_safety.status_aggregator
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

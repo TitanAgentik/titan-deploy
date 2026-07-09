@@ -1,0 +1,20 @@
+[Unit]
+Description=TITAN Tier 2 Inference — Qwen3-Coder-Next-80B (reasoning)
+After=network-online.target llama-server-tier1.service
+Wants=network-online.target
+ConditionPathExists=/data/models/Qwen3-Coder-Next-80B
+
+[Service]
+Type=simple
+User=hyperion
+Environment=CUDA_VISIBLE_DEVICES=1
+ExecStart=/home/hyperion/llama.cpp/build/bin/llama-server \
+  --host 127.0.0.1 --port 30001 \
+  --model /data/models/Qwen3-Coder-Next-80B/Qwen3-Coder-Next-80B-A3B-Instruct-Q4_K_M.gguf \
+  --ctx-size 16384 --parallel 4 --n-gpu-layers 99
+Restart=on-failure
+RestartSec=15
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

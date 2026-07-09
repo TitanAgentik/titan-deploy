@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://titan.openclaw/schema/trade_notification.v1.json",
+  "title": "TITAN Institutional Trade Notification",
+  "description": "Machine-parseable payload for HERALD Telegram trade notifications (§TGCMD.2 / §TGCMD.3)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "event_type",
+    "timestamp",
+    "agent_id",
+    "pipeline_id",
+    "reason_codes",
+    "severity",
+    "trade",
+    "strategy",
+    "risk"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "trade_entry",
+        "trade_exit",
+        "trade_execution",
+        "pnl_realized",
+        "pnl_unrealized",
+        "hourly_digest",
+        "material_alert",
+        "urgent_alert"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Executing or reporting agent (e.g. TRENCH-OPS, ALCHEMY)"
+    },
+    "pipeline_id": {
+      "type": "string",
+      "pattern": "^P[0-9]{1,2}[a-z]?$",
+      "description": "Pipeline ID P1-P48"
+    },
+    "workflow_name": {
+      "type": "string"
+    },
+    "reason_codes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "At least one reason code per action (see reason_codes.yaml)"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["INFO", "MATERIAL", "HIGH", "CRITICAL"]
+    },
+    "material": {
+      "type": "boolean",
+      "description": "True when |pnl_pct_equity| > 0.5% or severity CRITICAL"
+    },
+    "trade": {
+      "type": "object",
+      "required": ["direction", "asset", "chain"],
+      "properties": {
+        "trade_id": { "type": "string" },
+        "direction": { "type": "string", "enum": ["LONG", "SHORT", "BUY", "SELL"] },
+        "action": { "type": "string", "enum": ["entry", "exit", "partial_exit", "rebalance"] },
+        "asset": { "type": "string" },
+        "size": { "type": "number" },
+        "size_unit": { "type": "string" },
+        "notional_usd": { "type": "number" },
+        "chain": { "type": "string" },
+        "venue": { "type": "string" },
+        "entry_price": { "type": "number" },
+        "exit_price": { "type": "number" },
+        "fill_price": { "type": "number" },
+        "tx_hash": { "type": "string" },
+        "block": { "type": "integer" },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "slippage_bps": { "type": "number" },
+        "fees_usd": { "type": "number" },
+        "gas_usd": { "type": "number" }
+      }
+    },
+    "pnl": {
+      "type": "object",
+      "properties": {
+        "realized_usd": { "type": "number" },
+        "unrealized_usd": { "type": "number" },
+        "realized_pct": { "type": "number" },
+        "pct_equity": { "type": "number" },
+        "outcome": { "type": "string", "enum": ["WIN", "LOSS", "OPEN", "BREAKEVEN"] },
+        "fees_usd": { "type": "number" },
+        "slippage_usd": { "type": "number" },
+        "net_usd": { "type": "number" }
+      }
+    },
+    "strategy": {
+      "type": "object",
+      "properties": {
+        "pipeline_id": { "type": "string" },
+        "workflow_name": { "type": "string" },
+        "signals": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "signal_summary": { "type": "string" }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "properties": {
+        "position_pct_equity": { "type": "number" },
+        "stop_loss_pct": { "type": "number" },
+        "stop_loss_price": { "type": "number" },
+        "drawdown_24h_pct": { "type": "number" },
+        "drawdown_tier": { "type": "string" },
+        "cb_triggered": { "type": "string" }
+      }
+    },
+    "portfolio": {
+      "type": "object",
+      "description": "Footer snapshot on material events",
+      "properties": {
+        "equity_usd": { "type": "number" },
+        "exposure_pct": { "type": "number" },
+        "open_positions": { "type": "integer" },
+        "daily_pnl_usd": { "type": "number" },
+        "daily_pnl_pct": { "type": "number" },
+        "unrealized_pnl_usd": { "type": "number" }
+      }
+    },
+    "digest": {
+      "type": "object",
+      "description": "Hourly digest aggregates (§TGCMD.2)",
+      "properties": {
+        "window_start": { "type": "string", "format": "date-time" },
+        "window_end": { "type": "string", "format": "date-time" },
+        "hour_pnl_usd": { "type": "number" },
+        "hour_pnl_pct": { "type": "number" },
+        "trades_count": { "type": "integer" },
+        "wins": { "type": "integer" },
+        "losses": { "type": "integer" },
+        "strategies": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      }
+    },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": false
+}

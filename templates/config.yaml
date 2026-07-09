@@ -1,0 +1,305 @@
+# TITAN Hermes Agent Configuration
+# Deploy target: ~/.hermes/config.yaml
+
+system:
+  name: titan
+  version: "49.7"
+  framework: openclaw-hermes-unified
+  autonomy: bounded_supervised  # human gates for promotion/evolution/>1% equity
+
+autonomy_matrix:
+  auto_execute:
+    - routine_trades_under_1pct_equity
+    - rebalances_under_1pct_equity
+    - cb_tier_responses_within_policy
+    - shadow_evolution_outputs
+    - paper_trading
+  human_required:
+    - strategy_promotion_phase5
+    - evolution_deploy_to_live
+    - leverage_changes
+    - flash_loan_live
+    - trades_over_1pct_equity
+    - new_pipeline_activation
+    - model_promotion
+  timeout_policy: hold_derisk_never_auto_promote
+
+model:
+  default: qwen3-critical
+  tier1_critical:
+    provider: openai-compatible
+    base_url: http://localhost:30000/v1
+    model: Qwen/Qwen3-30B-A3B-Instruct-2507-FP8
+    gpu: 0
+    role: signals_risk_execution
+  tier2_reasoning:
+    provider: openai-compatible
+    base_url: http://localhost:30001/v1
+    model: Qwen/Qwen3-Coder-Next-80B-A3B-Instruct
+    gpu: 1
+    role: orchestration_strategy_code
+  tier3_offline:
+    provider: openai-compatible
+    base_url: http://localhost:30003/v1
+    model: zai-org/GLM-5.2
+    role: rd_evolution_batch_only
+    critical_path: false
+  utility:
+    provider: openai-compatible
+    base_url: http://localhost:30002/v1
+    model: Qwen3-30B-A3B-Instruct-2507
+    host: titanspark
+  embedder:
+    base_url: http://localhost:30004/v1
+    model: Qwen3-Embedding-0.6B
+
+gateway:
+  openclaw:
+    host: localhost
+    port: 18789
+
+channels:
+  telegram:
+    enabled: true
+    token_env: TELEGRAM_BOT_TOKEN
+    user_id_env: TELEGRAM_USER_ID
+    mode: informational  # no per-trade approval; promotion gates via PENDING_PROMOTION_APPROVAL
+    parse_mode: Markdown
+    json_first: true
+
+notifications:
+  herald:
+    skill: herald_notify
+    templates_dir: ~/.openclaw/workspace/telegram
+    schema: trade_notification.v1.json
+    material_threshold_pct_equity: 0.5
+    immediate_severities: [CRITICAL, HIGH]
+    nats:
+      trade: tgcmd.herald.trade
+      pnl: tgcmd.herald.pnl
+      hourly: tgcmd.herald.report.hourly
+      urgent: tgcmd.herald.alert.urgent
+    delivery:
+      per_trade_telegram: true
+      hourly_digest: true
+      material_immediate: true
+
+promotion:
+  paper_minimum_days: 3
+  phase5_requires_human_yes: true
+  timeout_policy: hold_derisk
+  air_gapped_staging: true
+  staging_path: ~/.openclaw/staging/
+  playbook_path: ~/.openclaw/playbooks/promotion.yaml
+  red_team_checklist: ~/.openclaw/playbooks/red_team_checklist.yaml  # silence never auto-promotes
+  shadow_only_evolution:
+    - dgm-h
+    - gepa
+    - hyevo
+    - sia-lora
+    - eurekagent
+    - gris-model-swap
+
+rollout:
+  phase_duration_days: 3
+  operator_directive: true
+  note: "3 days per phase per operator directive — gates and human YES unchanged"
+  phases:
+    - id: 0
+      name: infrastructure_paper
+      duration_days: 3
+    - id: 1
+      name: micro_live
+      duration_days: 3
+    - id: 2
+      name: validated_scale
+      duration_days: 3
+    - id: 3
+      name: mature_production
+      duration_days: 3
+
+dead_mans_switch:
+  operator_heartbeat_hours: 48
+  flatten_after_hours: 72
+  on_miss: derisk_flatten
+  never_auto_promote: true
+
+drawdown_tiers:
+  alert: 2.0
+  soft_pause: 5.0
+  reduce: 8.0
+  critical: 10.0
+  halt: 12.0
+
+drawdown_velocity:
+  max_loss_usd_per_60s: 150
+  max_loss_usd_per_15m: 400
+
+terminal:
+  json_first: true
+  confidence_tagging: true
+
+memory:
+  engine: sqlite
+  path: ~/.hermes/memory/titan.db
+  fts5: true
+  openclaw_sync: ~/.openclaw/memory/
+
+skills:
+  directory: ~/.openclaw/workspace/skills
+  symlink_from_hermes: true
+  trust_tiers:
+    - T1  # metadata only
+    - T2  # full instructions
+    - T3  # execution code
+
+mcp_servers:
+  - name: nats
+    command: nats-mcp-bridge
+    env:
+      NATS_URL: nats://localhost:4222
+  - name: filesystem
+    command: mcp-server-filesystem
+    args: ["~/.openclaw/workspace"]
+
+cron:
+  - name: daily_brief
+    schedule: "0 8 * * *"
+    agent: HERALD
+    task: daily_brief
+  - name: hourly_report
+    schedule: "0 * * * *"
+    agent: HERALD
+    task: hourly_performance_report
+  - name: weekly_rd_brief
+    schedule: "0 9 * * 1"
+    agent: HORIZON
+    task: weekly_rd_brief
+  - name: operator_heartbeat_check
+    schedule: "0 */6 * * *"
+    agent: FORGE
+    task: dead_mans_switch_check
+
+activeHours:
+  timezone: UTC
+  trading: "00:00-23:59"
+  maintenance_window: "06:00-10:00"
+
+quantum:
+  status: dormant
+  cloud_qpu_enabled: false
+  cuquantum_enabled: false
+  wukong_budget_active: false
+  note: "100% classical execution — QCC/QSA/QRP disabled for live capital"
+
+risk_kernel:
+  enabled: true
+  policy_path: ~/.openclaw/risk_kernel/policy.yaml
+  out_of_process: true
+  pre_trade_validation_url: http://127.0.0.1:19001/v1/validate
+  portfolio_risk_url: http://127.0.0.1:19004/v1/simulate
+  reconciliation_gate_url: http://127.0.0.1:19002/v1/pre_trade
+  fail_closed: true
+
+kill_switch:
+  safety_dir: ~/.openclaw/safety
+  cli_path: ~/.openclaw/safety/bin/titan-safety
+
+safety_services:
+  risk_kernel: http://127.0.0.1:19001/health
+  reconciliation: http://127.0.0.1:19002/health
+  status_aggregator: http://127.0.0.1:19003/health
+  portfolio_risk: http://127.0.0.1:19004/health
+  dead_mans_switch: http://127.0.0.1:19005/health
+
+observability:
+  prometheus_scrape:
+    - http://127.0.0.1:19001/metrics
+    - http://127.0.0.1:19003/metrics
+    - http://127.0.0.1:19004/metrics
+  grafana_stub: ~/.openclaw/playbooks/observability_grafana_stub.yaml
+
+infrastructure:
+  hardware_bom: ~/.openclaw/infra/hardware_bom.yaml
+  titanhome:
+    role: primary_compute_inference_safety
+    cpu: "AMD Ryzen Threadripper PRO 9995WX (96C/192T)"
+    motherboard: "ASUS Pro WS WRX90E-SAGE SE"
+    memory: "512GB DDR5-6000 ECC R-DIMM"
+    gpu: "2× NVIDIA RTX PRO 6000 Blackwell Max-Q (192GB VRAM)"
+    storage: "Micron 7500 Pro 3.8TB + 2× WD Black SN8100 4TB"
+    psu: "Super Flower Leadex Titanium 2200W"
+    timing: "LBE-1420 GPSDO"
+    oob: "PiKVM V4 Plus"
+    hosts:
+      - tier1_inference_qwen3_30b  # :30000 GPU 0
+      - tier2_inference_qwen3_coder_80b  # :30001 GPU 1
+      - tier3_offline_glm52  # :30003 off-peak only
+      - risk_kernel_services  # :19001-19005
+      - revm_simulation  # :30020
+      - safety_systemd_units
+  titanspark:
+    role: utility_inference_operator_gateway
+    hardware: ASUS GX10
+    hosts:
+      - qwen3_utility  # :30002
+      - telegram_gateway_failover
+  macmini_vault:
+    role: encrypted_key_metadata_trezor_ceremonies
+    hardware: "Mac Mini 2018 — i7 6-core, 64GB DDR4"
+    note: "Key custody + profit workloads; signing routed to signing_node"
+  power_requirements: ~/.openclaw/infra/power_requirements.yaml
+  gpu_schedule: ~/.openclaw/infra/gpu_schedule.yaml
+  signing_node: ~/.openclaw/infra/signing_node.yaml
+
+signing_node:
+  enabled: true
+  endpoint: http://127.0.0.1:19010
+  host: localhost
+  port: 19010
+  isolated: true
+  route_agents:
+    - TRENCH-OPS
+    - LAMARCK
+
+edge_mesh:
+  phase1: single_pop
+  default_pop: EDGE-FRA
+  active_pops:
+    - id: EDGE-FRA
+      provider: vultr
+      region: eu-central
+      roles:
+        - telegram_relay
+        - erigon_archive
+        - eu_rpc
+  deferred_pops_phase3_plus:
+    - id: EDGE-TKY
+      note: "Hyperliquid / APAC latency — Phase 3+"
+    - id: EDGE-SIN
+      note: "APAC secondary — Phase 3+"
+    - id: EDGE-USE
+      note: "US East exchange colo — Phase 3+"
+    - id: EDGE-AMS
+      note: "Amsterdam DE-CIX — Phase 3+"
+  phase1_note: "One PoP sufficient for $2.5K Phase 1; full 5-PoP mesh deferred to Phase 3+"
+
+capital:
+  state_path: ~/.openclaw/capital/portfolio_state.json
+  audit_path: ~/.openclaw/capital/capital_audit.jsonl
+  min_operating_capital_usd: 500
+  max_single_withdrawal_pct: 20
+  withdrawal_adapter: mock
+  trezor_sweep:
+    harvest_threshold_usd: 35000
+    sweep_pct_of_weekly_profit: 20
+    sweep_day_utc: Sunday
+    pause_below_threshold: true
+    note: "Growth phase below $35K — 100% reinvest; no sweep until harvest threshold"
+  telegram_commands:
+    deposit: "/deposit <amount> <asset> [chain] [tx_hash] [source]"
+    withdraw: "/withdraw <amount> <asset> [address]"
+    withdraw_confirm: "/withdraw confirm <request_id>"
+    balance: "/balance"
+    sweep: "/sweep"
+    alt_prefix: "/capital deposit|withdraw|balance|sweep"

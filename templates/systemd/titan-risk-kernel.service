@@ -1,0 +1,16 @@
+[Unit]
+Description=TITAN Independent Risk Kernel (deterministic, out-of-process)
+After=network.target
+
+[Service]
+Type=simple
+Environment=TITAN_POLICY_PATH=%h/.openclaw/risk_kernel/policy.yaml
+Environment=TITAN_KERNEL_STATE=%h/.openclaw/safety/kernel_state.json
+Environment=TITAN_SAFETY_DIR=%h/.openclaw/safety
+Environment=PYTHONPATH=%h/.openclaw/safety
+ExecStart=/usr/bin/python3 -m titan_safety.risk_kernel_service
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

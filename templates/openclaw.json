@@ -1,0 +1,314 @@
+{
+  "version": "49.7",
+  "framework": "titan-unified",
+  "bootstrapMaxChars": 20000,
+  "bootstrapTotalMaxChars": 150000,
+  "gateway": {
+    "host": "0.0.0.0",
+    "port": 18789,
+    "telegram": {
+      "enabled": true,
+      "tokenEnv": "TELEGRAM_BOT_TOKEN",
+      "allowedUsers": ["${TELEGRAM_USER_ID}"],
+      "parseMode": "Markdown",
+      "jsonFirst": true
+    }
+  },
+  "agents": {
+    "defaultModel": "qwen3-critical",
+    "subAgentPromptMode": "minimal",
+    "confidenceGate": {
+      "fullSize": 0.70,
+      "reducedSize": 0.50,
+      "reject": 0.30
+    },
+    "definitions": [
+      {"id": "ARCHON", "tier": "orchestrator", "endpoint": "http://localhost:30001", "model": "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct"},
+      {"id": "CORTEX", "tier": "orchestrator", "endpoint": "http://localhost:30001", "model": "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct"},
+      {"id": "GUARDIAN", "tier": "orchestrator", "endpoint": "http://localhost:30000", "model": "Qwen/Qwen3-30B-A3B-Instruct-2507-FP8"},
+      {"id": "SENTINEL", "tier": "orchestrator", "endpoint": "http://localhost:30001", "model": "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct"},
+      {"id": "ORACLE", "tier": "signal", "endpoint": "http://localhost:30000", "model": "Qwen/Qwen3-30B-A3B-Instruct-2507-FP8"},
+      {"id": "WRAITH", "tier": "signal", "endpoint": "http://localhost:30000", "model": "Qwen/Qwen3-30B-A3B-Instruct-2507-FP8"},
+      {"id": "PREDATOR", "tier": "signal", "endpoint": "http://localhost:30000", "model": "Qwen/Qwen3-30B-A3B-Instruct-2507-FP8"},
+      {"id": "AUGUR", "tier": "signal", "endpoint": "http://localhost:30000", "model": "Qwen/Qwen3-30B-A3B-Instruct-2507-FP8"},
+      {"id": "NARRATIVE", "tier": "signal", "endpoint": "http://localhost:30000", "model": "Qwen/Qwen3-30B-A3B-Instruct-2507-FP8"},
+      {"id": "TRENCH-OPS", "tier": "execution", "endpoint": "http://localhost:30000", "model": "Qwen/Qwen3-30B-A3B-Instruct-2507-FP8"},
+      {"id": "LAMARCK", "tier": "execution", "endpoint": "http://localhost:30001", "model": "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct"},
+      {"id": "DARWIN_GODEL", "tier": "execution", "endpoint": "http://localhost:30001", "model": "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct"},
+      {"id": "HERALD", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
+      {"id": "NEXUS", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
+      {"id": "FORGE", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
+      {"id": "ALCHEMY", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
+      {"id": "ATLAS", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
+      {"id": "QUANT", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
+      {"id": "ARBITER", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
+      {"id": "HORIZON", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
+      {"id": "QCC", "tier": "quantum", "status": "dormant"},
+      {"id": "QSA", "tier": "quantum", "status": "dormant"},
+      {"id": "QRP", "tier": "quantum", "status": "dormant"}
+    ]
+  },
+  "autonomy": {
+    "mode": "bounded_supervised",
+    "matrix": {
+      "auto_execute": [
+        "routine_trades_under_1pct_equity",
+        "rebalances_under_1pct_equity",
+        "cb_tier_responses_within_policy",
+        "shadow_evolution_outputs",
+        "paper_trading",
+        "heartbeat_and_health_checks"
+      ],
+      "human_required": [
+        "strategy_promotion_phase5",
+        "evolution_deploy_to_live",
+        "leverage_changes",
+        "flash_loan_live",
+        "trades_over_1pct_equity",
+        "new_pipeline_activation",
+        "model_promotion",
+        "withdrawal_over_20pct_equity"
+      ],
+      "timeout_policy": "hold_derisk_never_auto_promote"
+    },
+    "humanGates": {
+      "strategyPromotion": true,
+      "evolutionDeploy": true,
+      "leverageChanges": true,
+      "flashLoanLive": true,
+      "positionOver1PctEquity": true,
+      "phase5GoNoGo": true
+    },
+    "criticalAlertsOnly": false,
+    "criticalConditions": [
+      "drawdown_10pct_24h",
+      "drawdown_12pct_halt",
+      "drawdown_velocity_15m",
+      "hardware_failure",
+      "security_breach",
+      "soul_modification_attempt",
+      "exchange_api_failure_5min",
+      "unknown_contract_interaction"
+    ],
+    "operatorAbsencePolicy": "dead_mans_switch_derisk_never_implicit_approval"
+  },
+  "promotion": {
+    "paperMinimumDays": 3,
+    "phase5RequiresHumanYes": true,
+    "timeoutPolicy": "hold_derisk",
+    "airGappedStaging": true,
+    "stagingPath": "~/.openclaw/staging/",
+    "playbookPath": "~/.openclaw/playbooks/promotion.yaml",
+    "redTeamChecklist": "~/.openclaw/playbooks/red_team_checklist.yaml",
+    "shadowOnlyEvolution": ["dgm-h", "gepa", "hyevo", "sia-lora", "eurekagent", "gris-model-swap"],
+    "pendingState": "PENDING_PROMOTION_APPROVAL"
+  },
+  "evolution": {
+    "freezeDuringLive": true,
+    "flagFile": "~/.openclaw/safety/EVOLUTION_FROZEN",
+    "note": "While frozen, promotion of evolution_deploy/strategy_promotion/phase5 is denied"
+  },
+  "rollout": {
+    "phaseDurationDays": 3,
+    "operatorDirective": true,
+    "calendarIsNotAGate": true,
+    "note": "Phase clock is advisory only — stretch until regime diversity + ≥200 fills/lane; gates and human YES unchanged",
+    "phases": [
+      {"id": 0, "name": "infrastructure_paper", "durationDays": 3},
+      {"id": 1, "name": "micro_live", "durationDays": 3},
+      {"id": 2, "name": "validated_scale", "durationDays": 3},
+      {"id": 3, "name": "mature_production", "durationDays": 3}
+    ]
+  },
+  "deadMansSwitch": {
+    "enabled": true,
+    "operatorHeartbeatHours": 48,
+    "flattenAfterHours": 72,
+    "onMiss": "derisk_flatten",
+    "neverAutoPromote": true
+  },
+  "riskKernel": {
+    "enabled": true,
+    "outOfProcess": true,
+    "policyPath": "~/.openclaw/risk_kernel/policy.yaml",
+    "preTradeValidationUrl": "http://127.0.0.1:19001/v1/validate",
+    "portfolioRiskUrl": "http://127.0.0.1:19004/v1/simulate",
+    "reconciliationGateUrl": "http://127.0.0.1:19002/v1/pre_trade",
+    "failClosed": true,
+    "servicePort": 19001
+  },
+  "killSwitch": {
+    "safetyDir": "~/.openclaw/safety",
+    "cliPath": "~/.openclaw/safety/bin/titan-safety",
+    "fileFlag": "~/.openclaw/safety/KILL_SWITCH.active"
+  },
+  "safetyServices": {
+    "riskKernel": "http://127.0.0.1:19001/health",
+    "reconciliation": "http://127.0.0.1:19002/health",
+    "statusAggregator": "http://127.0.0.1:19003/health",
+    "portfolioRisk": "http://127.0.0.1:19004/health",
+    "deadMansSwitch": "http://127.0.0.1:19005/health",
+    "allocator": "http://127.0.0.1:19006/health",
+    "tca": "http://127.0.0.1:19007/health",
+    "signingNode": "http://127.0.0.1:19010/health"
+  },
+  "drawdownTiers": {
+    "alert": 2.0,
+    "softPause": 5.0,
+    "reduce": 8.0,
+    "critical": 10.0,
+    "halt": 12.0
+  },
+  "quantum": {
+    "status": "dormant",
+    "cloudQpuEnabled": false,
+    "cuQuantumEnabled": false,
+    "wukongBudgetActive": false,
+    "note": "100% classical execution — QCC/QSA/QRP disabled for live capital"
+  },
+  "inference": {
+    "tier1_critical": {
+      "port": 30000,
+      "gpu": 0,
+      "model": "Qwen/Qwen3-30B-A3B-Instruct-2507-FP8",
+      "role": "signals_risk_execution",
+      "target_tps": "50-70"
+    },
+    "tier2_reasoning": {
+      "port": 30001,
+      "gpu": 1,
+      "model": "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct",
+      "role": "orchestration_strategy_code",
+      "target_tps": "50-70"
+    },
+    "tier3_offline": {
+      "port": 30003,
+      "gpu": "0+1_expert_offload",
+      "model": "zai-org/GLM-5.2",
+      "role": "rd_evolution_batch_only",
+      "target_tps": "10-20",
+      "critical_path": false
+    },
+    "utility": {
+      "port": 30002,
+      "host": "titanspark",
+      "model": "Qwen3-30B-A3B-Instruct-2507"
+    }
+  },
+  "providers": {
+    "qwen3-critical": {
+      "type": "openai-compatible",
+      "baseUrl": "http://localhost:30000/v1",
+      "model": "Qwen/Qwen3-30B-A3B-Instruct-2507-FP8"
+    },
+    "qwen3-coder": {
+      "type": "openai-compatible",
+      "baseUrl": "http://localhost:30001/v1",
+      "model": "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct"
+    },
+    "glm-5.2-offline": {
+      "type": "openai-compatible",
+      "baseUrl": "http://localhost:30003/v1",
+      "model": "zai-org/GLM-5.2"
+    },
+    "qwen3-utility": {
+      "type": "openai-compatible",
+      "baseUrl": "http://localhost:30002/v1",
+      "model": "Qwen3-30B-A3B-Instruct-2507"
+    }
+  },
+  "skills": {
+    "directory": "~/.openclaw/workspace/skills"
+  },
+  "memory": {
+    "directory": "~/.openclaw/memory",
+    "persistentData": "/data/openclaw/memory"
+  },
+  "notifications": {
+    "herald": {
+      "agent": "HERALD",
+      "skill": "herald_notify",
+      "templatesDir": "~/.openclaw/workspace/telegram",
+      "materialThresholdPctEquity": 0.5,
+      "immediateSeverities": ["CRITICAL", "HIGH"],
+      "natsSubjects": {
+        "trade": "tgcmd.herald.trade",
+        "pnl": "tgcmd.herald.pnl",
+        "hourly": "tgcmd.herald.report.hourly",
+        "urgent": "tgcmd.herald.alert.urgent"
+      }
+    }
+  },
+  "infrastructure": {
+    "hardwareBomPath": "~/.openclaw/infra/hardware_bom.yaml",
+    "titanhome": {
+      "role": "primary_compute_inference_safety",
+      "cpu": "AMD Ryzen Threadripper PRO 9995WX (96C/192T)",
+      "motherboard": "ASUS Pro WS WRX90E-SAGE SE",
+      "memory": "512GB DDR5-6000 ECC R-DIMM (8×64GB)",
+      "gpu": "2× NVIDIA RTX PRO 6000 Blackwell Max-Q (96GB each, 192GB total)",
+      "storage": "Micron 7500 Pro 3.8TB boot + 2× WD Black SN8100 4TB",
+      "psu": "Super Flower Leadex Titanium 2200W",
+      "cooling": "Silverstone XE360-TR5 360mm AIO + Noctua iPPC fans",
+      "timing": "LBE-1420 GPSDO",
+      "oob": "PiKVM V4 Plus",
+      "tpm": "ASUS TPM-SPI",
+      "note": "Tier 1/2 inference + REVM + risk kernel + safety services"
+    },
+    "titanspark": {
+      "role": "utility_inference_operator_gateway",
+      "hardware": "ASUS GX10",
+      "note": "Qwen3-30B utility tier + operator gateway failover"
+    },
+    "macminiVault": {
+      "role": "encrypted_key_metadata_trezor_ceremonies",
+      "hardware": "Mac Mini 2018 — i7 6-core, 64GB DDR4",
+      "note": "Key custody + profit workloads; signing execution via signingNode"
+    },
+    "powerRequirementsPath": "~/.openclaw/infra/power_requirements.yaml",
+    "gpuSchedulePath": "~/.openclaw/infra/gpu_schedule.yaml",
+    "signingNodeConfigPath": "~/.openclaw/infra/signing_node.yaml"
+  },
+  "signingNode": {
+    "enabled": true,
+    "endpoint": "http://127.0.0.1:19010",
+    "host": "localhost",
+    "port": 19010,
+    "isolated": true,
+    "requireGateReceipt": true,
+    "maxReceiptAgeSeconds": 30,
+    "routeAgents": ["TRENCH-OPS", "LAMARCK"],
+    "note": "Logically isolated signing — refuses POST /v1/sign without fresh X-Titan-Gate-Receipt"
+  },
+  "augur": {
+    "regimeFeed": "stub",
+    "regimeFile": "~/.openclaw/safety/augur_regime.json",
+    "note": "Set regimeFeed=file and have AUGUR write regimeFile for live portfolio scaling"
+  },
+  "allocator": {
+    "maxActivePipelines": 4,
+    "note": "Concentrate capital on ≤4 TCA-HEALTHY lanes"
+  },
+  "edgeMesh": {
+    "phase1": "single_pop",
+    "defaultPop": "EDGE-FRA",
+    "activePops": ["EDGE-FRA"],
+    "deferredPopsPhase3Plus": ["EDGE-TKY", "EDGE-SIN", "EDGE-USE", "EDGE-AMS"],
+    "note": "Phase 1 ($2.5K): one PoP only; full 5-PoP mesh is Phase 3+"
+  },
+  "capital": {
+    "state_path": "~/.openclaw/capital/portfolio_state.json",
+    "audit_path": "~/.openclaw/capital/capital_audit.jsonl",
+    "min_operating_capital_usd": 500,
+    "max_single_withdrawal_pct": 20,
+    "withdrawal_adapter": "mock",
+    "trezor_sweep": {
+      "harvest_threshold_usd": 35000,
+      "sweep_pct_of_weekly_profit": 20,
+      "sweep_day_utc": "Sunday",
+      "pause_below_threshold": true,
+      "note": "Growth phase below $35K — 100% reinvest; no sweep until harvest threshold"
+    },
+    "endgame_phase_unlock": 3
+  }
+}

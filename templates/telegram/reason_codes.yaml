@@ -1,0 +1,50 @@
+# TITAN institutional reason codes — HERALD trade notifications
+# Every trade action MUST cite ≥1 code from this registry.
+
+version: "1.0"
+categories:
+  signal:
+    - SIGNAL_CONFLUENCE
+    - SIGNAL_RSI_CROSS
+    - SIGNAL_FUNDING_FLIP
+    - SIGNAL_MEV_OPPORTUNITY
+    - SIGNAL_ARB_GAP
+    - SIGNAL_LIQUIDATION
+    - SIGNAL_ORACLE_DIVERGENCE
+    - SIGNAL_SENTIMENT_SHIFT
+    - SIGNAL_REGIME_CHANGE
+    - SIGNAL_QUANT_MODEL
+  risk:
+    - STOP_LOSS
+    - TAKE_PROFIT
+    - TRAILING_STOP
+    - CB_TRIGGER
+    - DRAWDOWN_TIER
+    - POSITION_LIMIT
+    - GUARDIAN_VETO
+    - GUARDIAN_REDUCE_SIZE
+    - RISK_REBALANCE
+  execution:
+    - SLIPPAGE_EXCESS
+    - GAS_SPIKE
+    - PARTIAL_FILL
+    - ROUTE_FALLBACK
+    - EDGE_REROUTE
+    - FLASH_LOAN_EXEC
+    - CROSS_CHAIN_ARB
+  lifecycle:
+    - PAPER_TRADE_DIVERGENCE
+    - STRATEGY_PAUSE
+    - STRATEGY_RESUME
+    - DEPLOY_GATE
+    - MANUAL_OVERRIDE
+  system:
+    - API_FAILURE
+    - FEED_STALE
+    - HARDWARE_ALARM
+    - SECURITY_THREAT
+
+material_threshold_pct_equity: 0.5
+immediate_severities:
+  - CRITICAL
+  - HIGH

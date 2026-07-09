@@ -1,0 +1,66 @@
+# TITAN Power Requirements — mandatory for live capital
+# Deploy target: ~/.openclaw/infra/power_requirements.yaml
+
+version: "1.1"
+live_capital_requires_ups: true
+hardware_ref: ~/.openclaw/infra/hardware_bom.yaml
+
+titanhome:
+  role: primary_compute_inference_safety
+  mains: "240V dedicated circuit (NEMA plug)"
+  psu:
+    model: "Super Flower Leadex Titanium 2200W (SF-2200F14HP)"
+    rating: "Cybenetics Titanium, ATX 3.1, PCIe 5.1"
+    estimated_draw_watts:
+      cpu_tdp: 350
+      gpu_each: 300
+      gpu_count: 2
+      headroom_note: "2200W PSU adequate for 9995WX + 2× RTX PRO 6000 Max-Q sustained load"
+  ups:
+    required_for_live: true
+    minimum_runtime_minutes: 15
+    minimum_va: 3000
+    outlets_protected:
+      - titanhome_workstation
+      - signing_node
+      - titanspark_gx10
+      - macmini_vault
+      - network_core_switch
+    monitoring:
+      snmp_or_usb: true
+      alert_on_battery: true
+      alert_on_runtime_below_minutes: 10
+      service: power-chain-guard.service
+  on_power_loss:
+    action: halt_trading
+    flatten_open_positions: true
+    revoke_session_keys: true
+    notify: CRITICAL
+    cb: CB_PSU_VOLTAGE_MISMATCH
+    note: "Power-loss = HALT per risk_kernel; no discretionary signing during outage"
+  timing:
+    gpsdo: "LBE-1420"
+    on_pps_lost_minutes: 5
+    fallback: "chronyd NTP pool; gps:lbe1420:state=degraded"
+
+titanspark:
+  hardware: ASUS GX10
+  ups:
+    required_for_live: true
+    minimum_runtime_minutes: 10
+    note: "Utility inference gateway — failover path must survive brief outages"
+
+macmini_vault:
+  hardware: "Mac Mini 2018 64GB"
+  ups:
+    required_for_live: true
+    minimum_runtime_minutes: 15
+    note: "Encrypted key metadata + Trezor sweep path"
+
+edge_mesh:
+  phase1_note: "Cloud PoPs use provider redundancy; on-prem nodes require UPS per this spec"
+
+verification:
+  bootstrap_checklist: "BOOTSTRAP.md — UPS verified before live capital"
+  production_gate: "PRODUCTION_READINESS.md item: UPS installed and tested"
+  script: "verify.sh — fails if live_capital flag set without ups_acknowledged"

@@ -1,0 +1,150 @@
+# TITAN Operator-Locked Hardware BOM
+# Deploy target: ~/.openclaw/infra/hardware_bom.yaml
+# Authority: single source of truth for infra agents (FORGE, SENTINEL, BOOTSTRAP)
+
+version: "1.0"
+operator: hyperion
+last_updated: "2026-07-07"
+
+nodes:
+  titanhome:
+    role: primary_compute_inference_safety
+    hostname: TITANHOME
+    location: on_prem_home
+    chassis: "Phanteks Enthoo Pro 2 Server Edition (SSI-EEB, 11 PCIe slots)"
+    cpu:
+      model: "AMD Ryzen Threadripper PRO 9995WX"
+      cores: 96
+      threads: 192
+      socket: sTR5
+    motherboard:
+      model: "ASUS Pro WS WRX90E-SAGE SE"
+      pcie_lanes: 128
+      pcie_gen: 5
+      x16_slots: 7
+    memory:
+      model: "V-Color TRA564G56D436O"
+      capacity_gb: 512
+      dimms: 8
+      dimm_size_gb: 64
+      type: "DDR5-6000 CL36 ECC Registered R-DIMM"
+      voltage: 1.25
+      cooling: "Thermalright MC-3 Digital + bridge bracket fans"
+    gpu:
+      count: 2
+      model: "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition"
+      vram_gb_each: 96
+      vram_gb_total: 192
+      slots: ["PCIe 5.0 x16 slot 1", "PCIe 5.0 x16 slot 2"]
+      inference_allocation:
+        gpu_0: "Tier 1 — Qwen3-30B-A3B FP8 (:30000) critical path"
+        gpu_1: "Tier 2 — Qwen3-Coder-Next-80B (:30001) reasoning"
+        offline: "Tier 3 — GLM-5.2 expert-offload (:30003) R&D only"
+    storage:
+      boot:
+        model: "Micron 7500 Pro 3.8TB (MTFDKCC3T8TGP)"
+        interface: NVMe
+        role: "OS + ZFS rpool ROOT"
+      data:
+        - model: "WD Black SN8100 4TB (WDS400T1XHM)"
+          interface: "PCIe 5.0 x4 M.2 2280"
+          role: "fast pool / models / ledger"
+        - model: "WD Black SN8100 4TB (WDS400T1XHM)"
+          interface: "PCIe 5.0 x4 M.2 2280"
+          role: "data pool / backtest / archive"
+    psu:
+      model: "Super Flower Leadex Titanium 2200W (SF-2200F14HP)"
+      rating: "Cybenetics Titanium, ATX 3.1, PCIe 5.1"
+      connectors: "2× native 12V-2x6"
+    cooling:
+      cpu: "Silverstone XE360-TR5 360mm AIO (TR5/SP6)"
+      fans_140mm: "4× Noctua NF-A14 iPPC-3000 PWM"
+      fans_120mm: "7× Noctua NF-F12 iPPC-3000 PWM"
+      fans_92mm: "2× Noctua NF-A9x14 HS-PWM chromax.Black.swap"
+    timing:
+      model: "LBE-1420 GPSDO"
+      role: "PPS-locked chrony source"
+      fallback: "NTP pool on GPSDO loss >5min"
+    security:
+      tpm: "ASUS TPM-SPI Trusted Platform Module"
+      oob: "PiKVM V4 Plus"
+      baseline_pcr: "/etc/mnemosyne/tpm-baseline"
+    power:
+      mains: "240V dedicated circuit"
+      ups_required_for_live: true
+    services_hosted:
+      - llama-server-tier1-30000
+      - llama-server-tier2-30001
+      - llama-server-tier3-30003
+      - revm-simulation-30020
+      - titan-risk-kernel-19001
+      - titan-safety-services-19002-19005
+      - nats-server
+      - openclaw-gateway
+
+  titanspark:
+    role: utility_inference_operator_gateway
+    hostname: TITANSPARK
+    hardware: "ASUS GX10"
+    location: on_prem_colocated
+    services_hosted:
+      - qwen3-utility-30002
+      - telegram_gateway_failover
+    note: "Not primary compute — utility tier + operator gateway failover"
+
+  macmini_vault:
+    role: encrypted_key_metadata_trezor_ceremonies
+    hostname: "The Vault"
+    hardware: "Mac Mini 2018"
+    cpu: "Intel Core i7 3.2GHz 6-core"
+    gpu: "Intel UHD Graphics 630 1536MB"
+    memory_gb: 64
+    memory: "64GB DDR4 2667MHz"
+    location: on_prem_colocated
+    services_hosted:
+      - trezor_key_metadata
+      - telegram_gateway_primary
+      - bitcoin_spv_neutrino
+      - governance_scanner
+      - portfolio_analytics_aux
+      - nats_failover_secondary
+    note: "Signing execution routed to signing_node — vault does NOT execute trades"
+
+  signing_node:
+    role: isolated_transaction_signing
+    endpoint: "http://127.0.0.1:19010"
+    ups_required: true
+    note: "Logically isolated minimal OS; TRENCH-OPS + LAMARCK route here"
+
+inference_tiers:
+  tier_1:
+    port: 30000
+    gpu: 0
+    model: "Qwen/Qwen3-30B-A3B-Instruct-2507-FP8"
+    agents: [GUARDIAN, ORACLE, WRAITH, PREDATOR, AUGUR, NARRATIVE, TRENCH-OPS]
+    critical_path: true
+  tier_2:
+    port: 30001
+    gpu: 1
+    model: "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct"
+    agents: [ARCHON, CORTEX, SENTINEL, LAMARCK, DARWIN_GODEL]
+    critical_path: false
+  tier_3:
+    port: 30003
+    gpu: "0+1_expert_offload"
+    model: "zai-org/GLM-5.2"
+    agents: []
+    critical_path: false
+    allowed_windows: ["22:00-06:00", "maintenance_window"]
+  utility:
+    port: 30002
+    host: titanspark
+    model: "Qwen3-30B-A3B-Instruct-2507"
+    agents: [HERALD, NEXUS, FORGE, ALCHEMY, ATLAS, QUANT, ARBITER, HORIZON]
+
+verification:
+  gpu_count_expected: 2
+  memory_gb_expected: 512
+  boot_drive: "Micron 7500 Pro"
+  data_drives: 2
+  ups_ack_required_before_live: true

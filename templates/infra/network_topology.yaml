@@ -1,0 +1,230 @@
+# TITAN Network Topology — physical + logical interconnect
+# Deploy target: ~/.openclaw/infra/network_topology.yaml
+# Use BEFORE software setup. All nodes must ping each other on LAN/mesh before BOOTSTRAP.
+
+version: "1.0"
+operator: hyperion
+last_updated: "2026-07-07"
+status: pre_connect  # change to connected after verification checklist passes
+
+# ─── Recommended Phase 1 LAN (home rack / desk) ─────────────────────────────
+# Single flat LAN is OK for initial bring-up. Segment with VLANs in Phase 2+.
+
+lan:
+  subnet: "192.168.10.0/24"
+  gateway: "192.168.10.1"      # router / OPNsense Protectli (if deployed)
+  dns:
+    - "192.168.10.1"
+    - "1.1.1.1"
+  dhcp:
+    enabled: false              # static IPs for all Titan nodes (recommended)
+    reserved_range: "192.168.10.200-254"  # only for transient devices
+
+nodes:
+  titanhome:
+    hostname: titanhome
+    fqdn: titanhome.lan
+    role: primary_compute_inference_safety
+    lan_ip: "192.168.10.10"
+    mac: ""                     # fill after first boot: ip link show
+    interfaces:
+      onboard_10g_0: "10GbE port 0 → switch (primary)"
+      onboard_10g_1: "10GbE port 1 → spare / iSCSI / backup path"
+      wifi: "DISABLE for production — Ethernet only"
+    services_local:
+      - "llama-server :30000 (Tier 1)"
+      - "llama-server :30001 (Tier 2)"
+      - "titan-safety :19001-19007"
+      - "openclaw-gateway :18789"
+      - "nats :4222"
+      - "signing_node :19010 (Phase 1 co-located VM/cgroup)"
+    oob:
+      pikvm_ip: "192.168.10.5"
+      note: "PiKVM captures HDMI+USB from TITANHOME for BIOS/OS without monitor"
+
+  titanspark:
+    hostname: titanspark
+    fqdn: titanspark.lan
+    role: utility_inference_operator_gateway
+    hardware: "ASUS GX10 (GB10)"
+    lan_ip: "192.168.10.20"
+    current_observed_ip: "192.168.10.41"  # WiFi — migrate to .20 wired before production
+    mac: ""
+    interfaces:
+      primary: "2.5GbE or 10GbE → switch (NOT WiFi for production)"
+    services_local:
+      - "utility inference :30002"
+      - "hermes-gateway"
+      - "telegram_gateway_failover"
+
+  macmini_vault:
+    hostname: vault
+    fqdn: vault.lan
+    role: encrypted_key_metadata_trezor_ceremonies
+    lan_ip: "192.168.10.30"
+    mac: ""
+    interfaces:
+      primary: "Gigabit Ethernet → switch"
+    services_local:
+      - "trezor-bridge metadata"
+      - "telegram_gateway_primary (optional)"
+      - "nats_failover_secondary"
+    note: "Does NOT execute signing — signing_node on TITANHOME :19010"
+
+  signing_node:
+    hostname: signing
+    fqdn: signing.lan
+    role: isolated_transaction_signing
+    phase1_deployment: co_located_on_titanhome
+    lan_ip: "192.168.10.11"     # separate IP if dedicated NUC later
+    endpoint: "http://192.168.10.11:19010"
+    phase1_endpoint_local: "http://127.0.0.1:19010"
+
+  pikvm:
+    hostname: pikvm
+    lan_ip: "192.168.10.5"
+    connects_to: titanhome
+    cables:
+      - "HDMI capture from TITANHOME GPU or motherboard"
+      - "USB-ATX power control"
+      - "Ethernet → switch"
+
+  ups:
+    role: power_protection
+    outlets:
+      - titanhome
+      - titanspark
+      - macmini_vault
+      - switch
+      - router_firewall
+    snmp_or_usb: "USB to TITANHOME for NUT monitoring"
+
+  gpsdo:
+    model: "LBE-1420"
+    connects_to: titanhome
+    outputs:
+      pps: "1 PPS → serial/GPIO or dedicated timing input"
+      note: "Configure chrony after OS install on TITANHOME"
+
+# ─── Phase 1 Edge (cloud — no physical cable to home) ───────────────────────
+
+edge_mesh:
+  phase1_pop:
+    id: EDGE-FRA
+    provider: vultr
+    region: eu-central
+    public_ip: ""               # fill after VPS provision
+    wireguard_ip: "10.0.10.100"
+    roles:
+      - erigon_archive
+      - telegram_relay
+      - eu_rpc_relay
+
+# ─── WireGuard mesh (after LAN works) ───────────────────────────────────────
+
+wireguard_mesh:
+  subnet: "10.0.10.0/24"
+  hub: titanhome
+  peers:
+    titanhome: "10.0.10.1"
+    titanspark: "10.0.10.3"
+    macmini_vault: "10.0.10.4"
+    edge_fra: "10.0.10.100"
+  utility_inference_url: "http://10.0.10.3:30002/v1"
+  note: "openclaw.json agents use localhost on each node; cross-node calls use WG IPs"
+
+# ─── Physical connection order (do in this sequence) ────────────────────────
+
+connection_order:
+  - step: 1
+    action: "Assemble TITANHOME on bench — CPU, RAM, GPUs, storage, AIO (no power yet)"
+  - step: 2
+    action: "Mount TPM-SPI, verify GPU in slot 1 (CPU direct) and slot 2"
+  - step: 3
+    action: "Connect PiKVM HDMI+USB to TITANHOME; PiKVM Ethernet to switch"
+  - step: 4
+    action: "First power-on via PiKVM; configure BIOS (see bios_titanhome section)"
+  - step: 5
+    action: "Install Ubuntu 24.04 on Micron 7500; verify 2× GPU + 512GB RAM"
+  - step: 6
+    action: "Connect GX10 (TITANSPARK) Ethernet to switch — not WiFi"
+  - step: 7
+    action: "Connect Mac Mini Ethernet to switch"
+  - step: 8
+    action: "Connect switch uplink to router; assign static IPs"
+  - step: 9
+    action: "Verify: ping 10→20→30 from each node"
+  - step: 10
+    action: "Connect UPS; run power-loss drill"
+  - step: 11
+    action: "Connect LBE-1420 GPSDO; configure chrony"
+  - step: 12
+    action: "Deploy Titan bundle on TITANHOME; point GX10 utility to 10.0.10.3"
+
+# ─── Verification (all must pass before BOOTSTRAP software section) ─────────
+
+verification:
+  - "From titanhome: ping -c3 192.168.10.20 (titanspark)"
+  - "From titanhome: ping -c3 192.168.10.30 (vault)"
+  - "From titanspark: ping -c3 192.168.10.10 (titanhome)"
+  - "From titanspark: curl -s http://192.168.10.10:30000/health (after inference up)"
+  - "PiKVM: can see TITANHOME BIOS and OS from browser"
+  - "nvidia-smi -L on titanhome shows 2× RTX PRO 6000"
+  - "free -h on titanhome shows ~512Gi"
+  - "All production nodes on Ethernet — no WiFi"
+
+bios_titanhome:
+  motherboard: "ASUS Pro WS WRX90E-SAGE SE"
+  bios_update:
+    method: "USB BIOS Flashback (rear port) BEFORE first POST with CPU"
+    note: "Download latest WRX90 BIOS from ASUS; check Level1Techs 9995WX thread"
+  critical_settings:
+    memory:
+      - "Enable ECC Mode: Enabled (if RDIMM)"
+      - "EXPO/R-DIMM profile: DDR5-6000 — use EXPO I or manual 6000 CL36"
+      - "Memory Context Restore: Enabled (fast boot)"
+      - "Power Down Enable: Disabled (keeps DIMMs ready)"
+    pcie:
+      - "PCIe Link Speed: Gen 5"
+      - "Slot 1 (GPU0): x16 — primary — must be CPU-direct slot per manual"
+      - "Slot 2 (GPU1): x16"
+      - "Above 4G Decoding: Enabled"
+      - "Resizable BAR (Re-Size BAR): Enabled — required for large VRAM models"
+      - "SR-IOV: Enabled if using E810 VF passthrough later"
+    cpu:
+      - "SMT: Enabled (192 threads)"
+      - "PBO/Curve Optimizer: leave stock for stability until tuned"
+      - "C-States: Enabled for idle; monitor latency if trading-sensitive"
+      - "Global C-state Control: Auto"
+    boot:
+      - "Fast Boot: Disabled (for reliability)"
+      - "Boot primary: Micron 7500 NVMe"
+      - "Secure Boot: Disabled initially (Ubuntu install); re-enable optional"
+      - "TPM: Enabled, TPM 2.0, PCR banks SHA256"
+    virtualization:
+      - "SVM Mode (AMD-V): Enabled — for signing_node VM"
+      - "IOMMU: Enabled — for VFIO/GPU passthrough if needed"
+    power:
+      - "ErP: Disabled"
+      - "Restore on AC Power Loss: Power Off (safe default)"
+    fan:
+      - "CPU fan: XE360-TR5 pump header — full speed profile"
+      - "Chassis fans: PWM — set aggressive curve for 2× 300W GPUs"
+    security:
+      - "BIOS password: set"
+      - "TPM physical presence: Enabled"
+
+bios_titanspark_gx10:
+  note: "ASUS GX10 — Ubuntu pre-installed; firmware via ASUS if available"
+  settings:
+    - "Ethernet preferred over WiFi"
+    - "Disable sleep/hibernate"
+    - "Static IP 192.168.10.20"
+
+macmini_vault:
+  settings:
+    - "macOS: FileVault ON"
+    - "Firewall ON"
+    - "No sleep when plugged in"
+    - "Static IP 192.168.10.30"
+    - "Trezor Suite installed; bridge reachable from TITANHOME only"

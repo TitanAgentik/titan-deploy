@@ -1,0 +1,560 @@
+#!/usr/bin/env python3
+"""TITAN safety CLI — kill switch, promotion gate, heartbeat."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from .allocator import AllocatorConfig, CapitalAllocator, LaneEdge
+from .audit_chain import AuditChainWriter, DecisionLogEntry, VersionFingerprint, build_fingerprint
+from .auth import sign_control_command
+from .capital import CapitalManager, load_capital_config
+from .dead_mans_switch import DeadMansSwitch
+from .execution_gate import ExecutionGate
+from .kill_switch import KillSwitch
+from .promotion_gate import PromotionCategory, PromotionGate, PromotionRequest
+from .promotion_stats import StatsGateConfig, StrategyStats, StrategyStatsGate
+from .tca import Fill, TCAEngine
+from .telegram_capital import format_telegram_response, handle_capital_command
+from .wind_down import WindDownController
+
+
+def cmd_kill_activate(args: argparse.Namespace) -> int:
+    ks = KillSwitch(Path(args.safety_dir) if args.safety_dir else None)
+    if args.signed:
+        ok, msg = ks.verify_signed_command(args.signed)
+        if not ok:
+            print(json.dumps({"error": msg}))
+            return 1
+        if msg != "HALT":
+            print(json.dumps({"error": f"unexpected command: {msg}"}))
+            return 1
+    state = ks.activate(args.operator, args.reason, flatten=not args.no_flatten)
+    print(json.dumps(state.to_dict(), indent=2))
+    return 0
+
+
+def cmd_kill_deactivate(args: argparse.Namespace) -> int:
+    ks = KillSwitch(Path(args.safety_dir) if args.safety_dir else None)
+    # Require signed RESUME — unsigned deactivate is a production vulnerability
+    if not args.signed:
+        print(json.dumps({"error": "signed RESUME required for deactivate", "hint": "titan-safety kill sign --command RESUME"}))
+        return 1
+    ok, msg = ks.verify_signed_command(args.signed)
+    if not ok:
+        print(json.dumps({"error": msg}))
+        return 1
+    if msg != "RESUME":
+        print(json.dumps({"error": f"expected RESUME command, got '{msg}'"}))
+        return 1
+    state = ks.deactivate(args.operator)
+    print(json.dumps(state.to_dict(), indent=2))
+    return 0
+
+
+def cmd_kill_status(args: argparse.Namespace) -> int:
+    ks = KillSwitch(Path(args.safety_dir) if args.safety_dir else None)
+    print(json.dumps(ks.health(), indent=2))
+    return 0
+
+
+def cmd_kill_sign(args: argparse.Namespace) -> int:
+    ks = KillSwitch(Path(args.safety_dir) if args.safety_dir else None)
+    signed = ks.sign_command(args.command, args.operator)
+    print(signed)
+    return 0
+
+
+def cmd_promotion_approve(args: argparse.Namespace) -> int:
+    gate = PromotionGate(Path(args.safety_dir) if args.safety_dir else None)
+    req = PromotionRequest(
+        request_id=args.request_id,
+        category=args.category,
+        subject=args.subject,
+        operator_response=args.response,
+        operator_id=args.operator,
+        metadata=json.loads(args.metadata) if args.metadata else {},
+    )
+    decision = gate.evaluate(req)
+    print(json.dumps(decision.to_dict(), indent=2))
+    return 0 if decision.approved else 1
+
+
+def cmd_promotion_verify_audit(args: argparse.Namespace) -> int:
+    gate = PromotionGate(Path(args.safety_dir) if args.safety_dir else None)
+    ok, msg = gate.verify_audit_chain()
+    print(json.dumps({"valid": ok, "message": msg}))
+    return 0 if ok else 1
+
+
+def cmd_heartbeat(args: argparse.Namespace) -> int:
+    dms = DeadMansSwitch()
+    state = dms.heartbeat(args.operator)
+    print(json.dumps(state.to_dict(), indent=2))
+    return 0
+
+
+def cmd_audit_append(args: argparse.Namespace) -> int:
+    fp = build_fingerprint(
+        Path(args.model) if args.model else None,
+        Path(args.lora) if args.lora else None,
+        args.prompt_version,
+        Path(args.soul) if args.soul else None,
+    )
+    entry = DecisionLogEntry(
+        decision_id=args.decision_id,
+        agent_id=args.agent,
+        action=args.action,
+        fingerprint=fp,
+        payload=json.loads(args.payload) if args.payload else {},
+    )
+    writer = AuditChainWriter(Path(args.log))
+    record = writer.append(entry)
+    print(json.dumps(record, indent=2))
+    return 0
+
+
+def cmd_audit_verify(args: argparse.Namespace) -> int:
+    writer = AuditChainWriter(Path(args.log))
+    ok, msg = writer.verify()
+    print(json.dumps({"valid": ok, "message": msg}))
+    return 0 if ok else 1
+
+
+def _capital_manager(args: argparse.Namespace) -> CapitalManager:
+    cfg_path = getattr(args, "config", None)
+    return CapitalManager(load_capital_config(cfg_path) if cfg_path else None)
+
+
+def cmd_capital_deposit(args: argparse.Namespace) -> int:
+    mgr = _capital_manager(args)
+    result = mgr.deposit(
+        args.amount,
+        args.asset,
+        chain=args.chain,
+        tx_hash=args.tx_hash,
+        source=args.source,
+        operator=args.operator,
+    )
+    if args.telegram:
+        print(format_telegram_response(result))
+    else:
+        print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.ok else 1
+
+
+def cmd_capital_withdraw(args: argparse.Namespace) -> int:
+    mgr = _capital_manager(args)
+    # Withdrawals require explicit --confirm-yes for amounts > 0 (production hardening)
+    if not args.confirm and args.amount and args.amount > 0:
+        if not getattr(args, "confirm_yes", False):
+            print(json.dumps({
+                "error": "withdrawal requires --confirm-yes (or --confirm REQUEST_ID for pending)",
+                "ok": False,
+            }))
+            return 1
+    if args.confirm:
+        result = mgr.withdraw(
+            0.0,
+            args.asset,
+            operator=args.operator,
+            confirm_request_id=args.confirm,
+        )
+    else:
+        result = mgr.withdraw(
+            args.amount,
+            args.asset,
+            address=args.address,
+            operator=args.operator,
+        )
+    if args.telegram:
+        print(format_telegram_response(result))
+    else:
+        print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.ok else 1
+
+
+def cmd_auth_sign(args: argparse.Namespace) -> int:
+    token = sign_control_command(args.command, args.operator, Path(args.safety_dir) if args.safety_dir else None)
+    print(token)
+    return 0
+
+
+def cmd_gate_check(args: argparse.Namespace) -> int:
+    from .kernel import TradeRequest
+    from .policy_loader import load_policy
+
+    policy = load_policy(args.policy)
+    gate = ExecutionGate(policy)
+    trade = TradeRequest.from_dict(json.loads(args.trade))
+    believed = json.loads(args.believed) if args.believed else []
+    decision = gate.gate(trade, believed)
+    print(json.dumps(decision.to_dict(), indent=2))
+    return 0 if decision.allowed else 1
+
+
+def cmd_capital_balance(args: argparse.Namespace) -> int:
+    mgr = _capital_manager(args)
+    bal = mgr.balance()
+    if args.telegram:
+        result = handle_capital_command("/balance", operator=args.operator, manager=mgr)
+        print(format_telegram_response(result))
+    else:
+        print(json.dumps(bal, indent=2))
+    return 0
+
+
+def cmd_capital_sweep(args: argparse.Namespace) -> int:
+    mgr = _capital_manager(args)
+    result = mgr.sweep(
+        weekly_profit_usd=args.weekly_profit,
+        operator=args.operator,
+    )
+    if args.telegram:
+        print(format_telegram_response(result))
+    else:
+        print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.ok else 1
+
+
+def cmd_kill_pipeline_halt(args: argparse.Namespace) -> int:
+    ks = KillSwitch(Path(args.safety_dir) if args.safety_dir else None)
+    payload = ks.activate_pipeline(args.pipeline, args.operator, args.reason)
+    print(json.dumps(payload, indent=2))
+    return 0
+
+
+def cmd_kill_pipeline_resume(args: argparse.Namespace) -> int:
+    ks = KillSwitch(Path(args.safety_dir) if args.safety_dir else None)
+    ok = ks.deactivate_pipeline(args.pipeline)
+    print(json.dumps({"pipeline": args.pipeline, "resumed": ok}))
+    return 0 if ok else 1
+
+
+def cmd_kill_portfolio(args: argparse.Namespace) -> int:
+    ks = KillSwitch(Path(args.safety_dir) if args.safety_dir else None)
+    state = ks.activate_portfolio(args.operator, args.reason, flatten=not args.no_flatten)
+    print(json.dumps(state.to_dict(), indent=2))
+    return 0
+
+
+def cmd_wind_down_safe_mode(args: argparse.Namespace) -> int:
+    wd = WindDownController(Path(args.safety_dir) if args.safety_dir else None)
+    state = wd.enter_safe_mode(args.operator, args.reason)
+    print(json.dumps(state.to_dict(), indent=2))
+    return 0
+
+
+def cmd_wind_down_derisk(args: argparse.Namespace) -> int:
+    wd = WindDownController(Path(args.safety_dir) if args.safety_dir else None)
+    state = wd.start_derisk(args.operator, args.reason, current_pct=args.exposure_pct)
+    print(json.dumps(state.to_dict(), indent=2))
+    return 0
+
+
+def cmd_wind_down_flatten(args: argparse.Namespace) -> int:
+    wd = WindDownController(Path(args.safety_dir) if args.safety_dir else None)
+    state = wd.start_flatten(args.operator, args.reason, current_pct=args.exposure_pct)
+    print(json.dumps(state.to_dict(), indent=2))
+    return 0
+
+
+def cmd_wind_down_step(args: argparse.Namespace) -> int:
+    wd = WindDownController(Path(args.safety_dir) if args.safety_dir else None)
+    result = wd.step(current_exposure_pct=args.exposure_pct)
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def cmd_wind_down_resume(args: argparse.Namespace) -> int:
+    wd = WindDownController(Path(args.safety_dir) if args.safety_dir else None)
+    state = wd.resume_normal(args.operator)
+    print(json.dumps(state.to_dict(), indent=2))
+    return 0
+
+
+def cmd_wind_down_status(args: argparse.Namespace) -> int:
+    wd = WindDownController(Path(args.safety_dir) if args.safety_dir else None)
+    print(json.dumps(wd.health(), indent=2))
+    return 0
+
+
+def cmd_telegram_capital(args: argparse.Namespace) -> int:
+    result = handle_capital_command(args.text, operator=args.operator)
+    print(format_telegram_response(result))
+    return 0 if result.ok else 1
+
+
+def cmd_capital_verify_audit(args: argparse.Namespace) -> int:
+    mgr = _capital_manager(args)
+    ok, msg = mgr.verify_audit()
+    print(json.dumps({"valid": ok, "message": msg}))
+    return 0 if ok else 1
+
+
+def cmd_allocator_plan(args: argparse.Namespace) -> int:
+    lanes_raw = json.loads(args.lanes) if args.lanes else []
+    lanes = [
+        LaneEdge(
+            pipeline_id=str(l.get("pipeline_id", "")),
+            net_bps=float(l.get("net_bps", 0.0)),
+            return_std=float(l.get("return_std", 0.0)),
+            trade_count=int(l.get("trade_count", 0)),
+            capacity_usd=float(l.get("capacity_usd", 0.0)),
+            decaying=bool(l.get("decaying", False)),
+            cluster=str(l.get("cluster", "")),
+        )
+        for l in lanes_raw
+    ]
+    allocator = CapitalAllocator()
+    plan = allocator.allocate(
+        args.equity, lanes, regime=args.regime, drawdown_pct=args.drawdown_pct
+    )
+    print(json.dumps(plan.to_dict(), indent=2))
+    return 0
+
+
+def cmd_promotion_stats(args: argparse.Namespace) -> int:
+    raw = json.loads(args.stats)
+    stats = StrategyStats(
+        strategy_id=str(raw.get("strategy_id", "")),
+        returns=[float(r) for r in raw.get("returns", [])],
+        trials=int(raw.get("trials", 1)),
+        sr_variance=raw.get("sr_variance"),
+        num_trades=int(raw.get("num_trades", 0)),
+        gross_bps=float(raw.get("gross_bps", 0.0)),
+        cost_bps=float(raw.get("cost_bps", 0.0)),
+        backtest_sharpe=float(raw.get("backtest_sharpe", 0.0)),
+        shadow_sharpe=float(raw.get("shadow_sharpe", 0.0)),
+    )
+    result = StrategyStatsGate().evaluate(stats)
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.passed else 1
+
+
+def cmd_evolution_freeze(args: argparse.Namespace) -> int:
+    from .evolution_freeze import EvolutionFreeze
+
+    ef = EvolutionFreeze(Path(args.safety_dir) if args.safety_dir else None)
+    print(json.dumps(ef.freeze(args.operator, args.reason), indent=2))
+    return 0
+
+
+def cmd_evolution_unfreeze(args: argparse.Namespace) -> int:
+    from .evolution_freeze import EvolutionFreeze
+
+    ef = EvolutionFreeze(Path(args.safety_dir) if args.safety_dir else None)
+    print(json.dumps(ef.unfreeze(args.operator, args.reason), indent=2))
+    return 0
+
+
+def cmd_evolution_status(args: argparse.Namespace) -> int:
+    from .evolution_freeze import EvolutionFreeze
+
+    ef = EvolutionFreeze(Path(args.safety_dir) if args.safety_dir else None)
+    print(json.dumps(ef.status(), indent=2))
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="TITAN Safety CLI")
+    parser.add_argument("--safety-dir", default=str(Path.home() / ".openclaw" / "safety"))
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p_kill = sub.add_parser("kill", help="Kill switch commands")
+    kill_sub = p_kill.add_subparsers(dest="kill_cmd", required=True)
+
+    ka = kill_sub.add_parser("activate")
+    ka.add_argument("--operator", default="cli")
+    ka.add_argument("--reason", default="manual halt")
+    ka.add_argument("--signed", help="HMAC-signed HALT command")
+    ka.add_argument("--no-flatten", action="store_true")
+    ka.set_defaults(func=cmd_kill_activate)
+
+    kd = kill_sub.add_parser("deactivate")
+    kd.add_argument("--operator", default="cli")
+    kd.add_argument("--signed", default=None, help="HMAC-signed RESUME command (required)")
+    kd.set_defaults(func=cmd_kill_deactivate)
+
+    ks = kill_sub.add_parser("status")
+    ks.set_defaults(func=cmd_kill_status)
+
+    ksign = kill_sub.add_parser("sign")
+    ksign.add_argument("--command", default="HALT")
+    ksign.add_argument("--operator", default="operator")
+    ksign.set_defaults(func=cmd_kill_sign)
+
+    kpf = kill_sub.add_parser("portfolio")
+    kpf.add_argument("--operator", default="cli")
+    kpf.add_argument("--reason", default="portfolio halt")
+    kpf.add_argument("--no-flatten", action="store_true")
+    kpf.set_defaults(func=cmd_kill_portfolio)
+
+    kp_pipe = kill_sub.add_parser("pipeline")
+    pipe_sub = kp_pipe.add_subparsers(dest="pipe_cmd", required=True)
+    ph = pipe_sub.add_parser("halt")
+    ph.add_argument("--pipeline", required=True)
+    ph.add_argument("--operator", default="cli")
+    ph.add_argument("--reason", default="pipeline halt")
+    ph.set_defaults(func=cmd_kill_pipeline_halt)
+    pr = pipe_sub.add_parser("resume")
+    pr.add_argument("--pipeline", required=True)
+    pr.set_defaults(func=cmd_kill_pipeline_resume)
+
+    p_wd = sub.add_parser("wind-down", help="Exit ramp / safe mode")
+    wd_sub = p_wd.add_subparsers(dest="wd_cmd", required=True)
+    wsm = wd_sub.add_parser("safe-mode")
+    wsm.add_argument("--operator", default="cli")
+    wsm.add_argument("--reason", default="safe mode")
+    wsm.set_defaults(func=cmd_wind_down_safe_mode)
+    wdr = wd_sub.add_parser("derisk")
+    wdr.add_argument("--operator", default="cli")
+    wdr.add_argument("--reason", default="derisk")
+    wdr.add_argument("--exposure-pct", type=float, default=100.0)
+    wdr.set_defaults(func=cmd_wind_down_derisk)
+    wfl = wd_sub.add_parser("flatten")
+    wfl.add_argument("--operator", default="cli")
+    wfl.add_argument("--reason", default="flatten")
+    wfl.add_argument("--exposure-pct", type=float, default=100.0)
+    wfl.set_defaults(func=cmd_wind_down_flatten)
+    wst = wd_sub.add_parser("step")
+    wst.add_argument("--exposure-pct", type=float, default=None)
+    wst.set_defaults(func=cmd_wind_down_step)
+    wres = wd_sub.add_parser("resume")
+    wres.add_argument("--operator", default="cli")
+    wres.set_defaults(func=cmd_wind_down_resume)
+    wstat = wd_sub.add_parser("status")
+    wstat.set_defaults(func=cmd_wind_down_status)
+
+    p_promo = sub.add_parser("promotion", help="Promotion gate")
+    promo_sub = p_promo.add_subparsers(dest="promo_cmd", required=True)
+
+    pa = promo_sub.add_parser("approve")
+    pa.add_argument("--request-id", required=True)
+    pa.add_argument("--category", choices=[c.value for c in PromotionCategory], required=True)
+    pa.add_argument("--subject", required=True)
+    pa.add_argument("--response", required=True, help="Must be YES for approval")
+    pa.add_argument("--operator", default="operator")
+    pa.add_argument("--metadata", default="")
+    pa.set_defaults(func=cmd_promotion_approve)
+
+    pv = promo_sub.add_parser("verify-audit")
+    pv.set_defaults(func=cmd_promotion_verify_audit)
+
+    hb = sub.add_parser("heartbeat", help="Reset dead-man's switch timer")
+    hb.add_argument("--operator", default="operator")
+    hb.set_defaults(func=cmd_heartbeat)
+
+    p_audit = sub.add_parser("audit", help="Decision log audit chain")
+    audit_sub = p_audit.add_subparsers(dest="audit_cmd", required=True)
+
+    aa = audit_sub.add_parser("append")
+    aa.add_argument("--log", required=True)
+    aa.add_argument("--decision-id", required=True)
+    aa.add_argument("--agent", required=True)
+    aa.add_argument("--action", required=True)
+    aa.add_argument("--model")
+    aa.add_argument("--lora")
+    aa.add_argument("--prompt-version", default="v1")
+    aa.add_argument("--soul")
+    aa.add_argument("--payload", default="{}")
+    aa.set_defaults(func=cmd_audit_append)
+
+    av = audit_sub.add_parser("verify")
+    av.add_argument("--log", required=True)
+    av.set_defaults(func=cmd_audit_verify)
+
+    p_cap = sub.add_parser("capital", help="Deposit, withdraw, balance, sweep")
+    cap_sub = p_cap.add_subparsers(dest="cap_cmd", required=True)
+
+    def _cap_common(p: argparse.ArgumentParser) -> None:
+        p.add_argument("--operator", default="cli")
+        p.add_argument("--telegram", action="store_true", help="HERALD-style output")
+        p.add_argument("--config", help="Path to config.yaml or openclaw.json")
+
+    cd = cap_sub.add_parser("deposit")
+    _cap_common(cd)
+    cd.add_argument("--amount", type=float, required=True)
+    cd.add_argument("--asset", required=True)
+    cd.add_argument("--chain", default=None)
+    cd.add_argument("--tx-hash", default=None)
+    cd.add_argument("--source", default="cli")
+    cd.set_defaults(func=cmd_capital_deposit)
+
+    cw = cap_sub.add_parser("withdraw")
+    _cap_common(cw)
+    cw.add_argument("--amount", type=float, default=0.0)
+    cw.add_argument("--asset", default="USDC")
+    cw.add_argument("--address", default=None)
+    cw.add_argument("--confirm", default=None, help="Confirm pending request id")
+    cw.add_argument("--confirm-yes", action="store_true", help="Explicit confirm for direct withdraw")
+    cw.set_defaults(func=cmd_capital_withdraw)
+
+    cb = cap_sub.add_parser("balance")
+    _cap_common(cb)
+    cb.set_defaults(func=cmd_capital_balance)
+
+    cs = cap_sub.add_parser("sweep")
+    _cap_common(cs)
+    cs.add_argument("--weekly-profit", type=float, default=None)
+    cs.set_defaults(func=cmd_capital_sweep)
+
+    ct = cap_sub.add_parser("telegram")
+    ct.add_argument("--text", required=True, help="Raw Telegram command e.g. /deposit 2500 USDC")
+    ct.add_argument("--operator", default="telegram")
+    ct.set_defaults(func=cmd_telegram_capital)
+
+    cva = cap_sub.add_parser("verify-audit")
+    cva.add_argument("--config", default=None)
+    cva.set_defaults(func=cmd_capital_verify_audit)
+
+    p_alloc = sub.add_parser("allocator", help="Capital allocation planning")
+    alloc_sub = p_alloc.add_subparsers(dest="alloc_cmd", required=True)
+    ap = alloc_sub.add_parser("plan")
+    ap.add_argument("--equity", type=float, required=True)
+    ap.add_argument("--regime", default="neutral")
+    ap.add_argument("--drawdown-pct", type=float, default=0.0)
+    ap.add_argument("--lanes", default="", help="JSON list of lane edge dicts")
+    ap.set_defaults(func=cmd_allocator_plan)
+
+    p_ps = sub.add_parser("promotion-stats", help="Evaluate statistical promotion gate")
+    p_ps.add_argument("--stats", required=True, help="JSON StrategyStats payload")
+    p_ps.set_defaults(func=cmd_promotion_stats)
+
+    p_auth = sub.add_parser("auth", help="Control-plane HMAC tokens")
+    auth_sub = p_auth.add_subparsers(dest="auth_cmd", required=True)
+    asig = auth_sub.add_parser("sign")
+    asig.add_argument("--command", required=True, help="e.g. FLATTEN, HEARTBEAT, TCA_INGEST")
+    asig.add_argument("--operator", default="operator")
+    asig.set_defaults(func=cmd_auth_sign)
+
+    p_gate = sub.add_parser("gate", help="Unbypassable pre-trade execution gate")
+    gate_sub = p_gate.add_subparsers(dest="gate_cmd", required=True)
+    gc = gate_sub.add_parser("check")
+    gc.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
+    gc.add_argument("--trade", required=True, help="JSON TradeRequest")
+    gc.add_argument("--believed", default="", help="JSON list of believed positions")
+    gc.set_defaults(func=cmd_gate_check)
+
+    p_evo = sub.add_parser("evolution", help="Freeze self-mod / evolution while live")
+    evo_sub = p_evo.add_subparsers(dest="evo_cmd", required=True)
+    efz = evo_sub.add_parser("freeze")
+    efz.add_argument("--operator", default="cli")
+    efz.add_argument("--reason", default="live capital")
+    efz.set_defaults(func=cmd_evolution_freeze)
+    euf = evo_sub.add_parser("unfreeze")
+    euf.add_argument("--operator", default="cli")
+    euf.add_argument("--reason", default="operator YES")
+    euf.set_defaults(func=cmd_evolution_unfreeze)
+    est = evo_sub.add_parser("status")
+    est.set_defaults(func=cmd_evolution_status)
+
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,91 @@
+# TITAN GPU Schedule — market-hours priority reservation
+# Deploy target: ~/.openclaw/infra/gpu_schedule.yaml
+# TITANHOME: 2× RTX PRO 6000 Blackwell Max-Q (96GB each) via CUDA MPS
+
+version: "1.1"
+timezone: UTC
+hardware_ref: ~/.openclaw/infra/hardware_bom.yaml
+
+market_hours:
+  trading_window: "00:00-23:59"
+  maintenance_window: "06:00-10:00"
+
+priorities:
+  1:
+    name: tier1_critical_inference
+    services:
+      - llama-server-qwen3-30b-fp8  # :30000 GPU 0
+    gpu: 0
+    mps_partition: inference-critical
+    preemptible: false
+    market_hours: always_on
+    agents: [GUARDIAN, ORACLE, PREDATOR, AUGUR, WRAITH, NARRATIVE, TRENCH-OPS]
+    note: "NEVER preempted — signals, risk, execution critical path"
+  2:
+    name: tier2_reasoning_inference
+    services:
+      - llama-server-qwen3-coder-80b  # :30001 GPU 1
+    gpu: 1
+    mps_partition: inference-high
+    preemptible: false
+    market_hours: always_on
+    agents: [ARCHON, CORTEX, SENTINEL, LAMARCK, DARWIN_GODEL]
+    note: "Orchestration + strategy — not on sub-second execution path"
+  3:
+    name: trading_aux
+    services:
+      - embedder  # :30004
+      - revm_simulation  # :30020
+    mps_partition: compute-medium
+    preemptible: false
+    market_hours: always_on
+  4:
+    name: tier3_offline_only
+    services:
+      - llama-server-deepseek-v4pro  # :30005 PRIMARY long-horizon R&D
+      - llama-server-glm-5.2-offload  # :30003 SECONDARY R&D
+    gpu: "0+1_expert_offload"
+    mps_partition: compute-low
+    preemptible: true
+    allowed_windows:
+      - maintenance_window
+      - "22:00-06:00"
+    market_hours: forbidden
+    note: "Tier 3a DeepSeek V4 Pro (:30005) PRIMARY + Tier 3b GLM-5.2 (:30003) SECONDARY — R&D/evolution ONLY; NEVER on live trade path (TRENCH-OPS/GUARDIAN/EXECUTOR)"
+  5:
+    name: off_peak_compute
+    services:
+      - cuevm_fuzzing
+      - monte_carlo_backtest
+      - skill_evolution_training
+    mps_partition: compute-low
+    preemptible: true
+    allowed_windows:
+      - maintenance_window
+      - "22:00-06:00"
+    market_hours: forbidden
+
+failover:
+  gpu_0_failure:
+    action: "Route Tier 1 to GPU 1 degraded Qwen3-30B; close-only until GPU 0 restored"
+    cb: CB_GPU0_FAILOVER
+  gpu_1_failure:
+    action: "Tier 2 agents fallback to TITANSPARK :30002 utility model"
+    cb: CB_GPU1_FAILOVER
+  dual_gpu_failure:
+    action: "HALT trading; emergency sweep to Trezor"
+    cb: CB_DUAL_GPU_FAILURE
+
+titanspark:
+  role: utility_inference_failover
+  hardware: ASUS GX10
+  services:
+    - qwen3-utility-30002
+  note: "Utility tier failover — not primary critical-path inference"
+
+enforcement:
+  agent: FORGE
+  heartbeat_check: HEARTBEAT.md
+  on_violation:
+    action: kill_off_peak_job
+    alert: MEDIUM

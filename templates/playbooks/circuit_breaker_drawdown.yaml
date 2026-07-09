@@ -1,0 +1,41 @@
+# Incident response — drawdown circuit breakers
+category: drawdown
+version: "1.0"
+
+tiers:
+  - pct: 2.0
+    action: alert_operator
+    playbook:
+      - HERALD CRITICAL alert to Telegram
+      - Log to dissent_log
+      - Continue trading with heightened monitoring
+  - pct: 5.0
+    action: soft_pause_new_entries
+    playbook:
+      - Pause all new entries
+      - Allow exits and de-risk only
+      - Review MRM drift reports
+  - pct: 8.0
+    action: reduce_exposure_50pct
+    playbook:
+      - titan-safety wind-down derisk --operator YOU
+      - Reduce aggregate exposure 50%
+  - pct: 10.0
+    action: critical_alert_human_required
+    playbook:
+      - Immediate operator notification
+      - Safe mode entry recommended
+  - pct: 12.0
+    action: full_halt_flatten
+    playbook:
+      - titan-safety kill activate --reason "12pct drawdown tier"
+      - POST /v1/flatten on risk kernel
+      - Incident post-mortem within 24h
+
+velocity_breakers:
+  max_loss_60s_usd: 150
+  max_loss_15m_usd: 400
+  action: deny_new_trades
+
+wind_down:
+  command: titan-safety wind-down derisk|flatten|resume

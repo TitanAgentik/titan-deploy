@@ -1,0 +1,30 @@
+# Exit ramp / safe mode procedure
+version: "1.0"
+
+safe_mode:
+  flag: ~/.openclaw/safety/SAFE_MODE.active
+  max_exposure_pct: 50
+  entry: titan-safety wind-down safe-mode --operator YOU --reason "..."
+
+phases:
+  normal:
+    exposure_target_pct: 100
+  safe_mode:
+    exposure_target_pct: 50
+    allow: exits, hedges, de-risk
+    deny: new entries, promotions, evolution deploy
+  derisk:
+    exposure_target_pct: 25
+    step_interval_seconds: 300
+    max_reduction_per_step_pct: 10
+  flatten:
+    exposure_target_pct: 0
+    coordination: TRENCH-OPS flatten handler + signing_node
+
+recovery:
+  command: titan-safety wind-down resume --operator YOU
+  prerequisites:
+    - Root cause documented
+    - Reconciliation zero divergence
+    - Operator heartbeat current
+    - Promotion gate not pending CRITICAL items

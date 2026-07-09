@@ -1,0 +1,14 @@
+[Unit]
+Description=TITAN Portfolio Risk Engine
+After=network.target
+
+[Service]
+Type=simple
+Environment=TITAN_POLICY_PATH=%h/.openclaw/risk_kernel/policy.yaml
+Environment=PYTHONPATH=%h/.openclaw/safety
+ExecStart=/usr/bin/python3 -m titan_safety.portfolio_risk_service
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

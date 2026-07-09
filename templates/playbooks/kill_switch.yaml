@@ -1,0 +1,34 @@
+# Layered kill switch operations playbook
+version: "1.0"
+
+layers:
+  - name: per_pipeline
+    cli: titan-safety kill pipeline halt --pipeline P30 --operator YOU --reason "..."
+    clear: titan-safety kill pipeline resume --pipeline P30
+    scope: Single pipeline; others continue
+  - name: global_portfolio
+    cli: titan-safety kill portfolio --operator YOU --reason "..."
+    scope: All pipelines halted; positions may remain
+  - name: global_flatten
+    cli: titan-safety kill activate --operator YOU --reason "..." 
+    scope: Halt + flatten request + optional key revocation
+  - name: signed_remote
+    cli: titan-safety kill sign --command HALT | pipe to remote executor
+    note: HMAC-signed; 300s expiry
+  - name: file_flag
+    path: ~/.openclaw/safety/KILL_SWITCH.active
+    note: Detected by kernel on every validate; no NATS/Telegram/LLM required
+
+hardware_ops:
+  buskill:
+    description: USB BusKill cable — physical disconnect triggers host lock (ops-installed)
+    status: manual_ops_step
+    note: Not wired in software bundle; operator installs separately
+  ups_power_loss:
+    action: halt_trading
+    policy: risk_kernel/policy.yaml power_loss section
+
+recovery:
+  - Deactivate software kill switch
+  - Operator RESUME after heartbeat + reconciliation OK
+  - Re-enable pipelines individually after root-cause review

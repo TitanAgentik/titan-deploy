@@ -1,0 +1,20 @@
+[Unit]
+Description=TITAN Tier 1 Inference — Qwen3-30B-A3B FP8 (critical path)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/data/models/Qwen3-30B-A3B-Instruct-2507-FP8
+
+[Service]
+Type=simple
+User=hyperion
+Environment=CUDA_VISIBLE_DEVICES=0
+ExecStart=/home/hyperion/llama.cpp/build/bin/llama-server \
+  --host 127.0.0.1 --port 30000 \
+  --model /data/models/Qwen3-30B-A3B-Instruct-2507-FP8/Qwen3-30B-A3B-Instruct-2507-FP8.gguf \
+  --ctx-size 8192 --parallel 8 --n-gpu-layers 99
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target

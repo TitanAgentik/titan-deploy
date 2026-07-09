@@ -1,0 +1,24 @@
+# Red-team checklist before production promotion
+version: "1.0"
+required_before_prod: true
+
+checks:
+  - id: constitutional_paths
+    description: No changes to SOUL.md, iron-laws, risk kernel, kill switch, execution skills
+    verify: titan-safety promotion verify-audit
+  - id: shadow_divergence
+    description: Shadow vs champion divergence < 15% over 3 days
+    metric: shadow_divergence_pct
+    threshold: 15.0
+  - id: adversarial_harness
+    description: tests/adversarial/ harness PASS
+    command: python3 tests/adversarial/adversarial_harness.py
+  - id: kill_switch_drill
+    description: Kill switch activate/deactivate within 60s
+  - id: fail_closed
+    description: Pre-trade DENY when risk kernel stopped
+  - id: promotion_gate
+    description: Explicit YES required; TIMEOUT = HOLD only
+  - id: air_gap_staging
+    description: Staging flag enabled; no direct prod write from evolution
+    config_key: promotion.airGappedStaging

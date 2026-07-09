@@ -1,0 +1,16 @@
+[Unit]
+Description=OpenClaw Gateway (TITAN)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+Environment=HOME=%h
+EnvironmentFile=-%h/.openclaw/.env
+ExecStart=/usr/bin/openclaw gateway start --config %h/.openclaw/openclaw.json
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

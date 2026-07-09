@@ -1,0 +1,62 @@
+# TITAN Signing Node — logically isolated transaction signing
+# Deploy target: ~/.openclaw/infra/signing_node.yaml
+# May be co-located on TITANHOME hardware but MUST be logically isolated from evolution workloads.
+
+version: "1.0"
+enabled: true
+
+endpoint:
+  host: localhost  # override to dedicated host FQDN when physically separated
+  port: 19010
+  url: http://127.0.0.1:19010
+  health: http://127.0.0.1:19010/health
+
+isolation:
+  minimal_os: true
+  no_evolution_workloads: true
+  no_llm_inference: true
+  no_agent_runtime: true
+  power_protected: true  # UPS-backed per power_requirements.yaml
+  cgroup: openclaw-signing
+  allowed_processes:
+    - openclaw-trezor-bridge
+    - openclaw-signing-daemon
+    - tpm-pcr-watch
+  forbidden_on_node:
+    - dgm-h
+    - gepa
+    - hyevo
+    - skill_evolution
+    - cuquantum
+    - cudev_fuzzing
+
+routing:
+  agents:
+    - TRENCH-OPS
+    - LAMARCK
+  pre_sign_gates:
+    - guardian_risk_validation
+    - execution_gate_allow_receipt  # X-Titan-Gate-Receipt required on POST /v1/sign
+    - risk_kernel_pre_trade
+    - tenderly_simulation  # bridge txs
+    - eip712_typed_data_only
+  receipt:
+    header: X-Titan-Gate-Receipt
+    max_age_seconds: 30
+    issued_by: titan_safety.execution_gate
+  on_compromise:
+    action: halt_all_signing
+    circuit_breaker: CB_KEYS_SIGNING_ENV_COMPROMISED
+    file_flag: ~/.openclaw/safety/SIGNING_HALTED
+
+hardware_options:
+  co_located:
+    description: "Dedicated VM or cgroup on TITANHOME; separate from GPU MPS partitions"
+    acceptable_for_phase1: true
+  dedicated_host:
+    description: "Minimal Ubuntu on separate NUC/RPi with USB to Trezor"
+    recommended_for_phase3_plus: true
+
+macmini_vault:
+  role: "Trezor ceremony + cold key metadata; signing requests proxied via NATS"
+  not_a_substitute_for: "isolated signing daemon — vault holds metadata, signing_node executes"
