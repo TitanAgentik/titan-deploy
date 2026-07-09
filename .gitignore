@@ -9,5 +9,9 @@ __pycache__/
 **/secrets*
 web/node_modules/
 web/dist/
+backups/
+# Legacy root aliases — use configs_detail.md / refs/CONFIGS_detail.md
+/CONFIGS_detail.md
+/§CONFIGS_detail.md
 # Generated workspace mirrors are committed so Cursor can open them;
 # rebuild with scripts/build.py to refresh from TITAN.reconciled.md

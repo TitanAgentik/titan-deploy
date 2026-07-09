@@ -300,13 +300,11 @@ def regenerate_configs_detail() -> None:
 """
     out = PROJECT_ROOT / "configs_detail.md"
     out.write_text(doc, encoding="utf-8")
-    # Keep alias symlinks
+    # Drop legacy root aliases (canonical: configs_detail.md + refs/CONFIGS_detail.md)
     for alias in ("CONFIGS_detail.md", "§CONFIGS_detail.md"):
         alias_path = PROJECT_ROOT / alias
-        if alias_path.is_symlink() or not alias_path.exists():
-            if alias_path.exists() or alias_path.is_symlink():
-                alias_path.unlink()
-            alias_path.symlink_to("configs_detail.md")
+        if alias_path.exists() or alias_path.is_symlink():
+            alias_path.unlink()
     print(f"  configs_detail.md ({out.stat().st_size} bytes)")
 
 
