@@ -227,19 +227,48 @@ cfg = json.load(open('$OPENCLAW_HOME/openclaw.json'))
 cap = cfg.get('capital') or {}
 if cap.get('min_operating_capital_usd') is None:
     sys.exit(1)
-# Paper default: mock withdrawal is OK. Live profile must not use mock.
-profile = str(cap.get('capital_profile') or cfg.get('capital_profile') or 'paper').lower()
+# Live profile: trezor_signing required (mock withdrawal forbidden)
+profile = str(cap.get('capital_profile') or cfg.get('capitalProfile') or cfg.get('capital_profile') or 'paper').lower()
 adapter = cap.get('withdrawal_adapter', 'mock')
 if profile == 'live' and adapter == 'mock':
     sys.exit(2)
-if profile != 'live' and adapter != 'mock':
-    # unexpected but not fatal for paper verify — still require capital section
-    pass
+if profile == 'live' and adapter not in ('trezor_signing', 'signing_node', 'live', 'trezor'):
+    sys.exit(3)
 " 2>/dev/null && pass "openclaw.json capital section OK" \
     || fail "openclaw.json capital config invalid (live+mock withdrawal forbidden)"
 fi
 
-# Live-profile mock ban: policy must not allow mock recon with live venues under enforce
+if [[ -f "$PROJECT_ROOT/templates/infra/live.env.example" ]]; then
+  pass "infra/live.env.example present"
+else
+  fail "Missing templates/infra/live.env.example"
+fi
+
+if [[ -f "$PROJECT_ROOT/templates/safety/titan_safety/adapters/live_bundle.py" ]]; then
+  pass "live_bundle adapter present"
+else
+  fail "Missing live_bundle.py"
+fi
+
+if [[ -f "$PROJECT_ROOT/templates/safety/titan_safety/trade_verifier.py" ]]; then
+  pass "trade_verifier (autonomous sign/verify) present"
+else
+  fail "Missing trade_verifier.py"
+fi
+
+TEMPLATE_POLICY="$PROJECT_ROOT/templates/risk_kernel/policy.yaml"
+if [[ -f "$TEMPLATE_POLICY" ]] && command -v python3 &>/dev/null; then
+  python3 -c "
+import sys, yaml
+p = yaml.safe_load(open('$TEMPLATE_POLICY')) or {}
+a = p.get('autonomous_signing') or {}
+if not a.get('enabled'):
+    sys.exit(1)
+" 2>/dev/null && pass "policy autonomous_signing enabled" \
+    || fail "policy missing autonomous_signing.enabled"
+fi
+
+# Live capital profile — mock adapters forbidden in deployed templates
 POLICY="$OPENCLAW_HOME/risk_kernel/policy.yaml"
 if [[ -f "$POLICY" ]] && command -v python3 &>/dev/null; then
   python3 -c "
@@ -249,16 +278,31 @@ try:
 except ImportError:
     sys.exit(0)
 p = yaml.safe_load(open('$POLICY')) or {}
+profile = str(p.get('capital_profile') or 'paper').lower()
+if profile != 'live':
+    print('EXPECTED_LIVE_PROFILE', file=sys.stderr)
+    sys.exit(1)
 venues = [str(v).lower() for v in (p.get('allowed_venues') or [])]
 live = [v for v in venues if v not in ('paper', 'mock', 'test')]
 adapter = ((p.get('reconciliation') or {}).get('adapter') or 'mock')
 mode = str(p.get('mode') or 'observe').lower()
-profile = str(p.get('capital_profile') or 'paper').lower()
 if (mode == 'enforce' or profile == 'live') and live and adapter == 'mock':
     print('MOCK_ADAPTER_FORBIDDEN: live venues with mock recon', file=sys.stderr)
-    sys.exit(1)
-" 2>/dev/null && pass "policy mock-adapter live ban OK" \
-    || fail "policy: mock recon forbidden with live venues under enforce/live"
+    sys.exit(2)
+flatten = p.get('flatten') or {}
+if profile == 'live':
+    if str(flatten.get('closer', 'mock')).lower() == 'mock':
+        print('MOCK_FLATTEN_CLOSER', file=sys.stderr)
+        sys.exit(3)
+    if str(flatten.get('revoker', 'mock')).lower() == 'mock':
+        print('MOCK_FLATTEN_REVOKER', file=sys.stderr)
+        sys.exit(4)
+    signing = p.get('signing') or {}
+    if not str(signing.get('signer_module') or '').strip():
+        print('MISSING_SIGNER_MODULE', file=sys.stderr)
+        sys.exit(5)
+" 2>/dev/null && pass "policy live profile + no mock adapters OK" \
+    || fail "policy: live profile requires live recon/flatten/signing wiring"
 fi
 
 # Systemd unit files in output (optional install)

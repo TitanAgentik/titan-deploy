@@ -47,12 +47,14 @@ class SigningNode:
         signer: SignerFn | None = None,
         max_receipt_age: int = 30,
         halt_checker: Callable[[], bool] | None = None,
+        policy_raw: dict[str, Any] | None = None,
     ) -> None:
         self.safety_dir = safety_dir or (Path.home() / ".openclaw" / "safety")
         self.safety_dir.mkdir(parents=True, exist_ok=True)
         self.signer = signer or mock_signer
         self.max_receipt_age = max_receipt_age
         self.halt_checker = halt_checker
+        self.policy_raw = policy_raw or {}
         self._halted = False
         self._sign_log = self.safety_dir / "signing_audit.jsonl"
 
@@ -121,6 +123,25 @@ class SigningNode:
                 "reason": reason,
             }
 
+        from .trade_verifier import verify_sign_payload
+
+        ok_payload, payload_reason = verify_sign_payload(trade, body, self.policy_raw)
+        if not ok_payload:
+            METRICS.inc("signing_deny_total")
+            self._audit(
+                {
+                    "action": "deny",
+                    "code": "BLIND_SIGN_REJECTED",
+                    "reason": payload_reason,
+                    "trade_id": trade.trade_id,
+                }
+            )
+            return 403, {
+                "decision": "DENY",
+                "code": "BLIND_SIGN_REJECTED",
+                "reason": payload_reason,
+            }
+
         try:
             result = self.signer(
                 {
@@ -164,8 +185,10 @@ def create_app(
     safety = safety_dir or (Path.home() / ".openclaw" / "safety")
     port = 19010
     max_age = 30
+    policy_raw: dict[str, Any] = {}
     if policy_path and Path(policy_path).exists():
         policy = load_policy(policy_path)
+        policy_raw = policy.raw or {}
         port = policy.service.signing_node_port
         signing_cfg = (policy.raw or {}).get("signing", {})
         max_age = int(signing_cfg.get("max_receipt_age_seconds", 30))
@@ -193,6 +216,7 @@ def create_app(
         signer=signer,
         max_receipt_age=max_age,
         halt_checker=ks.is_active,
+        policy_raw=policy_raw,
     )
 
     def sign_route(body: dict[str, Any], headers: dict[str, str]) -> tuple[int, dict[str, Any]]:

@@ -9,7 +9,7 @@ export const portfolio = {
   weeklyPnlUsd: 842.17,
   drawdownPct: 1.8,
   regime: "neutral" as const,
-  capitalProfile: "paper" as const,
+  capitalProfile: "live" as const,
   killActive: false,
   evolutionFrozen: true,
   dmsHoursSinceHeartbeat: 2.4,
@@ -66,11 +66,11 @@ export const promotions = [
 ];
 
 export const aiLog = [
-  { ts: "2026-07-09T06:41:12Z", agent: "GUARDIAN", level: "info", msg: "Pre-trade DENY skipped — paper venue, notional $42 within Kelly" },
+  { ts: "2026-07-09T06:41:12Z", agent: "GUARDIAN", level: "info", msg: "Pre-trade DENY — recon not configured; fill ~/.openclaw/.env" },
   { ts: "2026-07-09T06:38:01Z", agent: "AUGUR", level: "info", msg: "Regime reading: neutral (file feed stub)" },
   { ts: "2026-07-09T06:22:44Z", agent: "ARBITER", level: "warn", msg: "P29 TCA net_bps=-1.8 → profit_loop defund queued" },
   { ts: "2026-07-09T05:55:10Z", agent: "SENTINEL", level: "info", msg: "CodeQL scan clean — 0 high findings" },
-  { ts: "2026-07-09T05:12:33Z", agent: "TRENCH-OPS", level: "info", msg: "Gate receipt issued GATE_ALLOW|t-9912… signing deferred (paper)" },
+  { ts: "2026-07-09T05:12:33Z", agent: "TRENCH-OPS", level: "info", msg: "Gate receipt issued GATE_ALLOW|t-9912… signing deferred (live, credentials pending)" },
 ];
 
 export const questions = [
@@ -115,7 +115,7 @@ export const activityFeed = [
   {
     id: "act-4",
     title: "Risk kernel healthy",
-    detail: "Pre-trade gate :19001 responding · paper profile",
+    detail: "Pre-trade gate :19001 responding · live profile",
     ts: "2026-07-09T06:00:00Z",
     tsLabel: "52m ago",
     tone: "info" as const,
@@ -186,7 +186,7 @@ export const capitalLedger = {
   sweepPct: 20,
   sweepDayUtc: "Sunday",
   growthPhase: true, // equity < $35K → 100% reinvest, no sweep
-  withdrawalAdapter: "mock" as "mock" | "trezor_signing",
+  withdrawalAdapter: "trezor_signing" as "mock" | "trezor_signing",
   maxSingleWithdrawalPct: 20,
 };
 

@@ -287,8 +287,7 @@ export function Capital() {
             <div className="field">
               <label>Adapter</label>
               <select value={adapter} onChange={(e) => setAdapter(e.target.value as typeof adapter)}>
-                <option value="mock">mock (paper)</option>
-                <option value="trezor_signing">trezor_signing / signing_node</option>
+                <option value="trezor_signing">trezor_signing / signing_node (:19010)</option>
               </select>
             </div>
             <div className="field" style={{ minWidth: 220 }}>

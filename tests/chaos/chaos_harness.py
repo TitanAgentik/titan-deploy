@@ -39,6 +39,21 @@ def make_policy(tmp: Path) -> Path:
     return path
 
 
+def chaos_venue_contract(policy_path: Path) -> tuple[str, str]:
+    """Pick an allow-listed venue/contract from the active policy (live or paper)."""
+    policy = load_policy(policy_path)
+    skip = {"paper", "mock", "test"}
+    venues = [v for v in policy.allowed_venues if str(v).lower() not in skip]
+    venue = venues[0] if venues else "paper"
+    if venue == "paper":
+        contract = "0x0000000000000000000000000000000000000000"
+        if policy.allowed_contracts:
+            contract = str(policy.allowed_contracts[0]).lower()
+    else:
+        contract = str(policy.allowed_contracts[0]).lower() if policy.allowed_contracts else "0xabc"
+    return str(venue), contract
+
+
 def assert_deny(result, code_fragment: str, label: str) -> None:
     assert result.decision == "DENY", f"{label}: expected DENY got {result.decision}"
     assert code_fragment in (result.code or result.reason), f"{label}: {result}"
@@ -47,6 +62,7 @@ def assert_deny(result, code_fragment: str, label: str) -> None:
 def scenario_kill_inference_mid_trade(tmp: Path, safety_dir: Path) -> None:
     """Simulate inference :30000 dying — kernel must still veto bad trades."""
     policy_path = make_policy(tmp)
+    venue, contract = chaos_venue_contract(policy_path)
     state_path = safety_dir / "kernel_state.json"
     server, kernel = create_app(policy_path, state_path, safety_dir)
     server.start(background=True)
@@ -54,8 +70,8 @@ def scenario_kill_inference_mid_trade(tmp: Path, safety_dir: Path) -> None:
     client = RiskKernelClient("http://127.0.0.1:19101")
     bad = TradeRequest(
         trade_id="chaos1",
-        venue="paper",
-        contract="0x0000000000000000000000000000000000000000",
+        venue=venue,
+        contract=contract,
         side="buy",
         notional_usd=9999,
         leverage=1.0,
@@ -80,6 +96,7 @@ def scenario_kernel_unreachable_fail_closed() -> None:
 
 def scenario_kill_switch_overrides_all(tmp: Path, safety_dir: Path) -> None:
     policy_path = make_policy(tmp)
+    venue, contract = chaos_venue_contract(policy_path)
     ks = KillSwitch(safety_dir)
     ks.activate("chaos", "simulated halt")
     kernel = RiskKernel.from_policy_path(
@@ -87,10 +104,11 @@ def scenario_kill_switch_overrides_all(tmp: Path, safety_dir: Path) -> None:
     )
     trade = TradeRequest(
         trade_id="chaos3",
-        venue="paper",
-        contract="0x0000000000000000000000000000000000000000",
+        venue=venue,
+        contract=contract,
         side="buy",
         notional_usd=10,
+        confidence=0.75 if venue != "paper" else 0.0,
     )
     result = kernel.validate_trade(trade)
     assert_deny(result, "KILL_SWITCH", "kill-switch")
@@ -117,16 +135,18 @@ def scenario_corrupt_lora_audit_detected(tmp: Path) -> None:
 
 def scenario_flash_crash_loss_velocity(tmp: Path, safety_dir: Path) -> None:
   policy_path = make_policy(tmp)
+  venue, contract = chaos_venue_contract(policy_path)
   kernel = RiskKernel.from_policy_path(policy_path, safety_dir / "k3.json")
   # 30% flash crash — record rapid losses
   for _ in range(5):
       kernel.state.record_loss(50.0)
   trade = TradeRequest(
       trade_id="chaos5",
-      venue="paper",
-      contract="0x0000000000000000000000000000000000000000",
+      venue=venue,
+      contract=contract,
       side="buy",
       notional_usd=10,
+      confidence=0.75 if venue != "paper" else 0.0,
   )
   result = kernel.validate_trade(trade)
   assert_deny(result, "LOSS_VELOCITY", "flash-crash")
@@ -134,15 +154,17 @@ def scenario_flash_crash_loss_velocity(tmp: Path, safety_dir: Path) -> None:
 
 def scenario_poisoned_feed_slippage(tmp: Path, safety_dir: Path) -> None:
     policy_path = make_policy(tmp)
+    venue, contract = chaos_venue_contract(policy_path)
     kernel = RiskKernel.from_policy_path(policy_path, safety_dir / "k4.json")
     trade = TradeRequest(
         trade_id="chaos6",
-        venue="paper",
-        contract="0x0000000000000000000000000000000000000000",
+        venue=venue,
+        contract=contract,
         side="buy",
         notional_usd=10,
         expected_price=100.0,
         worst_price=140.0,  # 40% poisoned quote
+        confidence=0.75 if venue != "paper" else 0.0,
     )
     result = kernel.validate_trade(trade)
     assert_deny(result, "SLIPPAGE", "poisoned-feed")

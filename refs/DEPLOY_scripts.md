@@ -269,12 +269,19 @@ CLIOF
 
   # Env template
   if [[ ! -f "$OPENCLAW_HOME/.env" ]]; then
-    cat > "$OPENCLAW_HOME/.env" <<'ENVEOF'
-TELEGRAM_BOT_TOKEN=your-bot-token-here
-TELEGRAM_USER_ID=your-user-id-here
-NATS_URL=nats://localhost:4222
+    if [[ -f "$OUTPUT/infra/live.env.example" ]]; then
+      cp "$OUTPUT/infra/live.env.example" "$OPENCLAW_HOME/.env"
+      log "Created $OPENCLAW_HOME/.env from live.env.example — fill secrets before trading"
+    else
+      cat > "$OPENCLAW_HOME/.env" <<'ENVEOF'
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_USER_ID=
+NATS_URL=nats://127.0.0.1:4222
+TITAN_LIVE_SIGNING_READY=0
+TITAN_RECON_FETCHER_URL=
 ENVEOF
-    log "Created $OPENCLAW_HOME/.env template"
+      log "Created $OPENCLAW_HOME/.env template"
+    fi
   fi
 
   if [[ $INSTALL_SYSTEMD -eq 1 ]]; then
@@ -562,18 +569,17 @@ cfg = json.load(open('$OPENCLAW_HOME/openclaw.json'))
 cap = cfg.get('capital') or {}
 if cap.get('min_operating_capital_usd') is None:
     sys.exit(1)
-# Paper default: mock withdrawal is OK. Live profile must not use mock.
-profile = str(cap.get('capital_profile') or cfg.get('capital_profile') or 'paper').lower()
+# Live profile: trezor_signing required (mock withdrawal forbidden)
+profile = str(cap.get('capital_profile') or cfg.get('capitalProfile') or cfg.get('capital_profile') or 'paper').lower()
 adapter = cap.get('withdrawal_adapter', 'mock')
 if profile == 'live' and adapter == 'mock':
     sys.exit(2)
-if profile != 'live' and adapter != 'mock':
-    # unexpected but not fatal for paper verify — still require capital section
-    pass
+if profile == 'live' and adapter not in ('trezor_signing', 'signing_node', 'live', 'trezor'):
+    sys.exit(3)
 " 2>/dev/null && pass "openclaw.json capital section OK" \
     || fail "openclaw.json capital config invalid (live+mock withdrawal forbidden)"
 fi
 
-# Live-profile mock ban:
+if [[ -f "$PROJECT_ROOT
 # … truncated; see verify.sh in repo root …
 ```

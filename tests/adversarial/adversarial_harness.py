@@ -275,6 +275,80 @@ def scenario_memecoin_honeypot_filter() -> None:
     check("memecoin_honeypot_filter_deny", not v.passed, v.reject_reason)
 
 
+def scenario_autonomous_low_confidence_deny() -> None:
+    """Live venue trades without confidence must DENY (no human bypass)."""
+    with tempfile.TemporaryDirectory() as td:
+        policy = {
+            "version": "2.1",
+            "mode": "enforce",
+            "trading_limits": {"equity_usd": 2500, "max_notional_usd_per_trade": 500},
+            "allowed_venues": ["binance_spot"],
+            "allowed_contracts": ["0xabc"],
+            "autonomous_signing": {"enabled": True, "min_confidence_reduced": 0.50},
+        }
+        p = Path(td) / "policy.yaml"
+        p.write_text(yaml.dump(policy))
+        k = RiskKernel.from_policy_path(p, Path(td) / "state.json")
+        trade = TradeRequest(
+            trade_id="noc1",
+            venue="binance_spot",
+            contract="0xabc",
+            side="buy",
+            notional_usd=10,
+            confidence=0.0,
+        )
+        r = k.validate_trade(trade)
+        check("autonomous_low_confidence_deny", r.decision == "DENY" and r.code == "CONFIDENCE_TOO_LOW", r.code)
+
+
+def scenario_autonomous_bft_required() -> None:
+    """Trades >1% equity on live venues require 2-of-3 BFT votes."""
+    with tempfile.TemporaryDirectory() as td:
+        policy = {
+            "version": "2.1",
+            "mode": "enforce",
+            "trading_limits": {"equity_usd": 2500, "max_notional_usd_per_trade": 500},
+            "allowed_venues": ["binance_spot"],
+            "allowed_contracts": ["0xabc"],
+            "position_limits": {"human_approval_above_pct": 1.0},
+            "autonomous_signing": {
+                "enabled": True,
+                "bft_required_above_equity_pct": 1.0,
+                "bft_threshold": 2,
+            },
+        }
+        p = Path(td) / "policy.yaml"
+        p.write_text(yaml.dump(policy))
+        k = RiskKernel.from_policy_path(p, Path(td) / "state.json")
+        trade = TradeRequest(
+            trade_id="bft1",
+            venue="binance_spot",
+            contract="0xabc",
+            side="buy",
+            notional_usd=30,
+            confidence=0.85,
+        )
+        r = k.validate_trade(trade)
+        check("autonomous_bft_insufficient", r.decision == "DENY" and r.code == "BFT_INSUFFICIENT", r.code)
+
+
+def scenario_blind_sign_rejected_live() -> None:
+    """Signing node must reject live-venue sign without typed_data/calldata."""
+    from titan_safety.signing_service import SigningNode
+    from titan_safety.trade_verifier import verify_sign_payload
+
+    trade = TradeRequest(
+        trade_id="blind1",
+        venue="binance_spot",
+        contract="0xabc",
+        side="buy",
+        notional_usd=10,
+    )
+    policy_raw = {"autonomous_signing": {"require_typed_data_live": True}}
+    ok, reason = verify_sign_payload(trade, {}, policy_raw)
+    check("blind_sign_rejected_live", not ok and "BLIND" in reason, reason)
+
+
 def main() -> int:
     print("[adversarial] Running red-team scenarios...")
     scenario_data_poisoning()
@@ -287,6 +361,9 @@ def main() -> int:
     scenario_honeypot_default_armed()
     scenario_stalk_posture_pillars()
     scenario_memecoin_honeypot_filter()
+    scenario_autonomous_low_confidence_deny()
+    scenario_autonomous_bft_required()
+    scenario_blind_sign_rejected_live()
     print(f"[adversarial] {PASS} passed, {FAIL} failed")
     return 1 if FAIL else 0
 

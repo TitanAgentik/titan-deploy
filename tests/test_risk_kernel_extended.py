@@ -1,4 +1,4 @@
-"""Extended risk kernel tests — velocity and human approval gates."""
+"""Extended risk kernel tests — velocity and agent verification gates."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from titan_safety.kernel import RiskKernel, TradeRequest
+from titan_safety.trade_verifier import sign_bft_vote
 
 
 @pytest.fixture
@@ -27,6 +28,7 @@ def kernel(tmp_path: Path) -> RiskKernel:
         "allowed_venues": ["paper"],
         "allowed_contracts": ["0xabc"],
         "position_limits": {"max_equity_pct_per_trade": 2.0, "human_approval_above_pct": 1.0},
+        "autonomous_signing": {"enabled": True, "paper_min_confidence": 0.30},
         "drawdown_velocity": {"max_loss_usd_per_15m": 100.0},
     }
     path = tmp_path / "policy.yaml"
@@ -34,17 +36,17 @@ def kernel(tmp_path: Path) -> RiskKernel:
     return RiskKernel.from_policy_path(path, tmp_path / "state.json")
 
 
-def test_human_approval_above_1pct(kernel: RiskKernel) -> None:
+def test_agent_verification_above_1pct_paper(kernel: RiskKernel) -> None:
     trade = TradeRequest(
         trade_id="t1",
         venue="paper",
         contract="0xabc",
         side="buy",
         notional_usd=30.0,
+        confidence=0.55,
     )
     result = kernel.validate_trade(trade)
-    assert result.decision == "DENY"
-    assert result.code == "HUMAN_APPROVAL_REQUIRED"
+    assert result.decision == "ALLOW"
 
 
 def test_loss_velocity_15m(kernel: RiskKernel) -> None:

@@ -32,6 +32,31 @@ def _load_live_fetcher(policy: Any) -> Any:
     recon = (policy.raw or {}).get("reconciliation", {})
     url = os.environ.get("TITAN_RECON_FETCHER_URL") or recon.get("fetcher_url")
     path = recon.get("positions_file")
+    module_spec = str(recon.get("recon_module") or "").strip()
+
+    if module_spec:
+        from .policy_loader import load_component
+
+        loaded = load_component(module_spec)
+        if callable(loaded):
+            fetcher = loaded()
+            if callable(fetcher):
+                return fetcher
+            if hasattr(fetcher, "fetch_positions"):
+                def adapter_fetcher(venues: list[str]) -> list[BelievedPosition]:
+                    raw = fetcher.fetch_positions()
+                    return [
+                        BelievedPosition(
+                            venue=str(p["venue"]),
+                            contract=str(p["contract"]).lower(),
+                            notional_usd=float(p["notional_usd"]),
+                            side=str(p.get("side", "long")),
+                        )
+                        for p in raw
+                    ]
+
+                return adapter_fetcher
+        raise RuntimeError(f"recon_module {module_spec!r} did not resolve to a fetcher")
 
     if url:
 

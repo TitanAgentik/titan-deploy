@@ -28,6 +28,8 @@ system:
 autonomy_matrix:
   auto_execute:
     - routine_trades_under_1pct_equity
+    - agent_bft_verified_trades_up_to_max_equity_pct
+    - autonomous_sign_and_verify
     - rebalances_under_1pct_equity
     - cb_tier_responses_within_policy
     - shadow_evolution_outputs
@@ -37,7 +39,6 @@ autonomy_matrix:
     - evolution_deploy_to_live
     - leverage_changes
     - flash_loan_live
-    - trades_over_1pct_equity
     - new_pipeline_activation
     - model_promotion
   timeout_policy: hold_derisk_never_auto_promote
@@ -303,11 +304,12 @@ edge_mesh:
   phase1_note: "One PoP sufficient for $2.5K Phase 1; full 5-PoP mesh deferred to Phase 3+"
 
 capital:
+  capital_profile: live
   state_path: ~/.openclaw/capital/portfolio_state.json
   audit_path: ~/.openclaw/capital/capital_audit.jsonl
   min_operating_capital_usd: 500
   max_single_withdrawal_pct: 20
-  withdrawal_adapter: mock
+  withdrawal_adapter: trezor_signing
   trezor_sweep:
     harvest_threshold_usd: 35000
     sweep_pct_of_weekly_profit: 20
@@ -329,6 +331,7 @@ capital:
 {
   "version": "49.7",
   "framework": "titan-unified",
+  "capitalProfile": "live",
   "bootstrapMaxChars": 20000,
   "bootstrapTotalMaxChars": 150000,
   "_bootstrapNote": "OpenClaw default total is 60000; TITAN raises to 150000 for AGENTS.md. Workspace is ~/.openclaw/workspace (not config root).",
@@ -358,6 +361,19 @@ capital:
       "fullSize": 0.7,
       "reducedSize": 0.5,
       "reject": 0.3
+    },
+    "autonomousSigning": {
+      "enabled": true,
+      "requireGateReceipt": true,
+      "requireTypedDataLive": true,
+      "bftVoters": [
+        "AUGUR",
+        "PREDATOR",
+        "ATLAS"
+      ],
+      "bftThreshold": 2,
+      "bftAboveEquityPct": 1.0,
+      "note": "Agents verify + sign via signing_node \u2014 no human on trade path; kernel DENY is authoritative"
     },
     "definitions": [
       {
@@ -504,6 +520,8 @@ capital:
     "matrix": {
       "auto_execute": [
         "routine_trades_under_1pct_equity",
+        "agent_bft_verified_trades_up_to_max_equity_pct",
+        "autonomous_sign_and_verify",
         "rebalances_under_1pct_equity",
         "cb_tier_responses_within_policy",
         "shadow_evolution_outputs",
@@ -517,7 +535,6 @@ capital:
         "evolution_deploy_to_live",
         "leverage_changes",
         "flash_loan_live",
-        "trades_over_1pct_equity",
         "new_pipeline_activation",
         "model_promotion",
         "withdrawal_over_20pct_equity",
@@ -530,7 +547,7 @@ capital:
       "evolutionDeploy": true,
       "leverageChanges": true,
       "flashLoanLive": true,
-      "positionOver1PctEquity": true,
+      "positionOver1PctEquity": false,
       "phase5GoNoGo": true,
       "securityLockdown": true
     },
@@ -684,7 +701,7 @@ capital:
     "jitoBlockEngine": "https://frankfurt.mainnet.block-engine.jito.wtf",
     "edgePop": "EDGE-FRA",
     "pumpFunProgram": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
-    "note": "Real SOL: set enabled true only after promotion YES + live policy venues"
+    "note": "Real SOL: set enabled true after promotion YES; live profile already active"
   },
   "drawdownTiers": {
     "alert": 2.0,
@@ -844,11 +861,12 @@ capital:
     "note": "Phase 1 ($2.5K): one PoP only; full 5-PoP mesh is Phase 3+"
   },
   "capital": {
+    "capital_profile": "live",
     "state_path": "~/.openclaw/capital/portfolio_state.json",
     "audit_path": "~/.openclaw/capital/capital_audit.jsonl",
     "min_operating_capital_usd": 500,
     "max_single_withdrawal_pct": 20,
-    "withdrawal_adapter": "mock",
+    "withdrawal_adapter": "trezor_signing",
     "trezor_sweep": {
       "harvest_threshold_usd": 35000,
       "sweep_pct_of_weekly_profit": 20,
@@ -870,8 +888,8 @@ capital:
 
 version: "2.1"
 mode: enforce
-# Paper-first default. Live capital: set capital_profile=live, adapter=live, expand allowed_venues.
-capital_profile: paper
+# Live capital profile + paper shadow lane. Fill ~/.openclaw/.env from templates/infra/live.env.example
+capital_profile: live
 
 trading_limits:
   max_notional_usd_per_trade: 500.0
@@ -882,22 +900,45 @@ trading_limits:
   max_slippage_bps: 50
   equity_usd: 2500.0
 
-# PAPER DEFAULT: paper-only. Uncomment live venues only with reconciliation.adapter=live.
 allowed_venues:
-  - paper
-  # - binance_spot
-  # - uniswap_v3
+  - paper  # shadow / unpromoted lanes — no real capital; live lanes use venues below
+  - binance_spot
+  - okx_spot
+  - hyperliquid
+  - bybit_spot
+  - coinbase_spot
+  - uniswap_v3
+  - curve
+  - aave_v3
+  - solana_jupiter
+  - solana_pumpfun
+  - solana_pumpswap
+  - jito
+  - flashbots_protect
 
 allowed_contracts:
   - "0x0000000000000000000000000000000000000000"  # paper sentinel
-  # - "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH (live)
+  - "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH — add venue-specific allowlist as you deploy
 
 position_limits:
   max_equity_pct_per_trade: 2.0
-  human_approval_above_pct: 1.0
+  human_approval_above_pct: 1.0  # above this → BFT agent votes (not human) when autonomous_signing enabled
   flash_loan_live_requires_approval: true
   leverage_change_requires_approval: true
   new_pipeline_requires_approval: true
+
+# Agent-autonomous sign/verify — replaces human approval on the trade path.
+# Safety retained: reconciliation → risk kernel → confidence → BFT → gate receipt → signing_node.
+autonomous_signing:
+  enabled: true
+  min_confidence_reduced: 0.50
+  min_confidence_full: 0.70
+  paper_min_confidence: 0.30
+  bft_required_above_equity_pct: 1.0
+  bft_voters: [AUGUR, PREDATOR, ATLAS]
+  bft_threshold: 2
+  require_typed_data_live: true
+  note: "Human gates remain for promotion, evolution, leverage, flash-loan live, large withdrawals"
 
 drawdown_tiers:
   - pct: 2.0
@@ -923,9 +964,8 @@ portfolio_risk:
   max_correlated_cluster_pct: 25.0
   min_return_samples: 20
   augur_regime_stub: neutral
-  # Live: set augur_feed to file|http; AUGUR agent writes augur_regime.json
-  augur_feed: stub
-  # augur_regime_file: ~/.openclaw/safety/augur_regime.json
+  augur_feed: file
+  augur_regime_file: ~/.openclaw/safety/augur_regime.json
   regime_limits:
     risk_off: 50.0
     neutral: 100.0
@@ -939,11 +979,9 @@ portfolio_risk:
 reconciliation:
   divergence_threshold_usd: 25.0
   divergence_threshold_pct: 1.0
-  # PAPER DEFAULT: mock is allowed only while allowed_venues is paper-only.
-  # LIVE PROFILE: set adapter to "live" (or "exchange"/"onchain") and wire a fetcher.
-  # enforce mode + any non-paper venue + adapter=mock → MOCK_ADAPTER_FORBIDDEN (startup + execution gate).
-  adapter: mock
-  live_profile_note: "Before real capital: adapter=live, withdrawal_adapter≠mock, 48h zero-divergence"
+  adapter: live
+  recon_module: "titan_safety.adapters.live_bundle:build_position_fetcher"
+  live_profile_note: "Fill TITAN_RECON_FETCHER_URL or exchange keys in ~/.openclaw/.env"
 
 # Control-plane HMAC auth (X-Titan-Auth) required on mutating POSTs:
 # FLATTEN, REGIME, HEARTBEAT, TCA_INGEST, PROFIT_LOOP, REFUND, ALLOCATE
@@ -1011,7 +1049,7 @@ memecoin_trench:
   max_snipe_pct_equity: 0.5
   daily_sol_cap: 2.0
   require_sell_sim: true
-  recon_module: ""  # live: module:attr for SolanaReconAdapter impl
+  recon_module: ""  # operator: custom Solana recon module path when P22 enabled
   jito_block_engine: "https://frankfurt.mainnet.block-engine.jito.wtf"
   strategies_enabled:
     - curve_climb
@@ -1019,8 +1057,8 @@ memecoin_trench:
     - post_grad_pullback
     - smart_money_mirror
     - first_block_snipe
-  # LIVE unlock (commented — uncomment only with live profile + YES):
-  # allowed_venues_add: [solana_pumpfun, solana_pumpswap, jito]
+  # LIVE venues (P22 still requires promotion YES + memecoinTrench.enabled)
+  allowed_venues_add: [solana_pumpfun, solana_pumpswap, jito]
 
   min_net_bps: 1.0
   require_cost_model: true         # backtests with zero modeled cost are rejected
@@ -1076,13 +1114,12 @@ signing:
   require_gate_receipt: true
   max_receipt_age_seconds: 30
   on_env_compromised: halt_all_signing
-  # Live signer wiring (REQUIRED when capital_profile=live — mock signer banned):
-  # signer_module: "titan_signers.trezor:sign_request"   # module.path:callable
+  signer_module: "titan_safety.adapters.live_bundle:live_signer"
 
-# Flatten adapters — mock is banned when capital_profile=live (startup refuses)
+# Flatten adapters — live profile (mock banned at startup)
 flatten:
-  closer: mock          # mock | signing_node | "module.path:ClassOrFactory"
-  revoker: mock         # mock | "module.path:ClassOrFactory"
+  closer: signing_node
+  revoker: "titan_safety.adapters.live_bundle:LiveKeyRevoker"
   signing_endpoint: http://127.0.0.1:19010
 
 # Evolution freeze — set freeze_during_live true; CLI: titan-safety evolution freeze

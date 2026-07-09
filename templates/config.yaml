@@ -10,6 +10,8 @@ system:
 autonomy_matrix:
   auto_execute:
     - routine_trades_under_1pct_equity
+    - agent_bft_verified_trades_up_to_max_equity_pct
+    - autonomous_sign_and_verify
     - rebalances_under_1pct_equity
     - cb_tier_responses_within_policy
     - shadow_evolution_outputs
@@ -19,7 +21,6 @@ autonomy_matrix:
     - evolution_deploy_to_live
     - leverage_changes
     - flash_loan_live
-    - trades_over_1pct_equity
     - new_pipeline_activation
     - model_promotion
   timeout_policy: hold_derisk_never_auto_promote
@@ -285,11 +286,12 @@ edge_mesh:
   phase1_note: "One PoP sufficient for $2.5K Phase 1; full 5-PoP mesh deferred to Phase 3+"
 
 capital:
+  capital_profile: live
   state_path: ~/.openclaw/capital/portfolio_state.json
   audit_path: ~/.openclaw/capital/capital_audit.jsonl
   min_operating_capital_usd: 500
   max_single_withdrawal_pct: 20
-  withdrawal_adapter: mock
+  withdrawal_adapter: trezor_signing
   trezor_sweep:
     harvest_threshold_usd: 35000
     sweep_pct_of_weekly_profit: 20

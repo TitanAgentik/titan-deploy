@@ -16,20 +16,26 @@ Trade execution agent — calldata composition, route selection, MEV-protected b
 
 ## Pre-sign gates (mandatory, fail-closed)
 
-Before any signing request, call the unbypassable execution gate and **pass the receipt**:
+Agents **verify and sign autonomously** — no human approval on the trade path. Human gates remain for promotion, evolution, leverage, and large withdrawals only.
+
+**Verification stack:** confidence gate → BFT 2-of-3 (AUGUR/PREDATOR/ATLAS) when >1% equity → reconciliation `:19002` → risk kernel `:19001` → gate receipt → signing_node `:19010`.
 
 ```bash
-# 1) Gate check — on ALLOW, response includes "receipt"
-titan-safety gate check --trade '{"trade_id":"t1","venue":"paper","contract":"0xabc","side":"buy","notional_usd":10,"leverage":1,"expected_price":100,"worst_price":100.1}'
+# 1) BFT votes (when trade >1% equity on live venues)
+titan-safety bft vote --voter AUGUR --trade-id t1 --confidence 0.82
+titan-safety bft vote --voter PREDATOR --trade-id t1 --confidence 0.80
 
-# 2) Sign — signing node DENIES without X-Titan-Gate-Receipt (max 30s age)
-curl -s -X POST http://127.0.0.1:19010/v1/sign \
-  -H "Content-Type: application/json" \
-  -H "X-Titan-Gate-Receipt: $RECEIPT" \
-  -d '{"trade":{"trade_id":"t1","venue":"paper","contract":"0xabc","side":"buy","notional_usd":10}}'
+# 2) Gate + sign in one step (include confidence + bft_votes in trade JSON)
+titan-safety gate sign --trade '{"trade_id":"t1","venue":"binance_spot","contract":"0xabc","side":"buy","notional_usd":30,"leverage":1,"confidence":0.85,"bft_votes":[...]}' \
+  --typed-data '{"types":{...},"domain":{...},"message":{...}}'
+
+# Or gate only — on ALLOW, response includes "receipt"
+titan-safety gate check --trade '{"trade_id":"t1","venue":"paper","contract":"0xabc","side":"buy","notional_usd":10,"confidence":0.75,...}'
 ```
 
-Or from code: `decision = ExecutionGate(policy).gate(trade)` — if `decision.allowed`, pass `decision.receipt` to signing. Stages: mock-adapter ban → reconciliation `:19002` → risk kernel `:19001` → signed receipt. Any DENY / unreachable → **do not sign**.
+Signing node **DENIES** without `X-Titan-Gate-Receipt` (max 30s) and **rejects blind-sign** on live venues (requires `typed_data` or `calldata`).
+
+Or from code: `decision = ExecutionGate(policy).gate(trade)` — if `decision.allowed`, pass `decision.receipt` to signing. Stages: mock-adapter ban → reconciliation → risk kernel (agent verify) → signed receipt. Any DENY / unreachable → **do not sign**.
 
 Mutating control-plane POSTs (flatten, regime, heartbeat, TCA ingest, allocate, profit_loop) require `X-Titan-Auth` HMAC tokens (`titan-safety auth sign --command FLATTEN`).
 

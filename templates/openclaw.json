@@ -1,6 +1,7 @@
 {
   "version": "49.7",
   "framework": "titan-unified",
+  "capitalProfile": "live",
   "bootstrapMaxChars": 20000,
   "bootstrapTotalMaxChars": 150000,
   "_bootstrapNote": "OpenClaw default total is 60000; TITAN raises to 150000 for AGENTS.md. Workspace is ~/.openclaw/workspace (not config root).",
@@ -28,6 +29,15 @@
       "fullSize": 0.70,
       "reducedSize": 0.50,
       "reject": 0.30
+    },
+    "autonomousSigning": {
+      "enabled": true,
+      "requireGateReceipt": true,
+      "requireTypedDataLive": true,
+      "bftVoters": ["AUGUR", "PREDATOR", "ATLAS"],
+      "bftThreshold": 2,
+      "bftAboveEquityPct": 1.0,
+      "note": "Agents verify + sign via signing_node — no human on trade path; kernel DENY is authoritative"
     },
     "definitions": [
       {"id": "ARCHON", "tier": "orchestrator", "endpoint": "http://localhost:30001", "model": "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct"},
@@ -62,6 +72,8 @@
     "matrix": {
       "auto_execute": [
         "routine_trades_under_1pct_equity",
+        "agent_bft_verified_trades_up_to_max_equity_pct",
+        "autonomous_sign_and_verify",
         "rebalances_under_1pct_equity",
         "cb_tier_responses_within_policy",
         "shadow_evolution_outputs",
@@ -75,7 +87,6 @@
         "evolution_deploy_to_live",
         "leverage_changes",
         "flash_loan_live",
-        "trades_over_1pct_equity",
         "new_pipeline_activation",
         "model_promotion",
         "withdrawal_over_20pct_equity",
@@ -88,7 +99,7 @@
       "evolutionDeploy": true,
       "leverageChanges": true,
       "flashLoanLive": true,
-      "positionOver1PctEquity": true,
+      "positionOver1PctEquity": false,
       "phase5GoNoGo": true,
       "securityLockdown": true
     },
@@ -205,7 +216,7 @@
     "jitoBlockEngine": "https://frankfurt.mainnet.block-engine.jito.wtf",
     "edgePop": "EDGE-FRA",
     "pumpFunProgram": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
-    "note": "Real SOL: set enabled true only after promotion YES + live policy venues"
+    "note": "Real SOL: set enabled true after promotion YES; live profile already active"
   },
   "drawdownTiers": {
     "alert": 2.0,
@@ -352,11 +363,12 @@
     "note": "Phase 1 ($2.5K): one PoP only; full 5-PoP mesh is Phase 3+"
   },
   "capital": {
+    "capital_profile": "live",
     "state_path": "~/.openclaw/capital/portfolio_state.json",
     "audit_path": "~/.openclaw/capital/capital_audit.jsonl",
     "min_operating_capital_usd": 500,
     "max_single_withdrawal_pct": 20,
-    "withdrawal_adapter": "mock",
+    "withdrawal_adapter": "trezor_signing",
     "trezor_sweep": {
       "harvest_threshold_usd": 35000,
       "sweep_pct_of_weekly_profit": 20,

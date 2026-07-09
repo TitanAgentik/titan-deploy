@@ -23,9 +23,14 @@ class TradeRequest:
     expected_price: float = 0.0
     worst_price: float = 0.0
     strategy_id: str = ""
+    confidence: float = 0.0
+    bft_votes: list[dict[str, Any]] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TradeRequest:
+        votes = data.get("bft_votes") or data.get("bftVotes") or []
+        if not isinstance(votes, list):
+            votes = []
         return cls(
             trade_id=str(data.get("trade_id", "")),
             venue=str(data.get("venue", "")),
@@ -36,6 +41,8 @@ class TradeRequest:
             expected_price=float(data.get("expected_price", 0)),
             worst_price=float(data.get("worst_price", 0)),
             strategy_id=str(data.get("strategy_id", "")),
+            confidence=float(data.get("confidence", 0.0)),
+            bft_votes=[v for v in votes if isinstance(v, dict)],
         )
 
 
@@ -249,12 +256,44 @@ class RiskKernel:
         human_pct = float(
             self.policy.raw.get("position_limits", {}).get("human_approval_above_pct", 1.0)
         )
+        auto_cfg = (self.policy.raw or {}).get("autonomous_signing") or {}
+        autonomous = bool(auto_cfg.get("enabled", False))
+
         if pct > human_pct:
-            return self._deny(
-                "HUMAN_APPROVAL_REQUIRED",
-                f"Trade {pct:.2f}% equity exceeds {human_pct}% human-approval threshold",
-                pct_equity=pct,
+            if autonomous:
+                from .trade_verifier import verify_agent_authorization
+
+                v = verify_agent_authorization(
+                    trade,
+                    self.policy.raw or {},
+                    limits.equity_usd,
+                )
+                if not v.ok:
+                    return self._deny(
+                        v.code or "AGENT_VERIFY_DENIED",
+                        v.reason,
+                        **v.details,
+                    )
+            else:
+                return self._deny(
+                    "HUMAN_APPROVAL_REQUIRED",
+                    f"Trade {pct:.2f}% equity exceeds {human_pct}% human-approval threshold",
+                    pct_equity=pct,
+                )
+        elif autonomous and trade.venue.lower() != "paper":
+            from .trade_verifier import verify_agent_authorization
+
+            v = verify_agent_authorization(
+                trade,
+                self.policy.raw or {},
+                limits.equity_usd,
             )
+            if not v.ok:
+                return self._deny(
+                    v.code or "AGENT_VERIFY_DENIED",
+                    v.reason,
+                    **v.details,
+                )
 
         if self.state.safe_mode_exposure_cap_pct is not None:
             cap_pct = self.state.safe_mode_exposure_cap_pct

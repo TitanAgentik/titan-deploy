@@ -7,6 +7,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 from .allocator import AllocatorConfig, CapitalAllocator, LaneEdge
 from .audit_chain import AuditChainWriter, DecisionLogEntry, VersionFingerprint, build_fingerprint
@@ -192,12 +193,73 @@ def cmd_gate_check(args: argparse.Namespace) -> int:
     from .policy_loader import load_policy
 
     policy = load_policy(args.policy)
-    gate = ExecutionGate(policy)
+    gate = ExecutionGate(policy, safety_dir=Path(args.safety_dir) if args.safety_dir else None)
     trade = TradeRequest.from_dict(json.loads(args.trade))
     believed = json.loads(args.believed) if args.believed else []
     decision = gate.gate(trade, believed)
     print(json.dumps(decision.to_dict(), indent=2))
     return 0 if decision.allowed else 1
+
+
+def cmd_bft_vote(args: argparse.Namespace) -> int:
+    from .trade_verifier import sign_bft_vote
+
+    vote = sign_bft_vote(
+        args.voter,
+        args.trade_id,
+        args.decision,
+        float(args.confidence),
+        safety_dir=Path(args.safety_dir) if args.safety_dir else None,
+    )
+    print(json.dumps(vote, indent=2))
+    return 0
+
+
+def cmd_gate_sign(args: argparse.Namespace) -> int:
+    """Gate check then POST to signing_node if ALLOW (agent-autonomous path)."""
+    import urllib.error
+    import urllib.request
+
+    from .kernel import TradeRequest
+    from .policy_loader import load_policy
+
+    policy = load_policy(args.policy)
+    safety = Path(args.safety_dir) if args.safety_dir else Path.home() / ".openclaw" / "safety"
+    trade_data = json.loads(args.trade)
+    trade = TradeRequest.from_dict(trade_data)
+    believed = json.loads(args.believed) if args.believed else []
+    decision = ExecutionGate(policy, safety_dir=safety).gate(trade, believed)
+    if not decision.allowed:
+        print(json.dumps({"gate": decision.to_dict(), "signed": False}, indent=2))
+        return 1
+    endpoint = args.signing_endpoint.rstrip("/")
+    body: dict[str, Any] = {
+        "request_id": trade.trade_id,
+        "trade": trade_data,
+        "gate_receipt": decision.receipt,
+    }
+    if args.calldata:
+        body["calldata"] = args.calldata
+    if args.typed_data:
+        body["typed_data"] = json.loads(args.typed_data)
+    req = urllib.request.Request(
+        f"{endpoint}/v1/sign",
+        data=json.dumps(body).encode(),
+        headers={
+            "Content-Type": "application/json",
+            "X-Titan-Gate-Receipt": decision.receipt,
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=float(args.timeout)) as resp:
+            signed = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        signed = json.loads(exc.read().decode()) if exc.fp else {"error": str(exc)}
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        signed = {"error": str(exc), "decision": "DENY"}
+    print(json.dumps({"gate": decision.to_dict(), "signing": signed}, indent=2))
+    return 0 if signed.get("decision") == "ALLOW" else 1
 
 
 def cmd_capital_balance(args: argparse.Namespace) -> int:
@@ -719,7 +781,28 @@ def main(argv: list[str] | None = None) -> int:
     gc.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
     gc.add_argument("--trade", required=True, help="JSON TradeRequest")
     gc.add_argument("--believed", default="", help="JSON list of believed positions")
+    gc.add_argument("--safety-dir", default="", help="~/.openclaw/safety for receipt secret")
     gc.set_defaults(func=cmd_gate_check)
+    gs = gate_sub.add_parser("sign", help="Gate check + signing_node POST (autonomous path)")
+    gs.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
+    gs.add_argument("--trade", required=True, help="JSON TradeRequest incl. confidence + bft_votes")
+    gs.add_argument("--believed", default="", help="JSON believed positions")
+    gs.add_argument("--calldata", default="", help="Hex calldata for live venues")
+    gs.add_argument("--typed-data", default="", help="JSON EIP-712 typed_data for live venues")
+    gs.add_argument("--signing-endpoint", default="http://127.0.0.1:19010")
+    gs.add_argument("--safety-dir", default="")
+    gs.add_argument("--timeout", default="5")
+    gs.set_defaults(func=cmd_gate_sign)
+
+    p_bft = sub.add_parser("bft", help="Advisory BFT vote tokens for trade authorization")
+    bft_sub = p_bft.add_subparsers(dest="bft_cmd", required=True)
+    bv = bft_sub.add_parser("vote")
+    bv.add_argument("--voter", required=True, help="AUGUR|PREDATOR|ATLAS")
+    bv.add_argument("--trade-id", required=True)
+    bv.add_argument("--decision", default="ALLOW", choices=["ALLOW", "DENY"])
+    bv.add_argument("--confidence", default="0.75")
+    bv.add_argument("--safety-dir", default="")
+    bv.set_defaults(func=cmd_bft_vote)
 
     p_evo = sub.add_parser("evolution", help="Freeze self-mod / evolution while live")
     evo_sub = p_evo.add_subparsers(dest="evo_cmd", required=True)

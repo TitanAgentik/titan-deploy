@@ -242,12 +242,19 @@ CLIOF
 
   # Env template
   if [[ ! -f "$OPENCLAW_HOME/.env" ]]; then
-    cat > "$OPENCLAW_HOME/.env" <<'ENVEOF'
-TELEGRAM_BOT_TOKEN=your-bot-token-here
-TELEGRAM_USER_ID=your-user-id-here
-NATS_URL=nats://localhost:4222
+    if [[ -f "$OUTPUT/infra/live.env.example" ]]; then
+      cp "$OUTPUT/infra/live.env.example" "$OPENCLAW_HOME/.env"
+      log "Created $OPENCLAW_HOME/.env from live.env.example — fill secrets before trading"
+    else
+      cat > "$OPENCLAW_HOME/.env" <<'ENVEOF'
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_USER_ID=
+NATS_URL=nats://127.0.0.1:4222
+TITAN_LIVE_SIGNING_READY=0
+TITAN_RECON_FETCHER_URL=
 ENVEOF
-    log "Created $OPENCLAW_HOME/.env template"
+      log "Created $OPENCLAW_HOME/.env template"
+    fi
   fi
 
   if [[ $INSTALL_SYSTEMD -eq 1 ]]; then

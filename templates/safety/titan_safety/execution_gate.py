@@ -148,6 +148,8 @@ class ExecutionGate:
                     "expected_price": trade.expected_price,
                     "worst_price": trade.worst_price,
                     "strategy_id": trade.strategy_id,
+                    "confidence": trade.confidence,
+                    "bft_votes": trade.bft_votes,
                 },
             )
             stages["risk_kernel"] = kernel
