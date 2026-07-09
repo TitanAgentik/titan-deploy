@@ -12,12 +12,12 @@ Target: Micron 7500 Pro 3.8TB | Hostname: `titanhome` | IP: `192.168.10.10`
 sudo dd if=ubuntu-24.04.4-desktop-amd64.iso of=/dev/sdX bs=4M status=progress conv=fsync
 ```
 
-Use **Desktop** if you want a GUI for initial setup; **Server** for headless + PiKVM only.
+Use **Desktop** if you want a GUI for initial setup; **Server** for headless + AST2600 BMC.
 
 ## 2. Boot installer
 
 1. Insert USB into TITANHOME rear port.
-2. PiKVM → power on → press **F8** for boot menu (or Del → Boot → USB).
+2. Power on → press **F8** for boot menu (or Del → Boot → USB). Local KVM or AST2600 BMC if remote.
 3. Select Ubuntu USB.
 
 ## 3. Installer choices

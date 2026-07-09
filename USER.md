@@ -57,7 +57,7 @@ CLI mirror: `~/.openclaw/safety/bin/titan-safety capital deposit|withdraw|balanc
 ## Physical Access
 
 - Workstation is under Hyperion's direct physical control  
-- PiKVM V4 Plus (out-of-band management) V4 Plus provides OOB access; accessible only from LAN + Nostr NIP-44  
+- OOB: ASUS AST2600 BMC (onboard) — AST2600 BMC removed from BOM; LAN-isolated management only  
 - Trezor Safe 7 hardware wallet holds long-term key material (weekly profit sweep per R23: 20% of profit every 7 days once total portfolio value ≥$15K; 100% reinvested below $15K; injections continue regardless)
 
 ## Production Rollout Phases

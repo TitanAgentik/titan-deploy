@@ -306,7 +306,8 @@ def workstation_doc() -> str:
 - Storage: Micron 7500 Pro 3.8TB (boot) + 2× WD Black SN8100 4TB
 - PSU: Super Flower Leadex Titanium 2200W
 - Cooling: Silverstone XE360-TR5 360mm AIO + Noctua iPPC fans
-- Timing: LBE-1420 GPSDO | OOB: PiKVM V4 Plus | TPM: ASUS TPM-SPI
+- Timing: LBE-1425 GPSDO → E810-XXVDA4T | UPS: Eaton 9SX 3000VA | OOB: AST2600 BMC (no PiKVM) | TPM: ASUS TPM-SPI
+- NIC: Intel E810-XXVDA4T (4×25GbE PTP/SyncE)
 - Chassis: Phanteks Enthoo Pro 2 Server Edition
 
 ## Inference Services

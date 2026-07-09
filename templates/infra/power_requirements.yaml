@@ -1,25 +1,27 @@
 # TITAN Power Requirements — mandatory for live capital
 # Deploy target: ~/.openclaw/infra/power_requirements.yaml
 
-version: "1.1"
+version: "1.2"
 live_capital_requires_ups: true
 hardware_ref: ~/.openclaw/infra/hardware_bom.yaml
 
 titanhome:
   role: primary_compute_inference_safety
-  mains: "240V dedicated circuit (NEMA plug)"
+  mains: "208–240V dedicated circuit (feeds Eaton 9SX)"
   psu:
     model: "Super Flower Leadex Titanium 2200W (SF-2200F14HP)"
-    rating: "Cybenetics Titanium, ATX 3.1, PCIe 5.1"
+    rating: "Cybenetics Titanium, ATX 3.1, PCIe 5.1, 200-240Vac"
     estimated_draw_watts:
       cpu_tdp: 350
       gpu_each: 300
       gpu_count: 2
       headroom_note: "2200W PSU adequate for 9995WX + 2× RTX PRO 6000 Max-Q sustained load"
   ups:
+    model: "Eaton 9SX 3000VA / 2700W 208V Online Double-Conversion"
     required_for_live: true
     minimum_runtime_minutes: 15
     minimum_va: 3000
+    minimum_watts: 2700
     outlets_protected:
       - titanhome_workstation
       - signing_node
@@ -39,9 +41,10 @@ titanhome:
     cb: CB_PSU_VOLTAGE_MISMATCH
     note: "Power-loss = HALT per risk_kernel; no discretionary signing during outage"
   timing:
-    gpsdo: "LBE-1420"
+    gpsdo: "LBE-1425"
+    nic: "Intel E810-XXVDA4T"
     on_pps_lost_minutes: 5
-    fallback: "chronyd NTP pool; gps:lbe1420:state=degraded"
+    fallback: "chronyd NTP pool; gps:lbe1425:state=degraded"
 
 titanspark:
   hardware: ASUS GX10

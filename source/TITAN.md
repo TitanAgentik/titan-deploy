@@ -1744,7 +1744,7 @@ Deploy to: \`\~/.openclaw/USER.md\`
 \#\# Physical Access
 
 \- Workstation is under Hyperion's direct physical control  
-\- PiKVM V4 Plus provides OOB access; accessible only from LAN \+ Nostr NIP-44  
+\- OOB: ASUS AST2600 BMC (onboard) — PiKVM removed from BOM; LAN-isolated management only  
 \- Trezor Safe 7 hardware wallet holds long-term key material (weekly profit sweep per R23: 20% of profit every 7 days once total portfolio value ≥$15K; 100% reinvested below $15K; injections continue regardless)
 
 \#\# Capital Phase
@@ -1784,7 +1784,7 @@ Deploy to: \`\~/.openclaw/TOOLS.md\`
 \> \*\*Circuit Breaker \`CB\_OOM\_KILLER\_RISK\`:\*\* Monitors the 64GB OS partition. If orchestration daemons spike and system swap \>5%, this breaker fires, gracefully killing the \`darwin\_godel\` MAP-Elites generation cycle before the Linux OOM Killer indiscriminately crashes the system.  
 \*\*HERALD:\*\* Telegram bot (primary on EDGE-FRA — Vultr BM Frankfurt, DE-CIX peered), institutional-grade hourly performance reports (§TGCMD.2), urgent alert override (§TGCMD.2a), real-time trade notifications (§TGCMD.3), approval workflows, 2FA confirmation  
 \*\*NEXUS:\*\* Data feed management, API aggregation, price oracle consensus (median 3+ sources), funding-rate monitor (P5: HL \+ BSC \+ Drift), AVS registry feed (P10)  
-\*\*FORGE:\*\* PM2 process management, workstation \+ edge health, GPU monitoring, certificate renewal, PiKVM heartbeat, Nostr relay connection uptime, strategy-health-check cron, mempool-health cron  
+\*\*FORGE:\*\* PM2 process management, workstation \+ edge health, GPU monitoring, certificate renewal, AST2600 BMC heartbeat, Nostr relay connection uptime, strategy-health-check cron, mempool-health cron  
 \*\*ALCHEMY:\*\* DeFi protocol interactions (Aave/Compound/Curve/Morpho/Spark), yield optimization, LP management, \*\*liquidation hunter (P6) decision \+ calldata compose \+ flash-loan composition\*\*, \*\*NFT/RWA market making (P9)\*\*, \*\*AVS optimizer (P10)\*\*  
 \*\*ATLAS:\*\* Portfolio tracking, PnL calculation (realized/unrealized), Sharpe/Sortino, weekly profit sweep to Trezor (R23), delta accounting (P5), inventory mgmt (P9)  
 \*\*QUANT:\*\* Statistical analysis, backtesting engine, Monte Carlo simulation (optional QAE speedup via QCC), walk-forward tests, \*\*statistical pairs trading (P7 z-score \+ OU)\*\*, \*\*prediction market arbitrage (P11) model-vs-market calibration\*\*  
@@ -2334,7 +2334,7 @@ notification\_map:
 
 \#\#\#\# Layer 2: Threadripper Parallel Mempool Simulation (96C/192T)
 
-\#\#\#\# Layer 3: PiKVM V4 Plus — OOB Emergency Response
+\#\#\#\# Layer 3: AST2600 BMC — OOB Emergency Response (PiKVM removed)
 
 \#\#\#\# Layer 4: GPSDO Wildcard — Stratum 1 Authority \+ Time-Oracle Edge
 
@@ -3493,7 +3493,7 @@ result \= qaoa.optimize(
 
 \- \*\*Owner:\*\* SENTINEL  
 \- \*\*Purpose:\*\* 130+ hardening checkpoints on workstation \+ TITANSPARK \+ Mac Mini \+ each edge; credential isolation; weekly dependency vuln scan; TPM PCR drift detection; dissent-log chain verification; Mac Mini FileVault \+ T2 secure boot \+ SSH-only access verification.  
-\- \*\*Inputs:\*\* filesystem snapshots, process lists, env-var inventory, package manifests, AST2600/PiKVM access logs, TPM PCR readings; Mac Mini SSH probe (fdesetup status, codesign verification, open ports, running processes, vault integrity hash).  
+\- \*\*Inputs:\*\* filesystem snapshots, process lists, env-var inventory, package manifests, AST2600 BMC access logs, TPM PCR readings; Mac Mini SSH probe (fdesetup status, codesign verification, open ports, running processes, vault integrity hash).  
 \- \*\*Outputs:\*\* weekly hardening report → \`/data/openclaw/memory/security/hardening-YYYY-WW.md\`; immediate alerts on critical findings.  
 \- \*\*Integration:\*\* feeds dissent-log audit; precedes promoted DGM-H mutations (codeql\_scan \+ audit chain); coordinates session-key revocation with GUARDIAN.  
 \- \*\*CBs:\*\* CB\_PRIVATE\_KEY\_LEAK, CB\_EDGE\_KEY\_FOUND, CB\_TPM\_PCR\_DRIFT, CB\_DEPENDENCY\_VULN, CB\_DISSENT\_CHAIN\_BREAK.
@@ -3501,7 +3501,7 @@ result \= qaoa.optimize(
 \#\#\# skills/infra\_health/SKILL.md
 
 \- \*\*Owner:\*\* FORGE  
-\- \*\*Purpose:\*\* Workstation \+ TITANSPARK \+ Mac Mini \+ edge \+ Redis \+ PM2/systemd \+ Nostr NIP-44 \+ GPU/CPU/RAM/NVMe monitoring; SGLang/llama.cpp/Dynamo health probes; BMC power telemetry; PiKVM heartbeat; Mac Mini vault \+ service health.  
+\- \*\*Purpose:\*\* Workstation \+ TITANSPARK \+ Mac Mini \+ edge \+ Redis \+ PM2/systemd \+ Nostr NIP-44 \+ GPU/CPU/RAM/NVMe monitoring; SGLang/llama.cpp/Dynamo health probes; BMC power telemetry; AST2600 BMC heartbeat; Mac Mini vault \+ service health.  
 \- \*\*Inputs:\*\* PM2 \+ systemd state; nvidia-smi outputs; smartctl \+ nvme-cli; chronyc PPS state; wg show; Redis INFO \+ NATS streams; BMC ipmitool/sensors; Mac Mini SSH probes (pmset status, process list, BTC SPV sync height, NATS failover status, CPU temp via \`powermetrics\`).  
 \- \*\*Outputs:\*\* \`forge:health\` topic published every 30s; weekly hardening verification; routing-table updates every 4h; Mac Mini status in daily brief payload.  
 \- \*\*Integration:\*\* drives the strategy\_health\_check \+ mempool\_health crons; emits all infra-class CBs.  
@@ -6503,14 +6503,14 @@ cd \~/.openclaw/elysium-core && cargo test \--workspace
 | \------ | \------ | \----------- | \--------- |  
 | \*\*Port 1\*\* | — (WAN) | ISP modem | Internet uplink (DHCP or PPPoE from ISP) |  
 | \*\*Port 2\*\* | VLAN 1 (LAN) | TITANHOME workstation | Primary data plane — all workstation traffic |  
-| \*\*Port 3\*\* | VLAN 10 (MGMT) | PiKVM V4 Plus \+ AST2600 BMC | Isolated management — NO route to internet |  
+| \*\*Port 3\*\* | VLAN 10 (MGMT) | AST2600 BMC (PiKVM removed) | Isolated management — NO route to internet |  
 | \*\*Port 4\*\* | — (RESERVED) | Unused | Future: secondary WAN failover or IoT quarantine |
 
 \#\#\# OPNsense hardening configuration
 
 \#\#\# Network topology with Protectli
 
-\<\!-- ISP, Modem, Port, LAN, TITANHOME, PiKVM, V4, Workstation \--\>
+\<\!-- ISP, Modem, Port, LAN, TITANHOME, AST2600 BMC, Workstation \--\>
 
 \*\*Defense-in-depth\*\*: even if the Protectli is compromised, the workstation's nftables (§GHOST.2) independently enforces default-deny. Both must be breached simultaneously.
 
@@ -7405,7 +7405,7 @@ EXECUTOR\_TRENCH  \= "ipc:///run/openclaw/executor-trench.sock"
 | \`CB\_MAINT\_SGLANG\_STARTUP\_FAIL\` | SGLang fails to load Qwen3-235B model weights after update | CRITICAL | Rollback SGLang pip package (\`pip install sglang=={previous\_version}\`); restart SGLang server; verify inference endpoint responds. Alert 🚨. |  
 | \`CB\_MAINT\_NATS\_RECONNECT\_FAIL\` | \>3 agents fail to reconnect to NATS after server update | HIGH | Rollback NATS binary to previous version; restart nats-server; verify all 23 agents connected within 60s. If persistent → restart agents sequentially. |  
 | \`CB\_MAINT\_OPENCLAW\_BOOT\_FAIL\` | OpenClaw gateway fails to start after git update | HIGH | \`cd /srv/openclaw && git checkout HEAD\~1 && pnpm install\`; restart gateway; verify health endpoint. Alert Hyperion. |  
-| \`CB\_MAINT\_MACMINI\_REBOOT\_HANG\` | Mac Mini doesn't respond within 5 min of reboot | MEDIUM | PiKVM power cycle (hard reset); wait 3 min; if still unresponsive → skip Mac Mini for this cycle; TITANSPARK assumes vault/Telegram duties via CB\_MACMINI\_UNREACHABLE. |  
+| \`CB\_MAINT\_MACMINI\_REBOOT\_HANG\` | Mac Mini doesn't respond within 5 min of reboot | MEDIUM | Local/BMC power cycle (hard reset); wait 3 min; if still unresponsive → skip Mac Mini for this cycle; TITANSPARK assumes vault/Telegram duties via CB\_MACMINI\_UNREACHABLE. |  
 | \`CB\_MAINT\_ZFS\_SNAPSHOT\_FAIL\` | ZFS snapshot creation fails (insufficient disk space or pool error) | CRITICAL | Prune oldest maintenance snapshots; retry snapshot; if still fails → ABORT entire maintenance cycle (no updates without rollback capability). Alert 🚨🔴. |  
 | \`CB\_MAINT\_CRITICAL\_CVE\_DETECTED\` ★ | Critical CVE (CVSS ≥9.0) affecting running software detected mid-week | CRITICAL | FORGE triggers emergency mini-maintenance: Livepatch for kernel CVEs (no reboot), PM2 reload for service CVEs (\<2s downtime per agent), no trading pause. Telegram: "Emergency patch: {CVE-ID}". If Livepatch unavailable → schedule immediate Saturday window. |  
 | \`CB\_MAINT\_UPDATE\_TRAFFIC\_ANOMALY\` | Suricata/Wazuh flags update download traffic (MITM, tampered package, unexpected source) | HIGH | Immediately pause all downloads; verify package signatures (\`apt-key\`, \`gpg \--verify\`); verify TLS certificate chain; resume only if all integrity checks pass. If compromise confirmed → abort, alert SENTINEL, rotate affected credentials. |
@@ -12162,7 +12162,7 @@ aegis\_telegram\_commands:
 
 \# LAYER 5: Storage Encryption (SSD Hardware Encryption Bypass)
 
-\# LAYER 6: Remote Management (PiKVM Hardening)
+\# LAYER 6: Remote Management (AST2600 BMC Hardening — PiKVM removed)
 
 \# LAYER 7: Transaction Protection (MEV / Sandwich / Priority-sequence)
 
@@ -12184,7 +12184,7 @@ aegis\_telegram\_commands:
 | \`CB\_FORTRESS\_NIC\_VULN\` | E810 firmware version below patched minimum | Disable E810 trading interface; fall back to onboard NIC; Telegram ⚠️🟠 |  
 | \`CB\_FORTRESS\_SANDWICH\` | Sandwich attack detected on Titan transaction | Blacklist leaking RPC; rotate to private endpoint; log for analysis; Telegram ⚠️🟠 |  
 | \`CB\_FORTRESS\_ECLIPSE\` | RPC consensus disagreement (\>2 block drift across sources) | HALT all trading; switch to local-node-only mode; Telegram 🚨🔴 |  
-| \`CB\_FORTRESS\_PIKVM\_INTRUSION\` | Unauthorized PiKVM login attempt detected | Lock PiKVM interface; rotate credentials; Telegram 🚨🔴 |  
+| \`CB\_FORTRESS\_BMC\_INTRUSION\` | Unauthorized AST2600 BMC login attempt detected | Lock BMC interface; rotate credentials; Telegram 🚨🔴 |  
 | \`CB\_FORTRESS\_CVE\_CRITICAL\` | FORGE scanner detects CRITICAL CVE in running component | Alert HERALD immediately; schedule emergency patching window; Telegram 🚨🔴 |  
 | \`CB\_FORTRESS\_DISK\_UNENCRYPTED\` | Unencrypted partition or tmpfs with wrong permissions detected | Remount with correct perms; if unencryptable → unmount and lock; Telegram ⚠️🟠 |  
 | \`CB\_FORTRESS\_CHASSIS\_OPEN\` | Physical chassis intrusion switch triggered | HALT system; seal all keys; emergency sweep to Trezor; Telegram 🚨🔴 |
@@ -13129,21 +13129,21 @@ security:
 
 \# \+ SilverStone XE360-TR5 (SST-XE360-TR5) AIO \+ Thermal Grizzly Kryonaut Extreme
 
-\# \+ 13-fan Noctua iPPC rationalization (4× NF-A14 \+ 6× NF-F12 \+ 3× XE360-TR5 stock)
+\# \+ Noctua iPPC fans: 4× NF-A14 iPPC-3000 + 7× NF-F12 iPPC-3000 (+ XE360-TR5 stock)
 
-\# \+ 2× Thermalright MC-3 RAM coolers as sole RAM cooling (DIMM brackets and
+\# \+ 2× Thermalright MC-3 Digital RAM coolers + 2× 9cm bridge bracket frames (
 
-\# bridge fans removed per operator instruction)
+\# plus 2× Noctua NF-A9x14 HS-PWM per operator BOM)
 
 \# \+ Leo Bodnar LBE-1425 GPSDO (dual-channel 2× SMA, increased stability \~1×10⁻¹², ±5ppb holdover —
 
 \#
 
-\# \+ Wall power connection, no UPS (UPS completely decommissioned and
+\# \+ Eaton 9SX 3000VA / 2700W 208V Online Double-Conversion UPS (REQUIRED for live capital — replaces
 
-\# removed per operator instruction; related safety breakers retired)
+\# prior no-UPS posture; related safety breakers reinstated)
 
-\# \+ PiKVM V4 Plus \+ AST2600 BMC (both on isolated management VLAN
+\# \+ AST2600 BMC only — PiKVM removed from operator BOM (isolated management VLAN
 
 \# LAN/OOB-VLAN-only per §AU.A.7)
 

@@ -785,7 +785,7 @@ def reconcile_hardware_bom(text: str) -> str:
         ),
         (
             r"Workstation \"TITANHOME\" \(home, UPS-protected 240V mains — REQUIRED for live capital\):",
-            'Workstation "TITANHOME" (WRX90E-SAGE SE, UPS-protected 240V, Super Flower 2200W Ti):',
+            'Workstation "TITANHOME" (WRX90E-SAGE SE, Eaton 9SX UPS, Super Flower 2200W Ti):',
         ),
         (
             r"Micron 7500 PRO boot or any WD Black SN8100",
@@ -793,26 +793,59 @@ def reconcile_hardware_bom(text: str) -> str:
         ),
         (
             r"wall power, no UPS",
-            "UPS-protected 240V mains (Super Flower 2200W + external UPS — REQUIRED for live capital)",
+            "UPS-protected 208–240V mains (Eaton 9SX 3000VA + Super Flower 2200W — REQUIRED for live capital)",
+        ),
+        # PiKVM removed from operator BOM — strip / rewrite references
+        (
+            r"PiKVM V4 Plus \(out-of-band management\)",
+            "ASUS AST2600 BMC (onboard OOB; PiKVM removed)",
+        ),
+        (
+            r"PiKVM V4 Plus",
+            "ASUS AST2600 BMC (PiKVM removed)",
+        ),
+        (
+            r"PiKVM heartbeat",
+            "AST2600 BMC heartbeat",
         ),
         (
             r"PiKVM",
-            "PiKVM V4 Plus (out-of-band management)",
+            "AST2600 BMC",
+        ),
+        (
+            r"LBE-1420 GPSDO \(PPS-locked chrony source\)",
+            "LBE-1425 GPSDO (PPS + 10 MHz → E810; PPS-locked chrony source)",
         ),
         (
             r"LBE-1420",
-            "LBE-1420 GPSDO (PPS-locked chrony source)",
+            "LBE-1425",
         ),
     ]
     for pattern, repl in replacements:
         text = re.sub(pattern, repl, text)
 
+    # Refresh stale HARDWARE BOM block if present
+    text = re.sub(
+        r"> \*\*HARDWARE BOM \(reconciled\):\*\*.*?(?=\n\n## Platform Architecture|\n\n> \*\*)",
+        """> **HARDWARE BOM (reconciled):** Operator-locked stack — see `~/.openclaw/infra/hardware_bom.yaml`.
+> TITANHOME: Threadripper PRO 9995WX, ASUS WRX90E-SAGE SE, 512GB DDR5-6000 ECC R-DIMM (V-Color),
+> 2× NVIDIA RTX PRO 6000 Blackwell Max-Q (96GB each), Micron 7500 Pro 3.8TB boot,
+> 2× WD Black SN8100 4TB, Super Flower Leadex Titanium 2200W, Eaton 9SX 3000VA UPS,
+> Leo Bodnar LBE-1425 GPSDO → Intel E810-XXVDA4T, ASUS TPM-SPI. **PiKVM removed** (AST2600 BMC only).
+> TITANSPARK: ASUS GX10. Vault: Mac Mini 2018 (64GB). UPS mandatory for live capital.
+""",
+        text,
+        count=1,
+        flags=re.DOTALL,
+    )
+
     if "HARDWARE BOM (reconciled)" not in text:
         hw_block = """
 > **HARDWARE BOM (reconciled):** Operator-locked stack — see `~/.openclaw/infra/hardware_bom.yaml`.
-> TITANHOME: Threadripper PRO 9995WX, ASUS WRX90E-SAGE SE, 512GB DDR5-6000 ECC R-DIMM,
+> TITANHOME: Threadripper PRO 9995WX, ASUS WRX90E-SAGE SE, 512GB DDR5-6000 ECC R-DIMM (V-Color),
 > 2× NVIDIA RTX PRO 6000 Blackwell Max-Q (96GB each), Micron 7500 Pro 3.8TB boot,
-> 2× WD Black SN8100 4TB, Super Flower Leadex Titanium 2200W, LBE-1420 GPSDO, PiKVM V4 Plus, TPM-SPI.
+> 2× WD Black SN8100 4TB, Super Flower Leadex Titanium 2200W, Eaton 9SX 3000VA UPS,
+> Leo Bodnar LBE-1425 GPSDO → Intel E810-XXVDA4T, ASUS TPM-SPI. **PiKVM removed** (AST2600 BMC only).
 > TITANSPARK: ASUS GX10. Vault: Mac Mini 2018 (64GB). UPS mandatory for live capital.
 
 """

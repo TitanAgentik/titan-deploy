@@ -2,16 +2,16 @@
 # Deploy target: ~/.openclaw/infra/hardware_bom.yaml
 # Authority: single source of truth for infra agents (FORGE, SENTINEL, BOOTSTRAP)
 
-version: "1.0"
+version: "1.1"
 operator: hyperion
-last_updated: "2026-07-07"
+last_updated: "2026-07-09"
 
 nodes:
   titanhome:
     role: primary_compute_inference_safety
     hostname: TITANHOME
     location: on_prem_home
-    chassis: "Phanteks Enthoo Pro 2 Server Edition (SSI-EEB, 11 PCIe slots)"
+    chassis: "Phanteks Enthoo Pro 2 Server Edition PH-ES620PC_BK02 (SSI-EEB, 11 PCIe slots, 15× fan positions)"
     cpu:
       model: "AMD Ryzen Threadripper PRO 9995WX"
       cores: 96
@@ -27,22 +27,23 @@ nodes:
       capacity_gb: 512
       dimms: 8
       dimm_size_gb: 64
-      type: "DDR5-6000 CL36 ECC Registered R-DIMM"
+      type: "DDR5-6000 CL36 ECC Registered R-DIMM (AMD EXPO, Overclocking ECC)"
       voltage: 1.25
-      cooling: "Thermalright MC-3 Digital + bridge bracket fans"
+      cooling: "2× Thermalright MC-3 Digital + 2× 9cm bridge bracket frames + 2× Noctua NF-A9x14 HS-PWM"
     gpu:
       count: 2
       model: "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition"
+      sku: "RTXPRO6000MQ"
       vram_gb_each: 96
       vram_gb_total: 192
       slots: ["PCIe 5.0 x16 slot 1", "PCIe 5.0 x16 slot 2"]
       inference_allocation:
         gpu_0: "Tier 1 — Qwen3-30B-A3B FP8 (:30000) critical path"
         gpu_1: "Tier 2 — Qwen3-Coder-Next-80B (:30001) reasoning"
-        offline: "Tier 3 — GLM-5.2 expert-offload (:30003) R&D only"
+        offline: "Tier 3 — GLM-5.2 / DeepSeek V4 Pro expert-offload R&D only"
     storage:
       boot:
-        model: "Micron 7500 Pro 3.8TB (MTFDKCC3T8TGP)"
+        model: "Micron 7500 Pro 3.8TB (MTFDKCC3T8TGP-1BK1DABYYR)"
         interface: NVMe
         role: "OS + ZFS rpool ROOT"
       data:
@@ -54,23 +55,35 @@ nodes:
           role: "data pool / backtest / archive"
     psu:
       model: "Super Flower Leadex Titanium 2200W (SF-2200F14HP)"
-      rating: "Cybenetics Titanium, ATX 3.1, PCIe 5.1"
-      connectors: "2× native 12V-2x6"
+      rating: "Cybenetics Titanium, ATX 3.1, PCIe 5.1, 200-240Vac"
+      connectors: "2× native 12V-2x6 (2×8pin-16pin)"
+    ups:
+      model: "Eaton 9SX 3000VA / 2700W 208V Online Double-Conversion"
+      required_for_live: true
+      minimum_runtime_minutes: 15
     cooling:
-      cpu: "Silverstone XE360-TR5 360mm AIO (TR5/SP6)"
+      cpu: "Silverstone XE360-TR5 360mm AIO (SST-XE360-TR5, TR5/SP6)"
       fans_140mm: "4× Noctua NF-A14 iPPC-3000 PWM"
       fans_120mm: "7× Noctua NF-F12 iPPC-3000 PWM"
       fans_92mm: "2× Noctua NF-A9x14 HS-PWM chromax.Black.swap"
+    network:
+      nic: "Intel Ethernet Network Adapter E810-XXVDA4T"
+      ports: "4× SFP28 25GbE"
+      features: "HW IEEE 1588 PTP, SyncE, RDMA, SR-IOV"
+      onboard: "WRX90E-SAGE SE dual Intel 10GbE"
     timing:
-      model: "LBE-1420 GPSDO"
-      role: "PPS-locked chrony source"
+      model: "Leo Bodnar LBE-1425 Two-port Increased Stability GPSDO"
+      role: "PPS + 10 MHz → E810 SMA/U.FL → chronyd PPS + HW PTP grandmaster"
+      wiring:
+        out1_1pps: "E810 SMA-IN"
+        out2_10mhz: "E810 U.FL-IN"
       fallback: "NTP pool on GPSDO loss >5min"
     security:
       tpm: "ASUS TPM-SPI Trusted Platform Module"
-      oob: "PiKVM V4 Plus"
+      oob: "ASUS AST2600 BMC (onboard) — PiKVM removed from BOM"
       baseline_pcr: "/etc/mnemosyne/tpm-baseline"
     power:
-      mains: "240V dedicated circuit"
+      mains: "208–240V dedicated circuit"
       ups_required_for_live: true
     services_hosted:
       - llama-server-tier1-30000
@@ -147,4 +160,8 @@ verification:
   memory_gb_expected: 512
   boot_drive: "Micron 7500 Pro"
   data_drives: 2
+  nic: "Intel E810-XXVDA4T"
+  gpsdo: "LBE-1425"
+  ups: "Eaton 9SX 3000VA"
+  pikvm: false
   ups_ack_required_before_live: true

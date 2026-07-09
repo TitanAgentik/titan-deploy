@@ -13,7 +13,7 @@ If you want a shorter technical checklist, see `DEPLOYMENT_GUIDE.md`. If you wan
 1. [What you are building](#1-what-you-are-building)
 2. [Hardware you need](#2-hardware-you-need)
 3. [Before first power-on — physical assembly](#3-before-first-power-on--physical-assembly)
-4. [PiKVM — control the machine without a monitor](#4-pikvm--control-the-machine-without-a-monitor)
+4. [Console / BMC — BIOS without PiKVM](#4-console--bmc--bios-without-pikvm)
 5. [TITANHOME BIOS — complete checklist](#5-titanhome-bios--complete-checklist)
 6. [Install Ubuntu on TITANHOME](#6-install-ubuntu-on-titanhome)
 7. [Wire your home network (LAN)](#7-wire-your-home-network-lan)
@@ -71,8 +71,8 @@ Authoritative spec: `templates/infra/hardware_bom.yaml`
 |---------|------|-----------------|
 | **TITANHOME** | Brain | Runs AI models, safety services, OpenClaw gateway |
 | **Signing node** | Key vault | Signs txs; co-located on TITANHOME at first (`127.0.0.1:19010`), separate machine later |
-| **UPS** | Battery backup | **Required before live capital** — power loss mid-trade = real losses |
-| **PiKVM** | Remote BIOS/OS | Configure BIOS and install Ubuntu without a physical keyboard/monitor |
+| **UPS** | Battery backup | **Required before live capital** — Eaton 9SX 3000VA / 2700W 208V; power loss mid-trade = real losses |
+| **Local console or AST2600 BMC** | BIOS/OS access | PiKVM **removed** from BOM — use keyboard/monitor or onboard BMC |
 
 ### Strongly recommended
 
@@ -90,8 +90,10 @@ Authoritative spec: `templates/infra/hardware_bom.yaml`
 - **Boot disk:** Micron 7500 Pro 3.8 TB NVMe
 - **Data disks:** 2× WD Black SN8100 4 TB
 - **PSU:** Super Flower Leadex Titanium 2200 W
-- **Timing:** LBE-1420 GPSDO (optional but recommended for latency-sensitive live trading)
-- **Security:** TPM-SPI module
+- **Timing:** Leo Bodnar LBE-1425 GPSDO → Intel E810-XXVDA4T (recommended for latency-sensitive live trading)
+- **NIC:** Intel E810-XXVDA4T (4×25GbE PTP/SyncE)
+- **UPS:** Eaton 9SX 3000VA / 2700W 208V Online Double-Conversion
+- **Security:** ASUS TPM-SPI module (PiKVM removed — AST2600 BMC or local console)
 
 ### Realistic minimum (if you are not on full BOM yet)
 
@@ -129,25 +131,26 @@ Follow `templates/infra/network_topology.yaml` → `connection_order`.
 2. **GPU placement** — GPU0 in the **CPU-direct** PCIe x16 slot (check WRX90E manual). GPU1 in second x16 slot.
 3. **Install TPM-SPI** on the motherboard header.
 4. **Storage** — For first install, only the **Micron 7500** boot drive is required. Leave WD SN8100 drives unformatted until after Ubuntu works.
-5. **PiKVM cabling** — HDMI capture from TITANHOME → PiKVM; USB-ATX power control; PiKVM Ethernet → switch.
-6. **First power-on via PiKVM** — You should see POST. If memory training hangs 5–8 minutes after EXPO, that is normal; do not power off.
+5. **Install E810-XXVDA4T** in a free x16 slot; leave SFP28 optics for after OS.
+6. **First power-on** — Local keyboard/monitor or AST2600 BMC. You should see POST. If memory training hangs 5–8 minutes after EXPO, that is normal; do not power off.
 
 **Do not skip:** adequate cooling. Two 300 W-class GPUs under sustained inference need aggressive fan curves.
 
 ---
 
-## 4. PiKVM — control the machine without a monitor
+## 4. Console / BMC — BIOS without PiKVM
 
-PiKVM lives at **`192.168.10.5`** on the recommended LAN plan.
+**PiKVM is removed from the operator BOM.** Use either:
 
-1. Connect PiKVM to your switch and find its IP (or use `.5` if you configured static).
-2. Open `https://<pikvm-ip>/` in a browser.
-3. You will use PiKVM for:
-   - Entering BIOS (Del / F2 at POST)
-   - Selecting USB boot for Ubuntu installer
-   - Watching POST error codes if boot fails
+1. **Local keyboard + monitor** (simplest for first bring-up), or
+2. **ASUS AST2600 BMC** on the WRX90E-SAGE SE (LAN-isolated management)
 
-**Why it matters:** Server/workstation builds often fail first POST (memory training, PCIe detection). PiKVM lets you fix BIOS without dragging a monitor to the rack.
+You will use console/BMC for:
+- Entering BIOS (Del / F2 at POST)
+- Selecting USB boot for Ubuntu installer
+- Watching POST error codes if boot fails
+
+**Why it matters:** Server/workstation builds often fail first POST (memory training, PCIe detection). Fix BIOS before you commit to a headless rack layout.
 
 ---
 
@@ -231,7 +234,7 @@ Re-enable C-states during maintenance windows when not trading.
 | Chassis fans | Aggressive curve |
 | BIOS administrator password | **Set one** |
 
-### 5.9 POST verification (screenshot via PiKVM)
+### 5.9 POST verification (screenshot / BMC capture)
 
 Confirm you see:
 
@@ -301,12 +304,13 @@ Plan: `templates/infra/network_topology.yaml`
 
 | Host | IP | Role |
 |------|-----|------|
-| PiKVM | 192.168.10.5 | Out-of-band |
 | TITANHOME | 192.168.10.10 | Primary |
 | Signing (phase 2) | 192.168.10.11 | Optional dedicated NUC |
 | TITANSPARK | 192.168.10.20 | Utility AI |
 | Mac Mini vault | 192.168.10.30 | Trezor / metadata |
 | Router | 192.168.10.1 | Gateway |
+
+> PiKVM (`.5`) removed from BOM — no reserved OOB IP required.
 
 ### 7.1 Static IP on TITANHOME
 
@@ -427,9 +431,9 @@ Spec: `templates/infra/power_requirements.yaml`
 
 **Before live capital:**
 
-- UPS ≥ **3000 VA**, ≥ **15 minutes** runtime
+- **Eaton 9SX 3000VA / 2700W 208V** Online Double-Conversion (or equivalent ≥3000 VA, ≥15 min runtime)
 - Protect: TITANHOME, signing node, TITANSPARK, vault, core switch
-- USB to TITANHOME for **NUT** monitoring (optional but recommended)
+- USB/SNMP to TITANHOME for **NUT** monitoring (optional but recommended)
 
 **Policy behavior on power loss:** halt trading, flatten positions, revoke session keys.
 
@@ -446,12 +450,12 @@ Spec: `templates/infra/power_requirements.yaml`
 
 ## 11. Time sync (GPSDO + chrony)
 
-The LBE-1420 GPSDO provides **PPS** (pulse-per-second) for sub-millisecond clock discipline.
+The **Leo Bodnar LBE-1425** GPSDO provides **1 PPS + 10 MHz** into the **Intel E810-XXVDA4T** (SMA + U.FL) for sub-millisecond clock discipline and hardware PTP.
 
 After OS install:
 
-1. Connect GPSDO per manufacturer wiring to TITANHOME
-2. Configure **chrony** to prefer PPS source
+1. Wire LBE-1425 Out1 (1 PPS) → E810 SMA-IN; Out2 (10 MHz) → E810 U.FL-IN
+2. Configure **chrony** from `templates/infra/chrony-gpsdo.conf`
 3. Verify:
 
 ```bash
@@ -1032,13 +1036,13 @@ TITAN_LIVE_SIGNING_READY=1
 
 ### Phase A — Hardware (no software)
 
-- [ ] TITANHOME assembled, TPM installed, PiKVM working
+- [ ] TITANHOME assembled, TPM installed, E810 + LBE-1425 ready (PiKVM not required)
 - [ ] BIOS checklist complete (`titanhome_bios_checklist.md`)
 - [ ] POST shows 9995WX + 512 GB + 2 GPUs
 - [ ] Ubuntu 24.04 on Micron 7500, hostname `titanhome`
-- [ ] Static IP `.10`, `nvidia-smi` shows 2 GPUs
+- [ ] Static IP `.10`, `nvidia-smi` shows 2 GPUs, `lspci` shows E810
 - [ ] TITANSPARK `.20`, vault `.30` on Ethernet
-- [ ] UPS installed
+- [ ] Eaton 9SX UPS installed and tested
 
 ### Phase B — Software deploy
 

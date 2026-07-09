@@ -287,8 +287,10 @@ infrastructure:
     gpu: "2× NVIDIA RTX PRO 6000 Blackwell Max-Q (192GB VRAM)"
     storage: "Micron 7500 Pro 3.8TB + 2× WD Black SN8100 4TB"
     psu: "Super Flower Leadex Titanium 2200W"
-    timing: "LBE-1420 GPSDO"
-    oob: "PiKVM V4 Plus"
+    timing: "Leo Bodnar LBE-1425 GPSDO → Intel E810-XXVDA4T"
+    nic: "Intel E810-XXVDA4T"
+    ups: "Eaton 9SX 3000VA / 2700W 208V"
+    oob: "ASUS AST2600 BMC (PiKVM removed)"
     hosts:
       - tier1_inference_qwen3_30b  # :30000 GPU 0
       - tier2_inference_qwen3_coder_80b  # :30001 GPU 1
@@ -962,8 +964,10 @@ capital:
       "storage": "Micron 7500 Pro 3.8TB boot + 2\u00d7 WD Black SN8100 4TB",
       "psu": "Super Flower Leadex Titanium 2200W",
       "cooling": "Silverstone XE360-TR5 360mm AIO + Noctua iPPC fans",
-      "timing": "LBE-1420 GPSDO",
-      "oob": "PiKVM V4 Plus",
+      "timing": "Leo Bodnar LBE-1425 GPSDO \u2192 Intel E810-XXVDA4T",
+      "nic": "Intel E810-XXVDA4T",
+      "ups": "Eaton 9SX 3000VA / 2700W 208V",
+      "oob": "ASUS AST2600 BMC (PiKVM removed)",
       "tpm": "ASUS TPM-SPI",
       "note": "Tier 1/2 inference + REVM + risk kernel + safety services"
     },

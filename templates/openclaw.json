@@ -379,8 +379,10 @@
       "storage": "Micron 7500 Pro 3.8TB boot + 2× WD Black SN8100 4TB",
       "psu": "Super Flower Leadex Titanium 2200W",
       "cooling": "Silverstone XE360-TR5 360mm AIO + Noctua iPPC fans",
-      "timing": "LBE-1420 GPSDO",
-      "oob": "PiKVM V4 Plus",
+      "timing": "Leo Bodnar LBE-1425 GPSDO → Intel E810-XXVDA4T",
+      "nic": "Intel E810-XXVDA4T",
+      "ups": "Eaton 9SX 3000VA / 2700W 208V",
+      "oob": "ASUS AST2600 BMC (PiKVM removed)",
       "tpm": "ASUS TPM-SPI",
       "note": "Tier 1/2 inference + REVM + risk kernel + safety services"
     },

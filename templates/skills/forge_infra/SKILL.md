@@ -23,7 +23,7 @@ Infrastructure health agent for TITANHOME (Threadripper PRO 9995WX + 2× RTX PRO
 - GPU: 2× NVIDIA RTX PRO 6000 Blackwell Max-Q (96GB each)
 - Boot: Micron 7500 Pro 3.8TB | Data: 2× WD Black SN8100 4TB
 - PSU: Super Flower Leadex Titanium 2200W
-- Timing: LBE-1420 GPSDO | OOB: PiKVM V4 Plus | TPM: ASUS TPM-SPI
+- Timing: LBE-1425 GPSDO → E810-XXVDA4T | UPS: Eaton 9SX 3000VA | OOB: AST2600 BMC (no PiKVM) | TPM: ASUS TPM-SPI
 
 ## Responsibilities
 

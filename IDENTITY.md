@@ -17,8 +17,8 @@
 
 - **TITANHOME (primary):** Threadripper PRO 9995WX + ASUS WRX90E-SAGE SE + 512GB DDR5-6000 ECC
   + 2× RTX PRO 6000 Blackwell Max-Q (192GB VRAM) + Micron 7500 Pro boot + 2× WD SN8100 4TB
-  + Super Flower 2200W Ti + LBE-1420 GPSDO + PiKVM V4 Plus + TPM-SPI
-  — Tier 1/2 inference, REVM, risk kernel + safety services
+  + Super Flower 2200W Ti + Eaton 9SX 3000VA UPS + LBE-1425 GPSDO → E810-XXVDA4T + TPM-SPI
+  — Tier 1/2 inference, REVM, risk kernel + safety services (PiKVM removed; AST2600 BMC OOB)
 - **TITANSPARK:** ASUS GX10 — utility inference (Qwen3-30B :30002) + operator gateway failover
 - **Mac Mini vault:** Mac Mini 2018 i7 6-core, 64GB DDR4 — key metadata, Trezor ceremonies
 - **Edge mesh:** full 5-PoP (`full_mesh`) — EDGE-FRA, EDGE-TKY, EDGE-SIN, EDGE-USE, EDGE-AMS — paper + live identical routing

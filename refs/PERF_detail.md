@@ -118,7 +118,7 @@ enforcement:
 ```markdown
 # TITANHOME BIOS Checklist — WRX90E-SAGE SE + 9995WX
 
-Use via **PiKVM** (192.168.10.5). Check each box in BIOS before Ubuntu install.
+Use local keyboard/monitor or ASUS AST2600 BMC (PiKVM removed from BOM). Check each box in BIOS before Ubuntu install.
 
 ## Before first power-on
 
@@ -224,7 +224,7 @@ If POST fails: clear CMOS, boot at JEDEC (4800), then enable EXPO.
 - [ ] Chassis fans: performance curve (GPU load will be high)
 - [ ] Set BIOS administrator password: [ ]
 
-## POST verification screen (note in PiKVM screenshot)
+## POST verification screen (note BIOS screenshot / BMC capture)
 
 - [ ] CPU: AMD Ryzen Threadripper PRO 9995WX
 - [ ] RAM: ~512 GB (503–512 GiB usable is normal)

@@ -32,9 +32,10 @@
 - [ ] GPU: 2× RTX PRO 6000 Blackwell Max-Q (96GB each) — `nvidia-smi -L`
 - [ ] RAM: 512GB DDR5-6000 ECC — `free -h`
 - [ ] Boot: Micron 7500 Pro 3.8TB | Data: 2× WD Black SN8100 4TB
-- [ ] PSU: Super Flower Leadex Titanium 2200W
-- [ ] GPSDO: LBE-1420 PPS locked — `chronyc sources`
-- [ ] PiKVM V4 Plus reachable | TPM-SPI baseline at `/etc/mnemosyne/tpm-baseline`
+- [ ] PSU: Super Flower Leadex Titanium 2200W | UPS: Eaton 9SX 3000VA / 2700W 208V
+- [ ] NIC: Intel E810-XXVDA4T — `lspci | grep -i E810`
+- [ ] GPSDO: LBE-1425 PPS locked via E810 — `chronyc sources`
+- [ ] TPM-SPI baseline at `/etc/mnemosyne/tpm-baseline` (PiKVM removed — AST2600 BMC optional)
 - [ ] BOM spec: `~/.openclaw/infra/hardware_bom.yaml`
 
 ## Model Endpoints (3-Tier)
