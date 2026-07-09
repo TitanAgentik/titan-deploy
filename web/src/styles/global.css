@@ -1,14 +1,14 @@
 :root {
-  --bg-0: #0b1018;
-  --bg-1: #121a24;
-  --bg-2: #182232;
-  --bg-3: #1e2b3d;
-  --bg-hover: #243448;
-  --border: rgba(94, 124, 168, 0.16);
-  --border-strong: rgba(94, 124, 168, 0.32);
-  --text: #ecf2fa;
-  --text-dim: #93a4bd;
-  --text-mute: #6b7d94;
+  --bg-0: #141b26;
+  --bg-1: #1a2330;
+  --bg-2: #222d3e;
+  --bg-3: #2b384c;
+  --bg-hover: #35465c;
+  --border: rgba(94, 124, 168, 0.18);
+  --border-strong: rgba(94, 124, 168, 0.34);
+  --text: #f4f7fb;
+  --text-dim: #a8b8ce;
+  --text-mute: #8496ad;
   --accent: #34e0b4;
   --accent-dim: rgba(52, 224, 180, 0.1);
   --accent-glow: rgba(52, 224, 180, 0.35);
@@ -120,7 +120,7 @@ button {
   position: sticky;
   top: 0;
   height: 100vh;
-  background: linear-gradient(180deg, rgba(24, 34, 50, 0.9) 0%, rgba(11, 16, 24, 0.96) 100%);
+  background: linear-gradient(180deg, rgba(34, 45, 62, 0.9) 0%, rgba(20, 27, 38, 0.96) 100%);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -374,7 +374,7 @@ button {
   gap: 14px;
   padding: 0 24px;
   border-bottom: 1px solid var(--border);
-  background: rgba(14, 20, 30, 0.78);
+  background: rgba(22, 30, 42, 0.82);
   backdrop-filter: blur(16px);
   position: sticky;
   top: 0;
@@ -502,7 +502,7 @@ button {
 }
 
 .card {
-  background: linear-gradient(180deg, rgba(28, 40, 58, 0.72) 0%, rgba(18, 26, 38, 0.85) 100%);
+  background: linear-gradient(180deg, rgba(38, 52, 72, 0.72) 0%, rgba(26, 35, 48, 0.85) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 17px;
@@ -652,7 +652,7 @@ table.data tbody tr {
   transition: background 0.12s;
 }
 table.data tr:hover td {
-  background: rgba(26, 38, 54, 0.5);
+  background: rgba(38, 52, 70, 0.5);
 }
 
 .tag {
@@ -844,7 +844,7 @@ table.data tr:hover td {
   padding: 10px 14px;
   border-radius: var(--radius);
   border: 1px solid var(--border-strong);
-  background: linear-gradient(180deg, rgba(24, 34, 50, 0.96), rgba(14, 20, 30, 0.94));
+  background: linear-gradient(180deg, rgba(34, 45, 62, 0.96), rgba(22, 30, 42, 0.94));
   backdrop-filter: blur(12px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
@@ -854,7 +854,7 @@ table.data tr:hover td {
   background: linear-gradient(
     90deg,
     rgba(242, 193, 78, 0.12),
-    rgba(14, 20, 30, 0.94) 55%
+    rgba(22, 30, 42, 0.94) 55%
   );
 }
 
@@ -971,7 +971,7 @@ table.data tr:hover td {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
-  background: rgba(15, 22, 32, 0.6);
+  background: rgba(22, 30, 42, 0.6);
   border-radius: 0 0 var(--radius) var(--radius);
 }
 
@@ -1299,7 +1299,7 @@ table.data tr:hover td {
   border-top: 1px solid var(--border);
   font-size: 11px;
   color: var(--text-mute);
-  background: rgba(15, 22, 32, 0.5);
+  background: rgba(22, 30, 42, 0.5);
 }
 
 /* ---------- Donut legend ---------- */
