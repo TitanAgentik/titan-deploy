@@ -415,7 +415,7 @@ have to pass every gate. Treat 2 days as a floor, not a target.
 | **0 — Setup + Paper** | $0 | Everything running; trading with pretend money; watching execution-quality scorecards | Test/attack harnesses green; you've drilled the kill switch; every strategy has a scorecard |
 | **1 — Micro-live** | $2.5–10K | Tiny real trades (≤0.1% of equity each); the allocator only *suggests* sizes | Each strategy passes the statistical evidence gate + you personally approve it; drawdown under 5%; the system's records match the exchange exactly |
 | **2 — Validated scale** | $10–50K | Allocator now *enforces* sizing within your limits; live record-matching on | 48 hours of perfect record-matching; no "bleeding" strategy is funded; AI drift under control |
-| **3 — Mature** | $50K+ | Fund only proven strategies; start moving profits to cold storage once ≥ $35K | You sign off; you've rehearsed the emergency playbooks |
+| **3 — Mature** | $50K+ | Fund only proven strategies; start moving profits to cold storage once ≥ $15K | You sign off; you've rehearsed the emergency playbooks |
 
 ### Handling money with the built-in ledger
 

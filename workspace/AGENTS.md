@@ -73,7 +73,7 @@ Four pillars (Impenetrable baseline; Evasion/Stalking/Predatory on demand). No :
 | Stop-loss mandate | Every position has hard stop-loss (R16) |  
 | Position sizing | % of equity only; scale-progressive Kelly (R41) |  
 | Drawdown threshold | 5-tier circuit breakers (2% / 5% / 8% / 10% CRITICAL / 12% halt) |  
-| Weekly profit sweep | Weekly profit sweeps to Trezor Safe 7 (R23): 20% of weekly profit every 7 days once total portfolio value ≥$35K; 100% reinvested below $35K; injections continue regardless |  
+| Weekly profit sweep | Weekly profit sweeps to Trezor Safe 7 (R23): 20% of weekly profit every 7 days once total portfolio value ≥$15K; 100% reinvested below $15K; injections continue regardless |  
 | Backtesting gate | ARBITER runs 3-day §DEPLOY_LIFECYCLE; Phase 5 human YES before full live |  
 | Red Team gauntlet | Strategies must survive adversarial simulation before promotion |  
 | Edge routing | Always select edge by lowest live p50 RTT to target chain |  
@@ -145,16 +145,16 @@ Four pillars (Impenetrable baseline; Evasion/Stalking/Predatory on demand). No :
 | Primary reranker | `Qwen/Qwen3-Reranker-0.6B` (Apache 2.0) | cuda:0 ride-along FP8 (\~0.6 GB) |  
 | Latency-pick reranker | `Alibaba-NLP/gte-reranker-modernbert-base` (149 M, ¼ compute, near-parity Hit@1) | CPU FP16 |
 
-### Edge workers (stateless, no LLM — 5-PoP global mesh, same-AZ as exchange matching engines)  
+### Edge workers (stateless, no LLM — 5-PoP global mesh, same-AZ as DEX / sequencers / builders)  
 | Worker | Node | Provider / Instance | Region | Primary Targets | Expected RTT |  
 | --- | --- | --- | --- | --- | --- |  
-| TRENCH-OPS-TKY | EDGE-TKY | AWS `c7i.metal-24xl` (96 vCPU, 192 GB, 25 Gbps ENA) | `ap-northeast-1` (Tokyo) | Binance, OKX, Hyperliquid (hl-visor), Jito-TKY | **<1ms** |  
-| TRENCH-OPS-SIN | EDGE-SIN | AWS `c7i.4xlarge` (16 vCPU, 32 GB, 12.5 Gbps) | `ap-southeast-1` (Singapore) | Bybit, BSC, Sui, APAC failover | **<1ms** |  
-| TRENCH-OPS-FRA | EDGE-FRA | Vultr Bare Metal (dedicated, DE-CIX peered) | Frankfurt, DE | Solana-EU (Jito-FRA ShredStream), ETH builders, DEX aggregators, bridges | **<1ms** |  
-| TRENCH-OPS-USE | EDGE-USE | AWS `c7i.2xlarge` (8 vCPU, 16 GB, 12.5 Gbps) | `us-east-1` (N. Virginia) | Coinbase, ARB/OP/Base L2 sequencers, ETH relay US, Flashbots Protect | **<1ms** |  
+| TRENCH-OPS-TKY | EDGE-TKY | AWS `c7i.metal-24xl` (96 vCPU, 192 GB, 25 Gbps ENA) | `ap-northeast-1` (Tokyo) | Hyperliquid DEX (hl-visor), Jito-TKY | **<1ms** |  
+| TRENCH-OPS-SIN | EDGE-SIN | AWS `c7i.4xlarge` (16 vCPU, 32 GB, 12.5 Gbps) | `ap-southeast-1` (Singapore) | BSC DEX, PancakeSwap, Sui, APAC failover | **<1ms** |  
+| TRENCH-OPS-FRA | EDGE-FRA | Vultr Bare Metal (dedicated, DE-CIX peered) | Frankfurt, DE | Solana-EU (Jito-FRA ShredStream), ETH builders, Uniswap/Curve/Balancer, bridges | **<1ms** |  
+| TRENCH-OPS-USE | EDGE-USE | AWS `c7i.2xlarge` (8 vCPU, 16 GB, 12.5 Gbps) | `us-east-1` (N. Virginia) | ARB/OP/Base L2 sequencers, ETH relay US, Flashbots Protect | **<1ms** |  
 | TRENCH-OPS-AMS | EDGE-AMS | Vultr Bare Metal (dedicated, AMS-IX peered) | Amsterdam, NL | Solana secondary (gRPC redundancy), ETH relay redundancy, Nostr relay, bridge monitor | **<1ms** |
 
-> **Architecture rationale:** Each edge PoP is placed in the **exact same AWS region/AZ** as the target exchange matching engine. Since Binance/OKX/Hyperliquid validators all run in AWS `ap-northeast-1` (Tokyo), and Bybit runs in AWS `ap-southeast-1` (Singapore), traffic between our edge and the exchange never leaves Amazon's backbone — achieving sub-millisecond RTT. This replaces the previous single-PoP Falkenstein design which added 130-200ms RTT to APAC exchanges. Erigon archive runs on EDGE-FRA (Frankfurt, DE-CIX peered); CRUSH pipeline and batch data processing run on TITANHOME during off-peak hours.
+> **Architecture rationale:** Each edge PoP is placed near DEX / L2 sequencer / builder infrastructure — **strict DEX-only (R02 / R46); no CEX trading**. Hyperliquid DEX validators run in AWS `ap-northeast-1` (Tokyo); BSC/Sui in `ap-southeast-1` (Singapore); EU DEX + Jito-FRA in Frankfurt; L2 sequencers + Flashbots in `us-east-1`. Traffic stays on colo/backbone paths for sub-millisecond RTT. Erigon archive runs on EDGE-FRA (Frankfurt, DE-CIX peered); CRUSH pipeline and batch data processing run on TITANHOME during off-peak hours.
 
 **Total: 23 agents — 15 share the GPU TP=2 llama-server `:30000` (4 orchestrator
 

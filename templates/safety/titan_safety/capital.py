@@ -22,7 +22,7 @@ DEFAULT_AUDIT_PATH = DEFAULT_CAPITAL_DIR / "capital_audit.jsonl"
 
 @dataclass
 class TrezorSweepConfig:
-    harvest_threshold_usd: float = 35000.0
+    harvest_threshold_usd: float = 15000.0
     sweep_pct_of_weekly_profit: float = 20.0
     sweep_day_utc: str = "Sunday"
     pause_below_threshold: bool = True
@@ -43,7 +43,7 @@ class CapitalConfig:
         sweep_raw = data.get("trezor_sweep") or {}
         sweep = TrezorSweepConfig(
             harvest_threshold_usd=float(
-                sweep_raw.get("harvest_threshold_usd", 35000.0)
+                sweep_raw.get("harvest_threshold_usd", 15000.0)
             ),
             sweep_pct_of_weekly_profit=float(
                 sweep_raw.get("sweep_pct_of_weekly_profit", 20.0)

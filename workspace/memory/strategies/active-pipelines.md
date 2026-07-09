@@ -10,8 +10,8 @@
 
 Typical starters when capital allows — still subject to promotion gates:
 
-- **P1** CEX Spot Arb (when funded)
-- **P5** Funding Carry (when funded)
+- **P1** DEX Cross-Venue Arb (when funded)
+- **P5** DEX Funding Carry (when funded)
 - **P11** Prediction Market Arbitrage (micro-live path)
 - **P12** Intent Solver Network (when funded)
 

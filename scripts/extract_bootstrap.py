@@ -519,7 +519,7 @@ def build_memory_trimmed(text: str) -> str:
         "- Version: v49.7 — OPENCLAW UNIFIED FRAMEWORK | Build: 2026-05-28",
         "- Operating mode: Rust+Python hybrid",
         "- Capital: $2,500 starting + $2,500 biweekly injections | Target: $1M+",
-        "- Growth phase: 100% reinvest until portfolio ≥$35K",
+        "- Growth phase: 100% reinvest until portfolio ≥$15K",
         "- Active agents: 23 (15 GPU TP=2 + 8 TITANSPARK utility) | Quantum agents: DORMANT",
         "- Pipelines: 47 active (P1-P34, P37-P48) | Workflows: 26",
         "- Autonomy: ROUTINE — human gates for promotion/evolution/leverage/>1% equity",
@@ -571,7 +571,7 @@ def patch_user_survivability(content: str) -> str:
     approval_block = """## Approval Gates (Promotion & High-Risk Only)
 
 - **Require approval:** strategy promotion (§DEPLOY_LIFECYCLE Phase 5 YES), evolution-touched agents (DGM-H, GEPA, HyEvo, SIA LoRA, EurekAgent), §GRIS model swap to live, leverage changes, flash-loan live deploy, positions >1% equity, new pipeline activation, model promotions
-- **Auto-execute:** routine rebalances <1% equity, standard pipeline trades within GUARDIAN limits, weekly profit sweeps (post-$35K), CB tier responses (2%/5%/8%/10%/12%), shadow evolution outputs
+- **Auto-execute:** routine rebalances <1% equity, standard pipeline trades within GUARDIAN limits, weekly profit sweeps (post-$15K), CB tier responses (2%/5%/8%/10%/12%), shadow evolution outputs
 - **TIMEOUT policy:** silence on promotion = HOLD/de-risk — never auto-promote
 - **Dead-man's switch:** no operator heartbeat >48h → de-risk; >72h → flatten
 
@@ -626,14 +626,14 @@ Operator capital moves are **one-command** — no multi-agent approval for routi
 | `/withdraw <amount> <asset> [address]` | Initiate withdrawal (mock adapter until Trezor wired) |
 | `/withdraw confirm <id>` | Confirm large withdrawal (>20% equity) |
 | `/balance` | Show equity, available, reserved, phase (GROWTH/HARVEST) |
-| `/sweep` | Trezor profit sweep (HARVEST phase ≥$35K only) |
+| `/sweep` | Trezor profit sweep (HARVEST phase ≥$15K only) |
 
 CLI mirror: `~/.openclaw/safety/bin/titan-safety capital deposit|withdraw|balance|sweep`
 
 - **Min operating reserve:** $500 (withdrawals cannot breach)
 - **Large withdrawal gate:** >20% equity requires `/withdraw confirm`
-- **Growth phase (<$35K):** 100% reinvest — sweeps paused
-- **Harvest phase (≥$35K):** `/sweep` moves 20% of weekly profit to Trezor Safe 7
+- **Growth phase (<$15K):** 100% reinvest — sweeps paused
+- **Harvest phase (≥$15K):** `/sweep` moves 20% of weekly profit to Trezor Safe 7
 - **Audit:** append-only `~/.openclaw/capital/capital_audit.jsonl`
 
 """
@@ -852,7 +852,7 @@ Natural-language scheduling for Hermes cron + OpenClaw heartbeat.
   Compute ledger, skill evolution summary, dissent log review.
 
 - **Sunday 22:00 UTC — Profit Sweep Check (ATLAS)**
-  If portfolio ≥$35K: sweep 20% of weekly profit to Trezor Safe 7.
+  If portfolio ≥$15K: sweep 20% of weekly profit to Trezor Safe 7.
 
 ## GPU Schedule (TITANHOME)
 
@@ -1004,8 +1004,8 @@ def build_bootstrap() -> str:
 - [ ] `titan-safety capital withdraw --amount 600 --asset USDC` — queues confirm (>20% of $2,500)
 - [ ] `titan-safety capital withdraw --confirm wd-XXXXXXXX` — executes after confirm
 - [ ] `titan-safety capital verify-audit` — audit chain valid
-- [ ] `/balance` via Telegram — shows GROWTH phase below $35K
-- [ ] `/sweep` below $35K — reports growth phase, no sweep
+- [ ] `/balance` via Telegram — shows GROWTH phase below $15K
+- [ ] `/sweep` below $15K — reports growth phase, no sweep
 
 ## Post-Deploy Smoke Test
 

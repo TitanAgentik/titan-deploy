@@ -24,6 +24,11 @@ import { Settings } from "@/pages/Settings";
 import { Security } from "@/pages/Security";
 import { FlashLoans } from "@/pages/FlashLoans";
 import { MemecoinTrench } from "@/pages/MemecoinTrench";
+import { Pnl } from "@/pages/Pnl";
+import { WalletTracker } from "@/pages/WalletTracker";
+import { CryptoTwitter } from "@/pages/CryptoTwitter";
+import { CryptoNews } from "@/pages/CryptoNews";
+import { Latency } from "@/pages/Latency";
 
 export default function App() {
   return (
@@ -33,6 +38,8 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="command" element={<CommandCenter />} />
           <Route path="capital" element={<Capital />} />
+          <Route path="wallets" element={<WalletTracker />} />
+          <Route path="pnl" element={<Pnl />} />
           <Route path="risk" element={<Risk />} />
           <Route path="security" element={<Security />} />
           <Route path="forge" element={<Forge />} />
@@ -40,10 +47,13 @@ export default function App() {
           <Route path="pipelines" element={<Pipelines />} />
           <Route path="promotions" element={<Promotions />} />
           <Route path="edge" element={<EdgeMesh />} />
+          <Route path="latency" element={<Latency />} />
           <Route path="flash-loans" element={<FlashLoans />} />
           <Route path="memecoin" element={<MemecoinTrench />} />
           <Route path="signing" element={<Signing />} />
           <Route path="automations" element={<Automations />} />
+          <Route path="crypto-twitter" element={<CryptoTwitter />} />
+          <Route path="crypto-news" element={<CryptoNews />} />
           <Route path="goals" element={<GoalsLab />} />
           <Route path="identity" element={<Identity />} />
           <Route path="models" element={<Models />} />

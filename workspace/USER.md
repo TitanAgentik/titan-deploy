@@ -15,7 +15,7 @@
 - Hourly reports at :00 UTC: institutional-grade performance report via §TGCMD.2 (overall summary, per-strategy breakdown with trade-level reason codes, system health, flags/pending actions)  
 - Urgent alerts: immediate bypass of hourly schedule for critical errors, drawdown breaches ≥2% (tiered: 2/5/8/10/12%), security threats, hardware alarms (§TGCMD.2a)  
 - Require approval: strategy promotion, evolution-touched agents (DGM-H/GEPA/HyEvo/SIA LoRA/EurekAgent), leverage changes, flash-loan live deploy, positions >1% equity
-- Auto-execute: routine rebalances <1% equity, weekly profit sweeps (post-$35K), CB auto-responses per tier  
+- Auto-execute: routine rebalances <1% equity, weekly profit sweeps (post-$15K), CB auto-responses per tier  
 - Require approval: positions >2% equity, new token debuts, first-time strategies, DGM-H candidate promotions  
 - Concise, data-first communication. No fluff. JSON before prose.  
 - Escalate unusual patterns immediately via Telegram
@@ -23,7 +23,7 @@
 ## Approval Gates (Promotion & High-Risk Only)
 
 - **Require approval:** strategy promotion (§DEPLOY_LIFECYCLE Phase 5 YES), evolution-touched agents (DGM-H, GEPA, HyEvo, SIA LoRA, EurekAgent), §GRIS model swap to live, leverage changes, flash-loan live deploy, positions >1% equity, new pipeline activation, model promotions
-- **Auto-execute:** routine rebalances <1% equity, standard pipeline trades within GUARDIAN limits, weekly profit sweeps (post-$35K), CB tier responses (2%/5%/8%/10%/12%), shadow evolution outputs
+- **Auto-execute:** routine rebalances <1% equity, standard pipeline trades within GUARDIAN limits, weekly profit sweeps (post-$15K), CB tier responses (2%/5%/8%/10%/12%), shadow evolution outputs
 - **TIMEOUT policy:** silence on promotion = HOLD/de-risk — never auto-promote
 - **Dead-man's switch:** no operator heartbeat >48h → de-risk; >72h → flatten
 
@@ -44,21 +44,21 @@ Operator capital moves are **one-command** — no multi-agent approval for routi
 | `/withdraw <amount> <asset> [address]` | Initiate withdrawal (mock adapter until Trezor wired) |
 | `/withdraw confirm <id>` | Confirm large withdrawal (>20% equity) |
 | `/balance` | Show equity, available, reserved, phase (GROWTH/HARVEST) |
-| `/sweep` | Trezor profit sweep (HARVEST phase ≥$35K only) |
+| `/sweep` | Trezor profit sweep (HARVEST phase ≥$15K only) |
 
 CLI mirror: `~/.openclaw/safety/bin/titan-safety capital deposit|withdraw|balance|sweep`
 
 - **Min operating reserve:** $500 (withdrawals cannot breach)
 - **Large withdrawal gate:** >20% equity requires `/withdraw confirm`
-- **Growth phase (<$35K):** 100% reinvest — sweeps paused
-- **Harvest phase (≥$35K):** `/sweep` moves 20% of weekly profit to Trezor Safe 7
+- **Growth phase (<$15K):** 100% reinvest — sweeps paused
+- **Harvest phase (≥$15K):** `/sweep` moves 20% of weekly profit to Trezor Safe 7
 - **Audit:** append-only `~/.openclaw/capital/capital_audit.jsonl`
 
 ## Physical Access
 
 - Workstation is under Hyperion's direct physical control  
 - PiKVM V4 Plus (out-of-band management) V4 Plus provides OOB access; accessible only from LAN + Nostr NIP-44  
-- Trezor Safe 7 hardware wallet holds long-term key material (weekly profit sweep per R23: 20% of profit every 7 days once total portfolio value ≥$35K; 100% reinvested below $35K; injections continue regardless)
+- Trezor Safe 7 hardware wallet holds long-term key material (weekly profit sweep per R23: 20% of profit every 7 days once total portfolio value ≥$15K; 100% reinvested below $15K; injections continue regardless)
 
 ## Production Rollout Phases
 

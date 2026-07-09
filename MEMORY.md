@@ -6,7 +6,7 @@
 - Version: v49.7 — OPENCLAW UNIFIED FRAMEWORK | Build: 2026-05-28
 - Operating mode: Rust+Python hybrid
 - Capital: $2,500 starting + $2,500 biweekly injections | Target: $1M+
-- Growth phase: 100% reinvest until portfolio ≥$35K
+- Growth phase: 100% reinvest until portfolio ≥$15K
 - Active agents: 23 (15 GPU TP=2 + 8 TITANSPARK utility) | Quantum agents: DORMANT
 - Pipelines: 47 active (P1-P34, P37-P48) | Workflows: 26
 - Autonomy: ROUTINE — human gates for promotion/evolution/leverage/>1% equity

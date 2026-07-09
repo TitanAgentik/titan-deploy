@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { PageHeader, Card, Tag, Btn } from "@/components/ui";
 import { edgePops, latencyBudget, services } from "@/lib/data";
 
@@ -20,7 +21,14 @@ export function Forge() {
       <PageHeader
         title="Forge"
         subtitle="Infrastructure health, inference tiers, full 5-PoP edge mesh, and ms hot-path latency — FORGE agent surface."
-        actions={<Btn variant="primary">Run health sweep</Btn>}
+        actions={
+          <>
+            <Link className="btn" to="/latency">
+              Latency
+            </Link>
+            <Btn variant="primary">Run health sweep</Btn>
+          </>
+        }
       />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>

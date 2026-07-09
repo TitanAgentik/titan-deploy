@@ -45,7 +45,7 @@ Natural-language scheduling for Hermes cron + OpenClaw heartbeat.
   Compute ledger, skill evolution summary, dissent log review.
 
 - **Sunday 22:00 UTC — Profit Sweep Check (ATLAS)**
-  If portfolio ≥$35K: sweep 20% of weekly profit to Trezor Safe 7.
+  If portfolio ≥$15K: sweep 20% of weekly profit to Trezor Safe 7.
 
 ## GPU Schedule (TITANHOME)
 

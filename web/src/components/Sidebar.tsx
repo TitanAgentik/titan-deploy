@@ -15,6 +15,7 @@ import {
   FileBarChart2,
   Settings,
   Wallet,
+  ScanLine,
   ShieldAlert,
   GitBranch,
   Globe2,
@@ -23,9 +24,13 @@ import {
   Cpu,
   Shield,
   Zap,
+  TrendingUp,
+  Megaphone,
+  Newspaper,
   Flame,
+  Timer,
 } from "lucide-react";
-import { portfolio } from "@/lib/data";
+import { portfolio, pnl, formatPnl } from "@/lib/data";
 
 export const NAV = [
   {
@@ -34,6 +39,8 @@ export const NAV = [
       { to: "/", icon: LayoutDashboard, label: "Dashboard" },
       { to: "/command", icon: Command, label: "Command Center" },
       { to: "/capital", icon: Wallet, label: "Capital & Wallets" },
+      { to: "/wallets", icon: ScanLine, label: "Wallet Tracker" },
+      { to: "/pnl", icon: TrendingUp, label: "PnL" },
       { to: "/risk", icon: ShieldAlert, label: "Risk & CBs" },
       { to: "/security", icon: Shield, label: "Security Ops", badge: 2 },
       { to: "/ops", icon: Radar, label: "Ops Center" },
@@ -47,6 +54,7 @@ export const NAV = [
       { to: "/promotions", icon: Rocket, label: "Promotions", badge: 3 },
       { to: "/memecoin", icon: Flame, label: "Memecoin Trench" },
       { to: "/edge", icon: Globe2, label: "Edge Mesh" },
+      { to: "/latency", icon: Timer, label: "Latency" },
       { to: "/flash-loans", icon: Zap, label: "Flash Loans" },
       { to: "/signing", icon: KeyRound, label: "Signing Node" },
     ],
@@ -55,6 +63,8 @@ export const NAV = [
     label: "Intelligence",
     items: [
       { to: "/automations", icon: Workflow, label: "Automations" },
+      { to: "/crypto-news", icon: Newspaper, label: "Crypto News" },
+      { to: "/crypto-twitter", icon: Megaphone, label: "Crypto Twitter" },
       { to: "/goals", icon: Target, label: "Goals Lab" },
       { to: "/identity", icon: Fingerprint, label: "Identity" },
       { to: "/models", icon: Cpu, label: "Model Tiers" },
@@ -120,8 +130,8 @@ export function Sidebar() {
             <div className="v">${(portfolio.equityUsd / 1000).toFixed(1)}k</div>
           </div>
           <div className="mini-stat">
-            <div className="k">DD</div>
-            <div className="v">{portfolio.drawdownPct}%</div>
+            <div className="k">WTD PnL</div>
+            <div className="v">{formatPnl(pnl.weeklyUsd)}</div>
           </div>
         </div>
         <div className="status-pill">

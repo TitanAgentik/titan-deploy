@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { PageHeader, Card, Tag, Btn } from "@/components/ui";
 import {
   ActionMenu,
@@ -68,7 +69,11 @@ export function Capital() {
         title="Capital & Wallets"
         subtitle="Click metrics, rows, and action menus for deposit / withdraw / wallet / Safe 7 options. Deposits ≠ trading profit."
         actions={
-          <ActionMenu
+          <>
+            <Link className="btn" to="/wallets">
+              Wallet Tracker
+            </Link>
+            <ActionMenu
             label="Quick actions"
             variant="primary"
             items={[
@@ -78,6 +83,7 @@ export function Capital() {
               { label: "Copy CLI deposit", hint: "clipboard", onClick: () => push("Copied: titan-safety capital deposit --amount 2500 --asset USDC") },
             ]}
           />
+          </>
         }
       />
 
@@ -106,7 +112,7 @@ export function Capital() {
         <ClickableMetric
           label="Sweep unlock"
           value={`$${toUnlock.toLocaleString()}`}
-          delta={`${progress}% of $35K`}
+          delta={`${progress}% of $${(capitalLedger.sweepThresholdUsd / 1000).toFixed(0)}K`}
           onClick={() => setTab("sweep")}
         />
       </div>
@@ -343,7 +349,14 @@ export function Capital() {
       )}
 
       {tab === "wallets" && (
-        <Card title="Wallet inventory · click row or ⋯">
+        <Card
+          title="Wallet inventory · click row or ⋯"
+          action={
+            <Link className="btn primary" to="/wallets">
+              Open Wallet Tracker
+            </Link>
+          }
+        >
           <div className="table-wrap">
             <table className="data">
               <thead>
@@ -404,7 +417,7 @@ export function Capital() {
                 label="Policy"
                 variant="ghost"
                 items={[
-                  { label: "Edit threshold ($35K)", onClick: () => toast("Threshold locked in policy.yaml") },
+                  { label: `Edit threshold ($${(capitalLedger.sweepThresholdUsd / 1000).toFixed(0)}K)`, onClick: () => toast("Threshold locked in policy.yaml") },
                   { label: "Change sweep day", onClick: () => toast("sweep_day_utc=Sunday") },
                   { label: "Change %", onClick: () => toast("sweep_pct_of_weekly_profit=20") },
                 ]}
@@ -420,7 +433,8 @@ export function Capital() {
             <p className="muted small" style={{ marginTop: 12 }}>
               {capitalLedger.growthPhase ? (
                 <>
-                  <Tag kind="watch">GROWTH PHASE</Tag> Equity below $35K →{" "}
+                  <Tag kind="watch">GROWTH PHASE</Tag> Equity below $
+                  {capitalLedger.sweepThresholdUsd.toLocaleString()} →{" "}
                   <strong>100% reinvest</strong>, sweep paused.
                 </>
               ) : (
@@ -450,7 +464,7 @@ export function Capital() {
               <button
                 type="button"
                 className="option-tile"
-                onClick={() => push("Simulate equity ≥ $35K (demo)")}
+                onClick={() => push(`Simulate equity ≥ $${capitalLedger.sweepThresholdUsd.toLocaleString()} (demo)`)}
               >
                 <strong>Simulate unlock</strong>
                 <span>preview armed state</span>

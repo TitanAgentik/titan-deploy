@@ -120,8 +120,8 @@
 - [ ] `titan-safety capital withdraw --amount 600 --asset USDC` — queues confirm (>20% of $2,500)
 - [ ] `titan-safety capital withdraw --confirm wd-XXXXXXXX` — executes after confirm
 - [ ] `titan-safety capital verify-audit` — audit chain valid
-- [ ] `/balance` via Telegram — shows GROWTH phase below $35K
-- [ ] `/sweep` below $35K — reports growth phase, no sweep
+- [ ] `/balance` via Telegram — shows GROWTH phase below $15K
+- [ ] `/sweep` below $15K — reports growth phase, no sweep
 
 ## Post-Deploy Smoke Test
 

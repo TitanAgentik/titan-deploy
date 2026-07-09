@@ -109,10 +109,10 @@ Five **stateless** workers (no LLM on edge):
 
 | PoP | Region | Targets |
 |-----|--------|---------|
-| EDGE-FRA | Frankfurt | Erigon, Jito, ETH builders, Solana EU |
-| EDGE-TKY | Tokyo | Binance, OKX, Hyperliquid |
-| EDGE-SIN | Singapore | Bybit, BSC, Sui |
-| EDGE-USE | N. Virginia | Coinbase, L2 sequencers, Flashbots US |
+| EDGE-FRA | Frankfurt | Erigon, Jito, Uniswap/Curve/Balancer, Solana EU |
+| EDGE-TKY | Tokyo | Hyperliquid DEX, Jito-TKY |
+| EDGE-SIN | Singapore | BSC DEX, PancakeSwap, Sui |
+| EDGE-USE | N. Virginia | L2 sequencers, Flashbots US, Base DEX |
 | EDGE-AMS | Amsterdam | Solana gRPC backup, Nostr |
 
 Config: `templates/infra/edge_mesh.yaml`. Bootstrap **EDGE-FRA first** if you are overwhelmed; the repo’s `verify.sh` expects all five configured for full mesh.
@@ -559,21 +559,20 @@ Copy to `~/.openclaw/.env`. **Never commit this file.**
 | `TITAN_LIVE_SIGNING_READY=0` | Keep **0** until Trezor bridge + `:19010` health OK |
 | Set to `1` | Arms live signing path |
 
-### Reconciliation (positions vs exchange)
+### Reconciliation (positions vs on-chain / DEX)
 
 | Variable | Meaning |
 |----------|---------|
 | `TITAN_RECON_FETCHER_URL` | HTTP endpoint returning JSON positions (preferred aggregator) |
-| `BINANCE_API_KEY` / `SECRET` | Binance read + trade keys |
-| `OKX_API_KEY` / `SECRET` / `PASSPHRASE` | OKX |
-| `BYBIT_API_KEY` / `SECRET` | Bybit |
-| `HYPERLIQUID_PRIVATE_KEY` / `WALLET_ADDRESS` | Hyperliquid |
+| `HYPERLIQUID_PRIVATE_KEY` / `WALLET_ADDRESS` | Hyperliquid DEX (on-chain perps — not a CEX) |
 
-**Exchange key hygiene:**
+**DEX-only mandate (R02 / R46):** No Binance / OKX / Bybit / Coinbase trading keys. Positions reconcile from on-chain wallets, DEX venues, and Hyperliquid DEX only.
 
-- **Trade only** — withdrawals disabled
-- IP allowlist to your edge/home egress
-- Separate subaccount per strategy if exchange supports it
+**Key hygiene:**
+
+- Signing via `signing_node` / Trezor — never hot CEX API keys
+- IP allowlist to your edge/home egress for RPC / builder endpoints
+- Separate hot wallets per strategy lane when practical
 
 ### Chain RPC
 
@@ -592,13 +591,12 @@ Copy to `~/.openclaw/.env`. **Never commit this file.**
 | `TREZOR_BRIDGE_SOCKET` | Local Trezor bridge socket |
 | `OPENCLAW_TREZOR_BRIDGE` | Optional bridge override |
 
-### Edge / Coinbase
+### Edge / DEX mesh
 
 | Variable | Meaning |
 |----------|---------|
 | `TITAN_EDGE_MESH` | Path to edge mesh YAML |
 | `EDGE_FRA_RPC` | EDGE-FRA chain RPC if not local |
-| `COINBASE_API_KEY` / `SECRET` | Coinbase Advanced Trade |
 
 ### Web UI (optional)
 
@@ -655,19 +653,21 @@ jito:
   bundle_only: true
 ```
 
-### 14.3 Tier 1 — Centralized exchanges (CEX)
+### 14.3 Tier 1 — DEX venues (strict DEX-only · R02 / R46)
 
-| Exchange | PoP | Env vars | Data you get |
-|----------|-----|----------|--------------|
-| **Binance** | EDGE-TKY | `BINANCE_API_KEY`, `BINANCE_API_SECRET` | Order book, fills, funding, positions |
-| **OKX** | EDGE-TKY | `OKX_*` | Same |
-| **Hyperliquid** | EDGE-TKY | `HYPERLIQUID_*` | Perps, L1 snapshots |
-| **Bybit** | EDGE-SIN | `BYBIT_*` | Perps, spot |
-| **Coinbase** | EDGE-USE | `COINBASE_*` | Spot, Advanced Trade |
+| Venue | PoP | Env vars | Data you get |
+|-------|-----|----------|--------------|
+| **Uniswap / Curve / Balancer** | EDGE-FRA | `ETH_RPC_URL`, `ERIGON_HTTP_URL` | AMM pools, swaps, LP |
+| **Hyperliquid DEX** | EDGE-TKY | `HYPERLIQUID_*` | On-chain perps, L1 snapshots |
+| **PancakeSwap / BSC DEX** | EDGE-SIN | `BSC_RPC_URL` | AMM pools, swaps |
+| **Base / OP / ARB DEX** | EDGE-USE | L2 RPC URLs | Sequencer-adjacent DEX flow |
+| **Jito / Solana DEX** | EDGE-FRA | `JITO_*`, `SOLANA_RPC_URL`, `GEYSER_*` | Bundles, Raydium, Pump.fun |
 
-**Minimum for reconciliation:** read access to every venue where you have open positions.
+**No CEX keys.** Binance / OKX / Bybit / Coinbase trading is forbidden.
 
-**Minimum for live execution:** trade-enabled keys + IP allowlist + subaccount isolation.
+**Minimum for reconciliation:** on-chain wallet balances + DEX venue positions (Hyperliquid DEX, LP, intents).
+
+**Minimum for live execution:** signing_node + Trezor ready + RPC / builder endpoints wired.
 
 ### 14.4 Tier 2 — On-chain / DeFi indexers
 
@@ -988,9 +988,9 @@ From `PRODUCTION_READINESS.md`:
 | **0** | $0 | Infra + paper only |
 | **1** | $2.5K–10K | Micro-live, allocator advisory |
 | **2** | $10K–50K | Allocator enforced, live recon 48h zero divergence |
-| **3** | $50K+ | Proven lanes only; weekly profit sweeps to Trezor at ≥ $35K equity |
+| **3** | $50K+ | Proven lanes only; weekly profit sweeps to Trezor at ≥ $15K equity |
 
-**Weekly sweep rule (R23):** Below $35K → 100% reinvest. At/above $35K → sweep 20% of weekly profit every 7 days to Trezor Safe 7.
+**Weekly sweep rule (R23):** Below $15K → 100% reinvest. At/above $15K → sweep 20% of weekly profit every 7 days to Trezor Safe 7.
 
 Set live signing only when ready:
 

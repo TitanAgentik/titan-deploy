@@ -13,7 +13,6 @@ import { Link } from "react-router-dom";
 import { PageHeader, Card, Tag, Btn } from "@/components/ui";
 import {
   ActionMenu,
-  ClickableMetric,
   DetailGrid,
   Drawer,
   Modal,
@@ -22,11 +21,17 @@ import {
 } from "@/components/interactive";
 import {
   equitySeries,
+  formatPnl,
   lanes,
+  pnl,
+  pnlByStrategy,
+  pnlSeries,
+  pnlShareOfWtd,
   portfolio,
   probeHealth,
   promotions,
   services,
+  strategyCategoryLabels,
   type HealthOverall,
   type HealthProbeResult,
 } from "@/lib/data";
@@ -53,9 +58,10 @@ export function Dashboard() {
   const [lane, setLane] = useState<Lane | null>(null);
   const [promo, setPromo] = useState<Promo | null>(null);
   const [svc, setSvc] = useState<Svc | null>(null);
-  const [metric, setMetric] = useState<"equity" | "available" | "deposits" | "dd" | null>(null);
+  const [metric, setMetric] = useState<"equity" | "pnl" | "available" | "deposits" | "dd" | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [range, setRange] = useState("7d");
+  const [chartMode, setChartMode] = useState<"equity" | "pnl">("equity");
   const [health, setHealth] = useState<HealthProbeResult | null>(null);
 
   const refreshHealth = useCallback(async () => {
@@ -82,7 +88,7 @@ export function Dashboard() {
       <PageHeader
         eyebrow="Portfolio overview"
         title="Crypto Dashboard"
-        subtitle="Equity, lanes, promotions, and services at a glance — click any metric for detail and actions."
+        subtitle="Click any metric for detail · DEX-only strategies, promotions, and services below."
         actions={
           <>
             <ActionMenu
@@ -125,43 +131,6 @@ export function Dashboard() {
         }
       />
 
-      <div
-        className="health-strip"
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 8,
-          alignItems: "center",
-          marginBottom: 14,
-        }}
-        aria-label="Service health"
-      >
-        <span className="eyebrow" style={{ marginRight: 4 }}>
-          Services
-        </span>
-        <span
-          className={`chip ${overallChip(health?.overall ?? "unreachable")}`}
-        >
-          {health == null
-            ? "probing…"
-            : health.reachable
-              ? overallLabel(health.overall)
-              : "unreachable · demo"}
-        </span>
-        {displayServices.map((s) => (
-          <span
-            key={s.name}
-            className={`chip ${s.ok ? "ok" : "danger"}`}
-            title={`:${s.port}`}
-          >
-            {s.name}
-          </span>
-        ))}
-        {!health?.reachable ? (
-          <Tag kind="watch">demo labels</Tag>
-        ) : null}
-      </div>
-
       {portfolio.evolutionFrozen ? (
         <div className="alert-banner">
           <AlertTriangle size={16} />
@@ -181,93 +150,82 @@ export function Dashboard() {
       ) : null}
 
       <section className="status-strip" aria-label="Key portfolio metrics">
-        <div className="status-strip-intro">
-          <span className="eyebrow">Control plane · {portfolio.capitalProfile}</span>
-          <h3>${portfolio.equityUsd.toLocaleString()} total equity</h3>
-          <p>
-            Bounded autonomy — routine trades auto-execute; promotions and &gt;1% equity require
-            operator YES.
-          </p>
-        </div>
         <button type="button" className="status-stat" onClick={() => setMetric("equity")}>
           <span className="label">Equity</span>
           <span className="value">${portfolio.equityUsd.toLocaleString()}</span>
           <span className="delta up">+${portfolio.weeklyPnlUsd} WTD</span>
         </button>
+        <button type="button" className="status-stat" onClick={() => setMetric("pnl")}>
+          <span className="label">WTD PnL</span>
+          <span className="value">{formatPnl(pnl.weeklyUsd)}</span>
+          <span className={`delta ${pnl.dailyUsd >= 0 ? "up" : "down"}`}>
+            {formatPnl(pnl.dailyUsd)} today
+          </span>
+        </button>
+        <button type="button" className="status-stat" onClick={() => setMetric("pnl")}>
+          <span className="label">Trading PnL</span>
+          <span className="value">{formatPnl(pnl.tradingPnlUsd, false)}</span>
+          <span className="delta">all-time · ex deposits</span>
+        </button>
         <button type="button" className="status-stat" onClick={() => setMetric("available")}>
           <span className="label">Available</span>
           <span className="value">${portfolio.availableUsd.toLocaleString()}</span>
-          <span className="delta">deployable capital</span>
-        </button>
-        <button type="button" className="status-stat" onClick={() => setMetric("deposits")}>
-          <span className="label">Deposits</span>
-          <span className="value">${portfolio.depositedUsd.toLocaleString()}</span>
-          <span className="delta">ledger ≠ PnL</span>
+          <span className="delta">deployable</span>
         </button>
         <button type="button" className="status-stat" onClick={() => setMetric("dd")}>
           <span className="label">Drawdown</span>
           <span className="value">{portfolio.drawdownPct}%</span>
           <span className={`delta ${portfolio.drawdownPct > 2 ? "down" : "up"}`}>
-            CB notify 2/5/8/10/12%
+            CB tiers 2–12%
           </span>
         </button>
       </section>
 
-      <div className="grid grid-4" style={{ marginBottom: 14 }}>
-        <ClickableMetric
-          label="Equity"
-          value={`$${portfolio.equityUsd.toLocaleString()}`}
-          delta={`+$${portfolio.weeklyPnlUsd} WTD`}
-          deltaDir="up"
-          onClick={() => setMetric("equity")}
-        />
-        <ClickableMetric
-          label="Available"
-          value={`$${portfolio.availableUsd.toLocaleString()}`}
-          onClick={() => setMetric("available")}
-        />
-        <ClickableMetric
-          label="Deposits (ledger)"
-          value={`$${portfolio.depositedUsd.toLocaleString()}`}
-          delta="≠ trading PnL"
-          onClick={() => setMetric("deposits")}
-        />
-        <ClickableMetric
-          label="Drawdown"
-          value={`${portfolio.drawdownPct}%`}
-          delta="CB notify 2/5/8/10/12%"
-          deltaDir={portfolio.drawdownPct > 2 ? "down" : "up"}
-          onClick={() => setMetric("dd")}
-        />
-      </div>
-
       <div className="split" style={{ marginBottom: 14 }}>
         <Card
-          title={`Equity curve (${range})`}
+          title={chartMode === "equity" ? `Equity curve (${range})` : `PnL curve (${range})`}
           action={
-            <ActionMenu
-              label="Chart"
-              variant="ghost"
-              items={[
-                { label: "Toggle annotations", onClick: () => push("Annotations toggled") },
-                { label: "Compare to deposits", onClick: () => push("Deposit overlay on") },
-                { label: "Open full Reports", onClick: () => push("Navigate via Reports sidebar") },
-              ]}
-            />
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <Btn
+                variant={chartMode === "equity" ? "primary" : "ghost"}
+                onClick={() => setChartMode("equity")}
+              >
+                Equity
+              </Btn>
+              <Btn
+                variant={chartMode === "pnl" ? "primary" : "ghost"}
+                onClick={() => setChartMode("pnl")}
+              >
+                PnL
+              </Btn>
+              <ActionMenu
+                label="Chart"
+                variant="ghost"
+                items={[
+                  { label: "Toggle annotations", onClick: () => push("Annotations toggled") },
+                  { label: "Compare to deposits", onClick: () => push("Deposit overlay on") },
+                  { label: "Open PnL", onClick: () => push("Navigate via PnL sidebar") },
+                ]}
+              />
+            </div>
           }
         >
           <div style={{ width: "100%", height: 240 }}>
             <ResponsiveContainer>
-              <AreaChart data={equitySeries}>
+              <AreaChart data={chartMode === "equity" ? equitySeries : pnlSeries}>
                 <defs>
                   <linearGradient id="eq" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.35} />
                     <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
                   </linearGradient>
+                  <linearGradient id="pnlDash" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
                 </defs>
                 <CartesianGrid stroke="rgba(11,21,40,0.08)" strokeDasharray="3 3" />
                 <XAxis dataKey="t" stroke="#7b8798" fontSize={11} />
-                <YAxis stroke="#7b8798" fontSize={11} domain={["dataMin - 200", "dataMax + 200"]} />
+                <YAxis stroke="#7b8798" fontSize={11} domain={chartMode === "equity" ? ["dataMin - 200", "dataMax + 200"] : ["dataMin - 50", "dataMax + 50"]} />
                 <Tooltip
                   contentStyle={{
                     background: "#fff",
@@ -275,8 +233,18 @@ export function Dashboard() {
                     borderRadius: 8,
                     color: "#0b1528",
                   }}
+                  formatter={(v: number) => [
+                    chartMode === "equity" ? `$${Number(v).toLocaleString()}` : formatPnl(Number(v), false),
+                    chartMode === "equity" ? "Equity" : "Cumulative PnL",
+                  ]}
                 />
-                <Area type="monotone" dataKey="equity" stroke="#06b6d4" fill="url(#eq)" strokeWidth={2} />
+                <Area
+                  type="monotone"
+                  dataKey={chartMode === "equity" ? "equity" : "cumulative"}
+                  stroke={chartMode === "equity" ? "#06b6d4" : "#10b981"}
+                  fill={chartMode === "equity" ? "url(#eq)" : "url(#pnlDash)"}
+                  strokeWidth={2}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -316,56 +284,81 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-2">
-        <Card title="Funded lanes · click for actions">
+        <Card title="Strategy PnL (WTD) · click for actions">
           <div className="table-wrap">
             <table className="data">
               <thead>
                 <tr>
-                  <th>Lane</th>
+                  <th>Strategy</th>
+                  <th>Source</th>
                   <th>Alloc</th>
-                  <th>Net bps</th>
+                  <th>WTD PnL</th>
+                  <th>% WTD</th>
                   <th>Health</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
-                {lanes.map((l) => (
-                  <tr key={l.id} className="row-click" onClick={() => setLane(l)}>
-                    <td>
-                      {l.id} · {l.name}
-                    </td>
-                    <td>${l.allocation.toLocaleString()}</td>
-                    <td>{l.netBps.toFixed(1)}</td>
-                    <td>
-                      <Tag
-                        kind={
-                          l.health === "HEALTHY" ? "healthy" : l.health === "WATCH" ? "watch" : "bleeding"
-                        }
-                      >
-                        {l.health}
-                      </Tag>
-                    </td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <ActionMenu
-                        label="⋯"
-                        variant="ghost"
-                        items={[
-                          { label: "Open details", onClick: () => setLane(l) },
-                          { label: "View TCA", onClick: () => push(`TCA drawer · ${l.id}`) },
-                          {
-                            label: "Defund lane",
-                            danger: true,
-                            disabled: l.allocation === 0,
-                            onClick: () => push(`Defund queued · ${l.id}`, "warn"),
-                          },
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                ))}
+                {[...pnlByStrategy]
+                  .sort((a, b) => b.wtdUsd - a.wtdUsd)
+                  .map((s) => {
+                    const laneRow = lanes.find((l) => l.id === s.id)!;
+                    return (
+                      <tr key={s.id} className="row-click" onClick={() => setLane(laneRow)}>
+                        <td>
+                          {s.id} · {s.name}
+                        </td>
+                        <td className="small muted">{s.revenueSource}</td>
+                        <td>${s.allocationUsd.toLocaleString()}</td>
+                        <td>
+                          <Tag kind={s.wtdUsd >= 0 ? "healthy" : "bleeding"}>
+                            {formatPnl(s.wtdUsd)}
+                          </Tag>
+                        </td>
+                        <td>{pnlShareOfWtd(s.wtdUsd).toFixed(1)}%</td>
+                        <td>
+                          <Tag
+                            kind={
+                              s.health === "HEALTHY"
+                                ? "healthy"
+                                : s.health === "WATCH"
+                                  ? "watch"
+                                  : "bleeding"
+                            }
+                          >
+                            {s.health}
+                          </Tag>
+                        </td>
+                        <td onClick={(e) => e.stopPropagation()}>
+                          <ActionMenu
+                            label="⋯"
+                            variant="ghost"
+                            items={[
+                              { label: "Open details", onClick: () => setLane(laneRow) },
+                              { label: "View PnL attribution", onClick: () => push(`PnL · ${s.id}`) },
+                              {
+                                label: "Defund lane",
+                                danger: true,
+                                disabled: s.allocationUsd === 0,
+                                onClick: () => push(`Defund queued · ${s.id}`, "warn"),
+                              },
+                            ]}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
+          <p className="muted small" style={{ marginBottom: 0, marginTop: 8 }}>
+            <Link to="/pnl">Full PnL attribution</Link> · P1 + P5 ={" "}
+            {pnlShareOfWtd(
+              (pnlByStrategy.find((s) => s.id === "P1")?.wtdUsd ?? 0) +
+                (pnlByStrategy.find((s) => s.id === "P5")?.wtdUsd ?? 0),
+            ).toFixed(0)}
+            % of WTD
+          </p>
         </Card>
 
         <Card title="Promotion queue · click row">
@@ -439,12 +432,17 @@ export function Dashboard() {
           <>
             <DetailGrid
               rows={[
+                { label: "Category", value: strategyCategoryLabels[lane.category] },
+                { label: "Revenue source", value: lane.revenueSource },
+                { label: "Phase", value: lane.phase },
                 { label: "Allocation", value: `$${lane.allocation.toLocaleString()}` },
+                {
+                  label: "WTD PnL",
+                  value: `${formatPnl(lane.pnlWtdUsd)} (${pnlShareOfWtd(lane.pnlWtdUsd).toFixed(1)}%)`,
+                },
                 { label: "Net bps", value: lane.netBps.toFixed(2) },
-                { label: "Trades", value: String(lane.trades) },
+                { label: "Trades (est.)", value: String(lane.trades) },
                 { label: "Health", value: lane.health },
-                { label: "Min trades gate", value: "100" },
-                { label: "Min net bps", value: "1.0" },
               ]}
             />
             <div className="option-grid" style={{ marginTop: 14 }}>
@@ -537,18 +535,24 @@ export function Dashboard() {
         title={
           metric === "equity"
             ? "Equity detail"
-            : metric === "available"
-              ? "Available capital"
-              : metric === "deposits"
-                ? "Deposit ledger"
-                : "Drawdown"
+            : metric === "pnl"
+              ? "PnL detail"
+              : metric === "available"
+                ? "Available capital"
+                : metric === "deposits"
+                  ? "Deposit ledger"
+                  : "Drawdown"
         }
         footer={
           <>
             <Btn variant="ghost" onClick={() => setMetric(null)}>
               Close
             </Btn>
-            {metric === "deposits" || metric === "available" || metric === "equity" ? (
+            {metric === "pnl" ? (
+              <Link className="btn primary" to="/pnl" onClick={() => setMetric(null)}>
+                Open PnL
+              </Link>
+            ) : metric === "deposits" || metric === "available" || metric === "equity" ? (
               <Link className="btn primary" to="/capital" onClick={() => setMetric(null)}>
                 Open Capital &amp; Wallets
               </Link>
@@ -560,6 +564,48 @@ export function Dashboard() {
           </>
         }
       >
+        {metric === "pnl" && (
+          <>
+            <DetailGrid
+              rows={[
+                { label: "WTD PnL", value: formatPnl(pnl.weeklyUsd) },
+                { label: "Today", value: formatPnl(pnl.dailyUsd) },
+                { label: "MTD", value: formatPnl(pnl.mtdUsd) },
+                { label: "Realized", value: formatPnl(pnl.realizedUsd, false) },
+                { label: "Unrealized", value: formatPnl(pnl.unrealizedUsd, false) },
+                { label: "Trading PnL (all-time)", value: formatPnl(pnl.tradingPnlUsd, false) },
+              ]}
+            />
+            <p className="muted small" style={{ marginTop: 12, marginBottom: 6 }}>
+              Top WTD contributors
+            </p>
+            <div className="table-wrap">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>Strategy</th>
+                    <th>WTD</th>
+                    <th>Share</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...pnlByStrategy]
+                    .sort((a, b) => b.wtdUsd - a.wtdUsd)
+                    .slice(0, 5)
+                    .map((s) => (
+                      <tr key={s.id}>
+                        <td>
+                          {s.id} · {s.name}
+                        </td>
+                        <td>{formatPnl(s.wtdUsd)}</td>
+                        <td>{pnlShareOfWtd(s.wtdUsd).toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
         {metric === "equity" && (
           <DetailGrid
             rows={[

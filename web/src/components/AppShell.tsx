@@ -6,12 +6,14 @@ import { CommandPalette } from "./CommandPalette";
 import { ActivityRail } from "./ActivityRail";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { ToastStack, useToasts } from "./interactive";
-import { portfolio } from "@/lib/data";
+import { portfolio, pnl, formatPnl } from "@/lib/data";
 
 const TITLES: Record<string, string> = {
   "/": "Dashboard",
   "/command": "Command Center",
   "/capital": "Capital & Wallets",
+  "/wallets": "Wallet Tracker",
+  "/pnl": "PnL",
   "/risk": "Risk & Circuit Breakers",
   "/security": "Security Ops",
   "/forge": "Forge",
@@ -19,10 +21,13 @@ const TITLES: Record<string, string> = {
   "/pipelines": "Pipelines",
   "/promotions": "Promotions",
   "/edge": "Edge Mesh",
+  "/latency": "Latency",
   "/flash-loans": "Flash Loans",
   "/memecoin": "Memecoin Trench",
   "/signing": "Signing Node",
   "/automations": "Automations",
+  "/crypto-twitter": "Crypto Twitter",
+  "/crypto-news": "Crypto News",
   "/goals": "Goals Lab",
   "/identity": "Identity",
   "/models": "Model Tiers",
@@ -114,6 +119,9 @@ export function AppShell() {
               evolution · {portfolio.evolutionFrozen ? "frozen" : "open"}
             </span>
             <span className="chip">equity · ${portfolio.equityUsd.toLocaleString()}</span>
+            <span className={`chip ${pnl.weeklyUsd >= 0 ? "ok" : "danger"}`}>
+              WTD PnL · {formatPnl(pnl.weeklyUsd)}
+            </span>
             <span className={`chip ${portfolio.killActive ? "danger" : ""}`}>
               kernel · {mode}
             </span>

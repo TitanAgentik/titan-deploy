@@ -52,7 +52,7 @@ Every notification MUST include:
 | `/withdraw <amount> <asset> [address]` | Initiate withdrawal |
 | `/withdraw confirm <id>` | Confirm large withdrawal (>20% equity) |
 | `/balance` | Portfolio equity / available / reserved |
-| `/sweep` | Trezor profit sweep (HARVEST ≥$35K) |
+| `/sweep` | Trezor profit sweep (HARVEST ≥$15K) |
 | `/capital deposit\|withdraw\|balance\|sweep` | Alternate prefix |
 
 CLI: `titan-safety capital deposit|withdraw|balance|sweep|telegram --text "..."`

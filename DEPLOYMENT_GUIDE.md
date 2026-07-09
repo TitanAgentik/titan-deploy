@@ -252,14 +252,14 @@ config. **Do not proceed on any FAIL.**
 | 0 — Infra + Paper (2d) | $0 | services up, paper all lanes, TCA scorecards | harnesses green, kill drill, scorecard per lane |
 | 1 — Micro-live (2d) | $2.5–10K | ≤0.1%/trade, allocator advisory | stats gate + Phase-5 YES per lane, DD <5%, zero reconciliation divergence |
 | 2 — Validated scale (2d) | $10–50K | allocator enforced, live reconciliation | 48h zero divergence, no BLEEDING lane funded, MRM no drift |
-| 3 — Mature (2d) | $50K+ | fund proven lanes on evidence, sweeps ≥$35K | operator sign-off, playbooks exercised |
+| 3 — Mature (2d) | $50K+ | fund proven lanes on evidence, sweeps ≥$15K | operator sign-off, playbooks exercised |
 
 ### 6.3 Deposits / sweeps [REQUIRED]
 ```bash
 titan-safety capital deposit --amount 2500 --asset USDC
 titan-safety capital balance
 titan-safety capital verify-audit           # audit chain must be valid
-# Weekly profit sweep to cold storage once ≥ $35K (R23): 20% of weekly profit
+# Weekly profit sweep to cold storage once ≥ $15K (R23): 20% of weekly profit
 titan-safety capital sweep --weekly-profit <usd>
 ```
 

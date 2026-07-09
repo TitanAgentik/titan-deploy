@@ -19,7 +19,7 @@ export function OpsCenter() {
       <div className="grid grid-2" style={{ marginBottom: 14 }}>
         <Card title="Reconciliation">
           <p className="muted small" style={{ marginTop: 0 }}>
-            Believed vs exchange/on-chain. Mock adapter banned when capital_profile=live.
+            Believed vs DEX / on-chain. Mock adapter banned when capital_profile=live. Strict DEX-only (R02 / R46).
           </p>
           <div className="table-wrap" style={{ marginTop: 12 }}>
             <table className="data">
@@ -33,19 +33,27 @@ export function OpsCenter() {
               </thead>
               <tbody>
                 <tr>
-                  <td>paper</td>
-                  <td>$12,400</td>
-                  <td>$12,400</td>
+                  <td>uniswap / curve</td>
+                  <td>$6,200</td>
+                  <td>$6,198</td>
+                  <td>
+                    <Tag kind="healthy">−2.00</Tag>
+                  </td>
+                </tr>
+                <tr>
+                  <td>hyperliquid DEX</td>
+                  <td>$3,890</td>
+                  <td>$3,890</td>
                   <td>
                     <Tag kind="healthy">0.00</Tag>
                   </td>
                 </tr>
                 <tr>
-                  <td>hyperliquid</td>
-                  <td>—</td>
-                  <td>—</td>
+                  <td>solana / jito</td>
+                  <td>$420</td>
+                  <td>$418</td>
                   <td>
-                    <Tag kind="neutral">n/a</Tag>
+                    <Tag kind="watch">−2.00</Tag>
                   </td>
                 </tr>
               </tbody>

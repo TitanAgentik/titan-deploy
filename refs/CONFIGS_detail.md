@@ -348,11 +348,11 @@ capital:
   max_single_withdrawal_pct: 20
   withdrawal_adapter: trezor_signing
   trezor_sweep:
-    harvest_threshold_usd: 35000
+    harvest_threshold_usd: 15000
     sweep_pct_of_weekly_profit: 20
     sweep_day_utc: Sunday
     pause_below_threshold: true
-    note: "Growth phase below $35K — 100% reinvest; no sweep until harvest threshold"
+    note: "Growth phase below $15K — 100% reinvest; no sweep until harvest threshold"
   telegram_commands:
     deposit: "/deposit <amount> <asset> [chain] [tx_hash] [source]"
     withdraw: "/withdraw <amount> <asset> [address]"
@@ -991,11 +991,11 @@ capital:
     "max_single_withdrawal_pct": 20,
     "withdrawal_adapter": "trezor_signing",
     "trezor_sweep": {
-      "harvest_threshold_usd": 35000,
+      "harvest_threshold_usd": 15000,
       "sweep_pct_of_weekly_profit": 20,
       "sweep_day_utc": "Sunday",
       "pause_below_threshold": true,
-      "note": "Growth phase below $35K \u2014 100% reinvest; no sweep until harvest threshold"
+      "note": "Growth phase below $15K \u2014 100% reinvest; no sweep until harvest threshold"
     },
     "endgame_phase_unlock": 3
   }

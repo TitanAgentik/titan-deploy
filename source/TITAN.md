@@ -9,7 +9,7 @@
 \- \*\*Models\*\*: ALL LOCAL — GLM-5.2-753B-A40B (GPU TP=2, llama.cpp \`--n-cpu-moe\` expert-offload) \+ Qwen3.6-35B-A3B (CPU, llama.cpp) \+ MTP native speculative  
 \- \*\*Quantum\*\*: 100% Classical Execution (Quantum simulators removed to dedicate all VRAM to REVM parallelization)  
 \- \*\*Scale\*\*: 23 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 27 workflows | 47 pipelines (P1-P34, P37-P48 incl. §GRIS)  
-\- \*\*Edge\*\*: 5-PoP global mesh — EDGE-TKY (AWS \`ap-northeast-1\` c7i.metal-24xl) \+ EDGE-SIN (AWS \`ap-southeast-1\` c7i.4xlarge) \+ EDGE-FRA (Vultr BM Frankfurt, DE-CIX peered) \+ EDGE-USE (AWS \`us-east-1\` c7i.2xlarge) \+ EDGE-AMS (Vultr BM Amsterdam) — same-AZ as exchange matching engines, sub-1ms RTT  
+\- \*\*Edge\*\*: 5-PoP global mesh — EDGE-TKY (AWS \`ap-northeast-1\` c7i.metal-24xl) \+ EDGE-SIN (AWS \`ap-southeast-1\` c7i.4xlarge) \+ EDGE-FRA (Vultr BM Frankfurt, DE-CIX peered) \+ EDGE-USE (AWS \`us-east-1\` c7i.2xlarge) \+ EDGE-AMS (Vultr BM Amsterdam) — same-AZ as DEX / sequencers / builders, sub-1ms RTT  
 \- \*\*OS\*\*: Ubuntu 24.04 LTS HWE (kernel 7.0) \+ AF\_XDP Kernel-Bypass Networking (sub-10µs packet processing) | Python 3.12 | systemd 255  
 \- \*\*Learning\*\*: SAGE \+ MGPO \+ Hermes-RL/DRPO \+ HyEvo \+ GEPA \+ DGM-H \+ SIA \+ SkillOpt \+ InterleaveThinker \+ ALE \+ Robust  
 \- \*\*§REF files\*\*: §AU\_audit.md, §GHOST\_detail.md, §PERF\_detail.md, §SKILLS\_full.md, §DEPLOY\_scripts.md, §RESEARCH\_detail.md  
@@ -1164,7 +1164,7 @@ Deploy to: \`\~/.openclaw/AGENTS.md\`
 | Stop-loss mandate | Every position has hard stop-loss (R16) |  
 | Position sizing | % of equity only; scale-progressive Kelly (R41) |  
 | Drawdown threshold | 3-tier circuit breakers (3%/7%/12% 24h) |  
-| Weekly profit sweep | Weekly profit sweeps to Trezor Safe 7 (R23): 20% of weekly profit every 7 days once total portfolio value ≥$35K; 100% reinvested below $35K; injections continue regardless |  
+| Weekly profit sweep | Weekly profit sweeps to Trezor Safe 7 (R23): 20% of weekly profit every 7 days once total portfolio value ≥$15K; 100% reinvested below $15K; injections continue regardless |  
 | Backtesting gate | ARBITER auto-approval after 7-day deployment pipeline (§DEPLOY\_LIFECYCLE) before live execution — no human gate per §AUTONOMY PRINCIPLE |  
 | Red Team gauntlet | Strategies must survive adversarial simulation before promotion |  
 | Edge routing | Always select edge by lowest live p50 RTT to target chain |  
@@ -1224,16 +1224,16 @@ Deploy to: \`\~/.openclaw/AGENTS.md\`
 | Primary reranker | \`Qwen/Qwen3-Reranker-0.6B\` (Apache 2.0) | cuda:0 ride-along FP8 (\~0.6 GB) |  
 | Latency-pick reranker | \`Alibaba-NLP/gte-reranker-modernbert-base\` (149 M, ¼ compute, near-parity Hit@1) | CPU FP16 |
 
-\#\#\# Edge workers (stateless, no LLM — 5-PoP global mesh, same-AZ as exchange matching engines)  
+\#\#\# Edge workers (stateless, no LLM — 5-PoP global mesh, same-AZ as DEX / sequencers / builders)  
 | Worker | Node | Provider / Instance | Region | Primary Targets | Expected RTT |  
 | \--- | \--- | \--- | \--- | \--- | \--- |  
-| TRENCH-OPS-TKY | EDGE-TKY | AWS \`c7i.metal-24xl\` (96 vCPU, 192 GB, 25 Gbps ENA) | \`ap-northeast-1\` (Tokyo) | Binance, OKX, Hyperliquid (hl-visor), Jito-TKY | \*\*\<1ms\*\* |  
-| TRENCH-OPS-SIN | EDGE-SIN | AWS \`c7i.4xlarge\` (16 vCPU, 32 GB, 12.5 Gbps) | \`ap-southeast-1\` (Singapore) | Bybit, BSC, Sui, APAC failover | \*\*\<1ms\*\* |  
+| TRENCH-OPS-TKY | EDGE-TKY | AWS \`c7i.metal-24xl\` (96 vCPU, 192 GB, 25 Gbps ENA) | \`ap-northeast-1\` (Tokyo) | Hyperliquid DEX (hl-visor), Jito-TKY | \*\*\<1ms\*\* |  
+| TRENCH-OPS-SIN | EDGE-SIN | AWS \`c7i.4xlarge\` (16 vCPU, 32 GB, 12.5 Gbps) | \`ap-southeast-1\` (Singapore) | BSC DEX, PancakeSwap, Sui, APAC failover | \*\*\<1ms\*\* |  
 | TRENCH-OPS-FRA | EDGE-FRA | Vultr Bare Metal (dedicated, DE-CIX peered) | Frankfurt, DE | Solana-EU (Jito-FRA ShredStream), ETH builders, DEX aggregators, bridges | \*\*\<1ms\*\* |  
-| TRENCH-OPS-USE | EDGE-USE | AWS \`c7i.2xlarge\` (8 vCPU, 16 GB, 12.5 Gbps) | \`us-east-1\` (N. Virginia) | Coinbase, ARB/OP/Base L2 sequencers, ETH relay US, Flashbots Protect | \*\*\<1ms\*\* |  
+| TRENCH-OPS-USE | EDGE-USE | AWS \`c7i.2xlarge\` (8 vCPU, 16 GB, 12.5 Gbps) | \`us-east-1\` (N. Virginia) | ARB/OP/Base L2 sequencers, ETH relay US, Flashbots Protect | \*\*\<1ms\*\* |  
 | TRENCH-OPS-AMS | EDGE-AMS | Vultr Bare Metal (dedicated, AMS-IX peered) | Amsterdam, NL | Solana secondary (gRPC redundancy), ETH relay redundancy, Nostr relay, bridge monitor | \*\*\<1ms\*\* |
 
-\> \*\*Architecture rationale:\*\* Each edge PoP is placed in the \*\*exact same AWS region/AZ\*\* as the target exchange matching engine. Since Binance/OKX/Hyperliquid validators all run in AWS \`ap-northeast-1\` (Tokyo), and Bybit runs in AWS \`ap-southeast-1\` (Singapore), traffic between our edge and the exchange never leaves Amazon's backbone — achieving sub-millisecond RTT. This replaces the previous single-PoP Falkenstein design which added 130-200ms RTT to APAC exchanges. Erigon archive runs on EDGE-FRA (Frankfurt, DE-CIX peered); CRUSH pipeline and batch data processing run on TITANHOME during off-peak hours.
+\> \*\*Architecture rationale:\*\* Each edge PoP is placed in the \*\*exact same AWS region/AZ\*\* as the target DEX / sequencer / builder. Since Hyperliquid DEX validators all run in AWS \`ap-northeast-1\` (Tokyo), and BSC/Sui run in AWS \`ap-southeast-1\` (Singapore), traffic between our edge and the exchange never leaves Amazon's backbone — achieving sub-millisecond RTT. This replaces the previous single-PoP Falkenstein design which added 130-200ms RTT to APAC exchanges. Erigon archive runs on EDGE-FRA (Frankfurt, DE-CIX peered); CRUSH pipeline and batch data processing run on TITANHOME during off-peak hours.
 
 \*\*Total: 23 agents — 15 share the GPU TP=2 llama-server \`:30000\` (4 orchestrator
 
@@ -1432,7 +1432,7 @@ checkpoint\_clear\_on\_success: true
 
 \- trade\_execution\_pipeline: signal → risk gate → sign (workstation) → dispatch to edge → broadcast → record → learn  
 \- defi\_yield\_rebalance: scan → approve → sign → dispatch → record  
-\- weekly\_profit\_sweep: 7-day-cycle-triggered (once portfolio value ≥$35K) → calculate 20% of week's net profit → approve → build tx → Hyperion gate → sign → broadcast → reinvest remaining 80% (below $35K: NO sweep, 100% reinvest)  
+\- weekly\_profit\_sweep: 7-day-cycle-triggered (once portfolio value ≥$15K) → calculate 20% of week's net profit → approve → build tx → Hyperion gate → sign → broadcast → reinvest remaining 80% (below $15K: NO sweep, 100% reinvest)  
 \- emergency\_halt: trigger → notify → evaluate → alert \+ revoke all session keys  
 \- skill\_evolution\_pipeline: extract → SFT → RL (MGPO) → validate → promote  
 \- strategy\_synthesis: compose skills → synthesize → backtest → 7-day deployment pipeline (§DEPLOY\_LIFECYCLE) → auto-promote → deploy  
@@ -1565,7 +1565,7 @@ Deploy to: \`\~/.openclaw/MEMORY.md\`
 
 \- Version: v49.7 — OPENCLAW UNIFIED FRAMEWORK | Build: 2026-05-28  
 \- Operating mode: Rust+Python hybrid (read code on critical-path PRs; maturin compilation active)  
-\- Capital: $2,500 starting \+ $2,500 biweekly injections (every 14 days) | Target: $1M+ | Growth phase: 100% reinvest (NO Trezor sweep) until portfolio ≥$35K | Harvest phase (≥$35K): Trezor sweep 20% of profit weekly, 80% reinvested, injections continue | Phased deploy: see §PH  
+\- Capital: $2,500 starting \+ $2,500 biweekly injections (every 14 days) | Target: $1M+ | Growth phase: 100% reinvest (NO Trezor sweep) until portfolio ≥$15K | Harvest phase (≥$15K): Trezor sweep 20% of profit weekly, 80% reinvested, injections continue | Phased deploy: see §PH  
 \- Active agents: 23 (15 GPU TP=2 \[4 orchestrator \+ 5 signal \+ 3 execution \+ 3 quantum-coord\] \+ 8 TITANSPARK utility) | Dormant: 18
 
 \#\# Infrastructure (— OpenClaw framework \+ quantum augmentation \+ operator-locked BOM)
@@ -1745,7 +1745,7 @@ Deploy to: \`\~/.openclaw/USER.md\`
 
 \- Workstation is under Hyperion's direct physical control  
 \- PiKVM V4 Plus provides OOB access; accessible only from LAN \+ Nostr NIP-44  
-\- Trezor Safe 7 hardware wallet holds long-term key material (weekly profit sweep per R23: 20% of profit every 7 days once total portfolio value ≥$35K; 100% reinvested below $35K; injections continue regardless)
+\- Trezor Safe 7 hardware wallet holds long-term key material (weekly profit sweep per R23: 20% of profit every 7 days once total portfolio value ≥$15K; 100% reinvested below $15K; injections continue regardless)
 
 \#\# Capital Phase
 
@@ -2391,13 +2391,13 @@ notification\_map:
 
 \#\# Edge Workers (stateless — no LLM, 5-PoP global mesh)
 
-\*\*TRENCH-OPS-TKY (EDGE-TKY, AWS Tokyo \`ap-northeast-1\`):\*\* Primary APAC tx broadcast node. Receives signed raw tx or session-key-authorized intent from workstation over Nostr NIP-44. Rate-limits, sanity-checks, broadcasts to nearest builder/relay. Same AWS region as Binance/OKX/Hyperliquid matching engines — sub-1ms RTT. Runs self-hosted \`hl-visor\` (Hyperliquid non-validating node, full L1 orderbook depth), Jito-TKY relayer connection, Binance/OKX WebSocket feeds \+ order submission. Local Redis cache \+ mempool taps. Reports p50/p95/p99 broadcast RTT back to FORGE every 30s.
+\*\*TRENCH-OPS-TKY (EDGE-TKY, AWS Tokyo \`ap-northeast-1\`):\*\* Primary APAC tx broadcast node. Receives signed raw tx or session-key-authorized intent from workstation over Nostr NIP-44. Rate-limits, sanity-checks, broadcasts to nearest builder/relay. Same AWS region as Hyperliquid DEX validators — sub-1ms RTT. Runs self-hosted \`hl-visor\` (Hyperliquid non-validating node, full L1 orderbook depth), Jito-TKY relayer connection, DEX order flow via hl-visor. Local Redis cache \+ mempool taps. Reports p50/p95/p99 broadcast RTT back to FORGE every 30s.
 
-\*\*TRENCH-OPS-SIN (EDGE-SIN, AWS Singapore \`ap-southeast-1\`):\*\* APAC secondary \+ Bybit/BSC primary. Same AWS region as Bybit matching engine — sub-1ms RTT. Handles BSC RPC \+ tx submission, Sui validator connections, APAC failover for all chains. Reports latency metrics to FORGE.
+\*\*TRENCH-OPS-SIN (EDGE-SIN, AWS Singapore \`ap-southeast-1\`):\*\* APAC secondary \+ BSC DEX / Sui primary. Same AWS region as BSC/Sui infrastructure — sub-1ms RTT. Handles BSC RPC \+ tx submission, Sui validator connections, APAC failover for all chains. Reports latency metrics to FORGE.
 
 \*\*TRENCH-OPS-FRA (EDGE-FRA, Vultr Bare Metal Frankfurt, DE-CIX peered):\*\* EU primary. Solana Jito-FRA ShredStream \+ Yellowstone gRPC, Ethereum MEV relay connections (Titan Builder, Flashbots, Beaverbuild), 1inch/Paraswap/CoW DEX aggregator routing, bridge operations (Stargate/Across). DE-CIX direct peering provides \<1ms to Remote/OVH-hosted Solana validators in same metro. Reports latency metrics to FORGE.
 
-\*\*TRENCH-OPS-USE (EDGE-USE, AWS US-East \`us-east-1\`):\*\* US primary. Coinbase WebSocket \+ order submission, Arbitrum/Optimism/Base L2 sequencer tx submission (sequencers in same region), Ethereum builder relay US-East, Flashbots Protect. 2-5ms to Equinix NY4 (Coinbase derivatives). Reports latency metrics to FORGE.
+\*\*TRENCH-OPS-USE (EDGE-USE, AWS US-East \`us-east-1\`):\*\* US primary. Arbitrum/Optimism/Base L2 sequencer tx submission (sequencers in same region), Ethereum builder relay US-East, Flashbots Protect. Reports latency metrics to FORGE.
 
 \*\*TRENCH-OPS-AMS (EDGE-AMS, Vultr Bare Metal Amsterdam, AMS-IX peered):\*\* EU redundancy. Solana secondary gRPC (redundant ShredStream), Ethereum relay redundancy, Nostr relay for Zero-IP control plane, bridge monitoring. AMS-IX peering provides direct connectivity to virtually every European network. Reports latency metrics to FORGE.
 
@@ -3456,10 +3456,10 @@ result \= qaoa.optimize(
 \#\#\# skills/portfolio\_management/SKILL.md
 
 \- \*\*Owner:\*\* ATLAS  
-\- \*\*Purpose:\*\* PnL tracking (realized \+ unrealized, EXCLUDING deposits per R38), Sharpe/Sortino, delta accounting (P5), inventory mgmt (P9 LP), Trezor weekly profit sweep workflow trigger per R23 ($35K total portfolio threshold, then 20% weekly; below $35K: 100% reinvest, NO sweep).  
+\- \*\*Purpose:\*\* PnL tracking (realized \+ unrealized, EXCLUDING deposits per R38), Sharpe/Sortino, delta accounting (P5), inventory mgmt (P9 LP), Trezor weekly profit sweep workflow trigger per R23 ($15K total portfolio threshold, then 20% weekly; below $15K: 100% reinvest, NO sweep).  
 \- \*\*Inputs:\*\* all executed trades, current positions, market prices, capital injection ledger.  
 \- \*\*Outputs:\*\* \`{equity, unrealized\_pnl, sharpe\_30d, sortino\_30d, max\_dd, top\_position\_pct, sweep\_eligible}\`; daily snapshot at 00:00 UTC.  
-\- \*\*Integration:\*\* Phase transitions emit equity-band-crossed events to GUARDIAN (Kelly multiplier update); concentration caps fed back to risk\_validation; Trezor Safe 7 weekly profit sweeps (R23: 20% of profit once total portfolio value ≥$35K; 100% reinvest below threshold).  
+\- \*\*Integration:\*\* Phase transitions emit equity-band-crossed events to GUARDIAN (Kelly multiplier update); concentration caps fed back to risk\_validation; Trezor Safe 7 weekly profit sweeps (R23: 20% of profit once total portfolio value ≥$15K; 100% reinvest below threshold).  
 \- \*\*CBs:\*\* CB\_PORTFOLIO\_DRIFT, CB\_DEPOSIT\_AS\_PROFIT\_DETECTED (R38).
 
 \#\#\# skills/market\_regime/SKILL.md
@@ -4624,7 +4624,7 @@ gris\_reporting:
 
 \*\*R22 — Per-Trade Risk Cap.\*\* Max 2% equity at risk per trade (defined as
 
-\*\*R23 — Weekly Profit Sweeps (Two-Phase Capital Strategy).\*\* \*\*GROWTH PHASE (portfolio \< $35,000):\*\* Zero Trezor sweeps. 100% of all profits reinvested into active strategies. $2,500 biweekly injections (every 14 days) added directly to trading capital. Goal: compound as aggressively as possible to reach $35K threshold. \*\*HARVEST PHASE (portfolio ≥ $35,000):\*\* Once total portfolio value (equity \+ unrealized PnL, EXCLUDING pending injections) reaches $35,000, sweep 20% of each week's net realized profit to Trezor Safe 7 cold storage every 7 days. Reinvest remaining 80%. $2,500 biweekly injections continue and are added to trading capital (injections are NOT counted as profit for sweep calculation per R38). Sweep executes on Sunday UTC 00:00. If weekly net profit is negative (loss week), no sweep occurs — loss carries forward. If portfolio drops below $35K after a drawdown, sweeps PAUSE and system returns to Growth Phase until $35K is re-crossed. Sweep tx auto-queues and notifies Hyperion via Telegram for Trezor physical signing (hardware interaction only — not a decision gate per §AUTONOMY PRINCIPLE). If Trezor signing unavailable \>24h, fallback to session-key pre-signed batch.
+\*\*R23 — Weekly Profit Sweeps (Two-Phase Capital Strategy).\*\* \*\*GROWTH PHASE (portfolio \< $15,000):\*\* Zero Trezor sweeps. 100% of all profits reinvested into active strategies. $2,500 biweekly injections (every 14 days) added directly to trading capital. Goal: compound as aggressively as possible to reach $15K threshold. \*\*HARVEST PHASE (portfolio ≥ $15,000):\*\* Once total portfolio value (equity \+ unrealized PnL, EXCLUDING pending injections) reaches $15,000, sweep 20% of each week's net realized profit to Trezor Safe 7 cold storage every 7 days. Reinvest remaining 80%. $2,500 biweekly injections continue and are added to trading capital (injections are NOT counted as profit for sweep calculation per R38). Sweep executes on Sunday UTC 00:00. If weekly net profit is negative (loss week), no sweep occurs — loss carries forward. If portfolio drops below $15K after a drawdown, sweeps PAUSE and system returns to Growth Phase until $15K is re-crossed. Sweep tx auto-queues and notifies Hyperion via Telegram for Trezor physical signing (hardware interaction only — not a decision gate per §AUTONOMY PRINCIPLE). If Trezor signing unavailable \>24h, fallback to session-key pre-signed batch.
 
 \*\*R24 — Concentration Caps.\*\* No single strategy \>30% of equity, no
 
@@ -6291,8 +6291,8 @@ def route\_circuit(circuit, sensitivity="normal", force\_tier=None):
 | Start | Day 1 | $2,500 | 0 (init phase) | GROWTH — 100% reinvest |  
 | First injection | Day 14 | $5,000 \+ profits | 3-5 | GROWTH — 100% reinvest |  
 | Phase 1 complete | Week 2 | $5,000-$10,000 | 5 | GROWTH — 100% reinvest |  
-| Phase 2 complete | Week 4 | $15,000-$35,000 | 8 | GROWTH → HARVEST transition |  
-| \*\*$35K Sweep Activation\*\* | \*\*\~Week 3-5\*\* | \*\*$35,000\*\* | \*\*8\*\* | \*\*HARVEST — 20% weekly sweep begins\*\* |  
+| Phase 2 complete | Week 4 | $15,000-$15,000 | 8 | GROWTH → HARVEST transition |  
+| \*\*$15K Sweep Activation\*\* | \*\*\~Week 3-5\*\* | \*\*$15,000\*\* | \*\*8\*\* | \*\*HARVEST — 20% weekly sweep begins\*\* |  
 | Phase 3 complete | Month 2 | $75,000-$200,000 | 10 | HARVEST — sweeping weekly |  
 | Phase 4 complete | Month 3+ | $500,000-$1,000,000+ | 11 | HARVEST — sweeping weekly |
 
@@ -7142,16 +7142,16 @@ lifecycle:
 
 cold\_sweep\_pipeline:  
   description: \>  
-    Two-phase capital strategy: GROWTH PHASE (portfolio \< $35K) \= zero  
+    Two-phase capital strategy: GROWTH PHASE (portfolio \< $15K) \= zero  
     sweeps, 100% reinvestment \+ $2,500 biweekly injections to maximize  
-    compounding speed. HARVEST PHASE (portfolio ≥ $35K) \= sweep 20% of  
+    compounding speed. HARVEST PHASE (portfolio ≥ $15K) \= sweep 20% of  
     weekly net trading profit to Trezor Safe 7 cold storage per R23.  
     $2,500 biweekly injections continue during Harvest Phase and are  
     added to trading capital (not counted as profit for sweep calc).  
-    If portfolio drops below $35K after drawdown, system reverts to  
+    If portfolio drops below $15K after drawdown, system reverts to  
     Growth Phase until threshold is re-crossed.
 
-  activation\_threshold: "$35,000 total portfolio value (equity \+ unrealized PnL)"  
+  activation\_threshold: "$15,000 total portfolio value (equity \+ unrealized PnL)"  
   growth\_phase: "100% reinvest, NO sweep, injections → trading capital"  
   sweep\_frequency: "Every 7 days (Sunday UTC 00:00) — Harvest Phase only"  
   sweep\_percentage: "20% of that week's net realized profit"  
@@ -12700,7 +12700,7 @@ export:
 
 \# \- GUARDIAN: Spending limit enforcement \+ risk checks
 
-\# \- BOOKKEEPER: Cold sweep pipeline (R23 weekly 20% of profit once total portfolio value ≥$35K; 100% reinvest below threshold)
+\# \- BOOKKEEPER: Cold sweep pipeline (R23 weekly 20% of profit once total portfolio value ≥$15K; 100% reinvest below threshold)
 
 \#\# §COCKPIT.13.1 — Portfolio Overview Dashboard
 
@@ -12759,10 +12759,10 @@ export:
 
 \#\# §COCKPIT.13.6 — R23 Weekly Profit Sweep Tracker
 
-\*\*Status:\*\* Activates once total portfolio value ≥$35,000
+\*\*Status:\*\* Activates once total portfolio value ≥$15,000
 
 \- \*\*Cumulative Profit:\*\* $0 (tracking)  
-\- \*\*Activation Threshold:\*\* $35,000  
+\- \*\*Activation Threshold:\*\* $15,000  
 \- \*\*Sweep Rate:\*\* 20% of weekly net profit  
 \- \*\*Reinvest Rate:\*\* 80%  
 \- \*\*Sweep Day:\*\* Sunday UTC 00:00  
@@ -13171,7 +13171,7 @@ security:
 
 \# Edge mesh: 5-PoP global — EDGE-TKY (AWS ap-northeast-1) \+ EDGE-SIN (AWS ap-southeast-1) \+ EDGE-FRA (Vultr BM Frankfurt, DE-CIX peered) \+ EDGE-USE (AWS us-east-1) \+ EDGE-AMS (Vultr BM Amsterdam)
 
-\# Same-AZ as exchange matching engines: Binance/OKX/HL=Tokyo, Bybit=Singapore, Coinbase=US-East, Solana-EU=Frankfurt, redundancy=Amsterdam
+\# Same-AZ as DEX / sequencers / builders: Hyperliquid DEX=Tokyo, BSC/Sui=Singapore, L2 sequencers=US-East, Solana-EU=Frankfurt, redundancy=Amsterdam
 
 \# Erigon archive on EDGE-FRA; CRUSH \+ batch data on TITANHOME off-peak
 
@@ -13255,7 +13255,7 @@ security:
 
 \# Hardware-wallet bridge daemon: openclaw-trezor-bridge (§KEYS.2a)
 
-\# Cold storage sweeps: R23 weekly 20% of profit once total portfolio value ≥$35K; 100% reinvest below threshold (§KEYS.4)
+\# Cold storage sweeps: R23 weekly 20% of profit once total portfolio value ≥$15K; 100% reinvest below threshold (§KEYS.4)
 
 \# Full spec: → §KEYS
 
@@ -13662,8 +13662,8 @@ capital\_allocation:
     total\_injected\_90\_days: "$15,000"  
     total\_capital\_deployed: "$17,500 (starting $2,500 \+ $15,000 injections, before any profits)"  
   profit\_sweep:  
-    activation\_threshold: "$35,000 total portfolio value"  
-    growth\_phase: "Below $35K: 100% reinvest, NO sweep, injections added to trading capital"  
+    activation\_threshold: "$15,000 total portfolio value"  
+    growth\_phase: "Below $15K: 100% reinvest, NO sweep, injections added to trading capital"  
     sweep\_rate: "20% of weekly net realized profit"  
     reinvest\_rate: "80% reinvested into active strategies"  
     frequency: "Every 7 days (Sunday UTC 00:00)"  

@@ -26,12 +26,9 @@ def _env(name: str, default: str = "") -> str:
 
 
 def credentials_status() -> dict[str, Any]:
-    """Operator checklist — which live hooks are wired (no secret values)."""
+    """Operator checklist — which live hooks are wired (no secret values). DEX-only."""
     return {
         "recon_fetcher_url": bool(_env("TITAN_RECON_FETCHER_URL")),
-        "binance": bool(_env("BINANCE_API_KEY") and _env("BINANCE_API_SECRET")),
-        "okx": bool(_env("OKX_API_KEY") and _env("OKX_API_SECRET") and _env("OKX_PASSPHRASE")),
-        "bybit": bool(_env("BYBIT_API_KEY") and _env("BYBIT_API_SECRET")),
         "hyperliquid": bool(_env("HYPERLIQUID_PRIVATE_KEY") or _env("HYPERLIQUID_WALLET_ADDRESS")),
         "evm_rpc": bool(_env("ETH_RPC_URL") or _env("ERIGON_HTTP_URL")),
         "solana_rpc": bool(_env("SOLANA_RPC_URL")),
@@ -46,11 +43,12 @@ def _require_any_recon_source() -> None:
     st = credentials_status()
     if st["recon_fetcher_url"]:
         return
-    if any(st[k] for k in ("binance", "okx", "bybit", "hyperliquid", "evm_rpc", "solana_rpc")):
+    if any(st[k] for k in ("hyperliquid", "evm_rpc", "solana_rpc")):
         return
     raise NotConfiguredError(
-        "Live reconciliation not configured — set TITAN_RECON_FETCHER_URL or exchange/RPC "
-        "keys in ~/.openclaw/.env (see templates/infra/live.env.example)"
+        "Live reconciliation not configured — set TITAN_RECON_FETCHER_URL or DEX/RPC "
+        "keys in ~/.openclaw/.env (see templates/infra/live.env.example). "
+        "CEX keys are not supported (R02 / R46 DEX-only)."
     )
 
 

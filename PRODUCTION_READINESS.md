@@ -165,7 +165,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 - Enable additional pipelines per promotion playbook + red-team checklist
 - **Capital allocator moves from advisory to enforced** within the operator-set gross envelope
 - Wire live reconciliation adapter; 48h zero divergence
-- Trezor sweep config armed (still growth phase if <$35K)
+- Trezor sweep config armed (still growth phase if <$15K)
 
 **Exit criteria:** 2+ days combined paper+live track record; MRM no unmitigated drift; explainability on all material trades; no lane flagged BLEEDING by TCA carrying capital.
 
@@ -173,7 +173,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 
 - Optional additional PoPs (Phase 3+ edge mesh)
 - Concentrated activation of proven lanes per capital phase gates (fund on TCA/allocator evidence, not breadth)
-- Harvest phase sweeps when ≥$35K
+- Harvest phase sweeps when ≥$15K
 - Quarterly red-team re-run; promotion playbook for all model changes
 
 **Exit criteria:** Operator sign-off; residual risks accepted; incident playbooks exercised at least once.

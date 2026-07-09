@@ -6,7 +6,7 @@ export function Pipelines() {
     <>
       <PageHeader
         title="Pipelines"
-        subtitle="Strategy catalog (47 pipelines in spec). Concentration cap: ≤4 funded HEALTHY lanes via allocator."
+        subtitle="DEX-only strategy catalog (R02 / R46). Concentration cap: ≤4 funded HEALTHY lanes via allocator."
         actions={<Btn>Request activation</Btn>}
       />
       <Card>

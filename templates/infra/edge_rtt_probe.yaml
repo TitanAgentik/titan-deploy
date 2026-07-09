@@ -49,14 +49,19 @@ edge_local:
     env: HYPERLIQUID_API_URL
     method: http_head
     budget_p95_ms: 1
-  - name: bybit_sin
+  - name: bsc_rpc_sin
     pop: EDGE-SIN
-    env: BYBIT_API_URL
+    env: BSC_RPC_URL
     method: http_head
     budget_p95_ms: 1
-  - name: coinbase_use
+  - name: flashbots_use
     pop: EDGE-USE
-    env: COINBASE_API_URL
+    env: FLASHBOTS_RELAY_URL
+    method: http_head
+    budget_p95_ms: 3
+  - name: base_sequencer_use
+    pop: EDGE-USE
+    env: BASE_RPC_URL
     method: http_head
     budget_p95_ms: 3
 

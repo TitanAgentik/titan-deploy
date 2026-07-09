@@ -19,7 +19,7 @@ def capital_env(tmp_path: Path) -> CapitalManager:
         state_path=tmp_path / "portfolio_state.json",
         audit_path=tmp_path / "capital_audit.jsonl",
         withdrawal_adapter="mock",
-        trezor_sweep=TrezorSweepConfig(harvest_threshold_usd=35000.0),
+        trezor_sweep=TrezorSweepConfig(harvest_threshold_usd=15000.0),
     )
     return CapitalManager(cfg)
 

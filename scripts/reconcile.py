@@ -499,7 +499,7 @@ def reconcile_shadow_evolution(text: str) -> str:
         (
             r"Auto-approve: routine rebalances <2% equity, weekly profit sweeps, CB triggers, §RDSCOUT strategy promotions that pass all 3-tier validation with <2% equity requirement",
             "Require approval: strategy promotion, evolution-touched agents (DGM-H/GEPA/HyEvo/SIA LoRA/EurekAgent), leverage changes, flash-loan live deploy, positions >1% equity\n"
-            "- Auto-execute: routine rebalances <1% equity, weekly profit sweeps (post-$35K), CB auto-responses per tier",
+            "- Auto-execute: routine rebalances <1% equity, weekly profit sweeps (post-$15K), CB auto-responses per tier",
         ),
     ]
     for pattern, repl in replacements:

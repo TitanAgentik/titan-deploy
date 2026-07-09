@@ -10,7 +10,8 @@ Inspired by [ClawBuddy](https://clawbuddy.help) and the [OpenClaw Control UI](ht
 
 - **Command palette** — `Ctrl+K` / `⌘K` to jump anywhere or run operator actions
 - **Activity rail** — bell icon in topbar for recent agent + operator events
-- **Status strip** — navy mesh-grid KPI band on Dashboard
+- **Status strip** — light translucent KPI band on Dashboard
+- **DEX-only** — no CEX venues; Uniswap / Curve / Hyperliquid / Solana / L2 DEX
 - **Interactive UX** — clickable metrics, modals, drawers, confirmation flows, toasts
 - **23 sections** — capital, risk, pipelines, promotions, memecoin trench, edge mesh, flash loans, signing, and more
 
@@ -54,7 +55,7 @@ Vite proxies safety services:
 
 **Trading:** Pipelines · Promotions · Memecoin Trench · Edge Mesh · Flash Loans · Signing Node
 
-**Intelligence:** Automations · Goals Lab · Identity · Model Tiers · AI Log · Questions
+**Intelligence:** Automations · Crypto Twitter · Goals Lab · Identity · Model Tiers · AI Log · Questions
 
 **Build:** Skill Factory · Agent Teams · Workspace
 
@@ -76,7 +77,7 @@ Demo actions only until HMAC-wired to live safety units.
 ### Capital & Wallets
 
 Dedicated deposit / withdraw / wallet inventory / **Trezor Safe 7 weekly profit sweeps**.
-Deposits credit the operator ledger (≠ trading PnL). Sweeps unlock at $35K equity (20% of
+Deposits credit the operator ledger (≠ trading PnL). Sweeps unlock at $15K equity (20% of
 weekly profit every Sunday UTC; 100% reinvest below threshold).
 
 Demo data is used until safety systemd units are up; Command Center actions are local session demos (HMAC wiring lives in Settings).

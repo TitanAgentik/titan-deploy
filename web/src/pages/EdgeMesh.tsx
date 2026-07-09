@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { PageHeader, Card, Tag, Metric } from "@/components/ui";
 import { edgeMesh, edgePops, edgeStrategyRouting, latencyBudget } from "@/lib/data";
 
@@ -6,7 +7,12 @@ export function EdgeMesh() {
     <>
       <PageHeader
         title="Edge Mesh"
-        subtitle="Full 5-PoP mesh — paper + live use identical routing (latency_faithful). Stateless TRENCH-OPS workers, sub-ms to exchange matching engines."
+        subtitle="Full 5-PoP mesh — paper + live use identical routing (latency_faithful). Stateless TRENCH-OPS workers, sub-ms to DEX / sequencers / builders."
+        actions={
+          <Link className="btn primary" to="/latency">
+            Open Latency
+          </Link>
+        }
       />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
@@ -79,7 +85,7 @@ export function EdgeMesh() {
               { k: "Gate p95", v: `${latencyBudget.hotPathGateP95Ms} ms` },
               { k: "Submit p95", v: `${latencyBudget.hotPathSubmitP95Ms} ms` },
               { k: "Home → edge", v: `${latencyBudget.homeToEdgeP95Ms} ms` },
-              { k: "Edge → exchange", v: `${latencyBudget.edgeToExchangeP95Ms} ms` },
+              { k: "Edge → DEX / sequencer", v: `${latencyBudget.edgeToExchangeP95Ms} ms` },
               { k: "Nostr dispatch", v: `${latencyBudget.nostrDispatchMs} ms` },
               { k: "Hot pipelines", v: latencyBudget.hotPipelines.join(", ") },
             ]}
