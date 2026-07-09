@@ -1,0 +1,58 @@
+# Millisecond hot path — bypass multi-hop HTTP + TradingAgents debate
+# Deploy: ~/.openclaw/infra/latency_fast_path.yaml
+
+version: "1.0"
+target: millisecond
+
+# Hot path = signal already validated (rules/Geyser/mempool) → gate → sign → edge broadcast
+hot_path:
+  enabled: true
+  combined_validate: true          # POST /v1/fast_validate (recon+kernel, one hop)
+  gate_timeout_s: 0.15
+  max_end_to_end_ms:
+    home_gate_p95: 15              # localhost fast_validate + receipt
+    signing_p95: 5
+    home_to_edge_p95: 25           # WireGuard tuned; EU lanes only Phase 1
+    edge_broadcast_p95: 3          # Nostr Kind 1059 → edge worker
+    edge_to_jito_p95: 5            # same-AZ Frankfurt
+    total_submit_p95: 50           # gate → bundle landed (excl. block time)
+
+pipelines:
+  - id: P22
+    name: memecoin_trench
+    latency_class: hot
+    skip_trading_agents_debate: true
+    edge_pop: EDGE-FRA
+  - id: P29
+    name: mev_arb
+    latency_class: hot
+    skip_trading_agents_debate: true
+    edge_pop: EDGE-TKY
+  - id: P12
+    name: intent_solver
+    latency_class: hot
+    skip_trading_agents_debate: true
+    edge_pop: EDGE-FRA
+  - id: P30
+    name: cross_chain_mev
+    latency_class: hot
+    skip_trading_agents_debate: true
+    edge_pop: EDGE-TKY
+
+warm_path:
+  # LLM-assisted — tens to hundreds of ms; NOT on sniper critical path
+  max_gate_ms: 150
+  pipelines: [P1, P3, P7, P8, P11, P6, P18]
+
+cold_path:
+  # Research / promotion — seconds acceptable
+  pipelines: [P34, P40, P41]
+
+edge_execution:
+  # Decision + broadcast at EDGE-FRA for EU/Solana lanes (eliminates home RTT)
+  colocate_trench_ops: true
+  policy_snapshot_sync: nats
+  signing: remote_to_signing_node   # Trezor stays home; session key at edge Phase 3
+  shm_arena: /dev/shm/titan_hot
+
+note: "Full 5-PoP mesh — route by venue via edge_mesh.yaml"

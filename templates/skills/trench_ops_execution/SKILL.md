@@ -18,15 +18,20 @@ Trade execution agent — calldata composition, route selection, MEV-protected b
 
 Agents **verify and sign autonomously** — no human approval on the trade path. Human gates remain for promotion, evolution, leverage, and large withdrawals only.
 
-**Verification stack:** confidence gate → BFT 2-of-3 (AUGUR/PREDATOR/ATLAS) when >1% equity → reconciliation `:19002` → risk kernel `:19001` → gate receipt → signing_node `:19010`.
+**Verification stack:** confidence gate → BFT 2-of-3 (AUGUR/PREDATOR/ATLAS) when >1% equity → **fast_validate** `:19001/v1/fast_validate` (hot path, ms) or recon `:19002` + kernel `:19001` (warm path) → gate receipt → signing_node `:19010`.
+
+**Hot path (P22/P29/P12/P30):** skip TradingAgents debate; use combined `fast_validate` — target **<15ms p95** on localhost.
 
 ```bash
+# Fast gate (ms hot path — P22 memecoin, P29 MEV)
+titan-safety gate check --fast --trade '{"trade_id":"t1","strategy_id":"P22","venue":"jito",...}'
+
 # 1) BFT votes (when trade >1% equity on live venues)
 titan-safety bft vote --voter AUGUR --trade-id t1 --confidence 0.82
 titan-safety bft vote --voter PREDATOR --trade-id t1 --confidence 0.80
 
 # 2) Gate + sign in one step (include confidence + bft_votes in trade JSON)
-titan-safety gate sign --trade '{"trade_id":"t1","venue":"binance_spot","contract":"0xabc","side":"buy","notional_usd":30,"leverage":1,"confidence":0.85,"bft_votes":[...]}' \
+titan-safety gate sign --fast --trade '{"trade_id":"t1","strategy_id":"P22","venue":"jito",...}' \
   --typed-data '{"types":{...},"domain":{...},"message":{...}}'
 
 # Or gate only — on ALLOW, response includes "receipt"
@@ -35,7 +40,7 @@ titan-safety gate check --trade '{"trade_id":"t1","venue":"paper","contract":"0x
 
 Signing node **DENIES** without `X-Titan-Gate-Receipt` (max 30s) and **rejects blind-sign** on live venues (requires `typed_data` or `calldata`).
 
-Or from code: `decision = ExecutionGate(policy).gate(trade)` — if `decision.allowed`, pass `decision.receipt` to signing. Stages: mock-adapter ban → reconciliation → risk kernel (agent verify) → signed receipt. Any DENY / unreachable → **do not sign**.
+Or from code: `decision = ExecutionGate(policy).gate(trade, fast_path=True)` — hot pipelines auto-select fast path when `strategy_id` is P22/P29/P12/P30.
 
 Mutating control-plane POSTs (flatten, regime, heartbeat, TCA ingest, allocate, profit_loop) require `X-Titan-Auth` HMAC tokens (`titan-safety auth sign --command FLATTEN`).
 
@@ -58,16 +63,16 @@ from `openclaw.json` (default `http://127.0.0.1:19010`, host configurable).
 1. Receive approved trade intent from ARCHON/GUARDIAN
 2. Build calldata (1inch/Paraswap/CoW, bridges, Jito bundles)
 3. Submit signing request to signing_node (not local wallet)
-4. Broadcast via Phase 1 edge: **EDGE-FRA** (single PoP sufficient for $2.5K)
+4. Broadcast via lowest-p50 PoP from `edge_mesh.yaml` (full 5-PoP — same routing in paper)
 
 ## Solana / P22 memecoin (when promoted)
 
 1. Geyser stream → PREDATOR six-gate filter (`titan-safety memecoin filter`)  
-2. Gate check + receipt → signing_node → Jito bundle via EDGE-FRA  
+2. Gate check + receipt → signing_node → edge worker at routed PoP (e.g. Jito via EDGE-FRA, HL via EDGE-TKY)  
 3. Config: `infra/solana_memecoin.yaml`, `memecoinTrench` in openclaw.json (default disabled)  
 
 ## Integration
 
 - Agent routing: AGENTS.md → TRENCH-OPS
 - Tools reference: TOOLS.md → Signing Isolation section
-- Edge mesh: `edgeMesh.phase1: single_pop` in openclaw.json
+- Edge mesh: `edgeMesh.mode: full_mesh` in openclaw.json — see `infra/edge_mesh.yaml`

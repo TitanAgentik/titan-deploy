@@ -76,6 +76,7 @@ class RiskKernelState:
         self.flatten_requested: bool = False
         self.keys_revoked: bool = False
         self.safe_mode_exposure_cap_pct: float | None = None
+        self.drawdown_pct_24h: float = 0.0
         self._load()
 
     def _load(self) -> None:
@@ -86,6 +87,7 @@ class RiskKernelState:
             self.keys_revoked = bool(data.get("keys_revoked", False))
             cap = data.get("safe_mode_exposure_cap_pct")
             self.safe_mode_exposure_cap_pct = float(cap) if cap is not None else None
+            self.drawdown_pct_24h = float(data.get("drawdown_pct_24h", 0.0))
             for k, p in data.get("positions", {}).items():
                 self.positions[k] = Position(**p)
             for ts, amt in data.get("recent_losses", []):
@@ -100,6 +102,7 @@ class RiskKernelState:
             "flatten_requested": self.flatten_requested,
             "keys_revoked": self.keys_revoked,
             "safe_mode_exposure_cap_pct": self.safe_mode_exposure_cap_pct,
+            "drawdown_pct_24h": self.drawdown_pct_24h,
             "positions": {k: asdict(v) for k, v in self.positions.items()},
             "recent_losses": list(self.recent_losses),
         }

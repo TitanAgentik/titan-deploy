@@ -11,7 +11,9 @@ import json
 import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass, field
+from http.client import HTTPConnection
 from typing import Any
+from urllib.parse import urlparse
 
 from pathlib import Path
 
@@ -41,12 +43,15 @@ class GateDecision:
 class ExecutionGate:
     """Fail-closed multi-stage pre-trade gate for TRENCH-OPS / EXECUTOR."""
 
+    _HTTP_POOL: dict[str, HTTPConnection] = {}
+
     def __init__(
         self,
         policy: Policy,
         kernel_url: str | None = None,
         recon_url: str | None = None,
-        timeout: float = 1.0,
+        timeout: float | None = None,
+        fast_timeout: float | None = None,
         auth_operator: str = "execution_gate",
         safety_dir: Path | None = None,
     ) -> None:
@@ -54,7 +59,12 @@ class ExecutionGate:
         ports = policy.service
         self.kernel_url = (kernel_url or f"http://127.0.0.1:{ports.risk_kernel_port}").rstrip("/")
         self.recon_url = (recon_url or f"http://127.0.0.1:{ports.reconciliation_port}").rstrip("/")
-        self.timeout = timeout
+        latency = (policy.raw or {}).get("latency", {})
+        hot = latency.get("hot_path", {})
+        self.timeout = timeout if timeout is not None else float(hot.get("gate_timeout_s", 0.25))
+        self.fast_timeout = fast_timeout if fast_timeout is not None else float(
+            hot.get("fast_gate_timeout_s", 0.15)
+        )
         self.auth_operator = auth_operator
         self.safety_dir = safety_dir
 
@@ -62,22 +72,65 @@ class ExecutionGate:
     def from_policy_path(cls, path: str | Any) -> ExecutionGate:
         return cls(load_policy(path))
 
-    def _post(self, url: str, body: dict[str, Any], auth_command: str | None = None) -> dict[str, Any]:
-        headers = {"Content-Type": "application/json"}
+    def _hot_path_enabled(self, trade: TradeRequest) -> bool:
+        latency = (self.policy.raw or {}).get("latency", {})
+        hot = latency.get("hot_path", {})
+        if not hot.get("enabled", False):
+            return False
+        pipelines = {str(p) for p in hot.get("pipelines", [])}
+        if pipelines and trade.strategy_id and trade.strategy_id not in pipelines:
+            return False
+        return bool(hot.get("combined_validate", True))
+
+    def _conn(self, url: str) -> HTTPConnection:
+        parsed = urlparse(url)
+        host = parsed.hostname or "127.0.0.1"
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        key = f"{host}:{port}"
+        conn = self._HTTP_POOL.get(key)
+        if conn is None:
+            conn = HTTPConnection(host, port, timeout=self.timeout)
+            self._HTTP_POOL[key] = conn
+        return conn
+
+    def _post(self, url: str, body: dict[str, Any], auth_command: str | None = None, timeout: float | None = None) -> dict[str, Any]:
+        headers = {"Content-Type": "application/json", "Connection": "keep-alive"}
         if auth_command:
             headers["X-Titan-Auth"] = sign_control_command(auth_command, self.auth_operator)
         data = json.dumps(body).encode()
+        parsed = urlparse(url)
+        path = parsed.path or "/"
+        if parsed.query:
+            path = f"{path}?{parsed.query}"
+        use_timeout = self.timeout if timeout is None else timeout
+        if parsed.hostname in ("127.0.0.1", "localhost"):
+            conn = self._conn(url)
+            conn.timeout = use_timeout
+            try:
+                conn.request("POST", path, body=data, headers=headers)
+                resp = conn.getresponse()
+                raw = resp.read().decode()
+                if resp.status >= 400:
+                    raise urllib.error.HTTPError(url, resp.status, raw, resp.headers, None)
+                return json.loads(raw)
+            except (ConnectionError, TimeoutError, OSError):
+                self._HTTP_POOL.pop(f"{parsed.hostname}:{parsed.port or 80}", None)
+                raise
         req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+        with urllib.request.urlopen(req, timeout=use_timeout) as resp:
             return json.loads(resp.read().decode())
 
     def gate(
         self,
         trade: TradeRequest | dict[str, Any],
         believed: list[BelievedPosition] | list[dict[str, Any]] | None = None,
+        fast_path: bool | None = None,
     ) -> GateDecision:
         if isinstance(trade, dict):
             trade = TradeRequest.from_dict(trade)
+        use_fast = fast_path if fast_path is not None else self._hot_path_enabled(trade)
+        if use_fast:
+            return self._gate_fast(trade, believed)
         stages: dict[str, Any] = {}
 
         # --- Stage 0: live-profile mock ban ---
@@ -179,6 +232,94 @@ class ExecutionGate:
             decision="ALLOW",
             reason="passed reconciliation + risk kernel",
             code="OK",
+            stages=stages,
+            receipt=receipt.token,
+        )
+
+    def _gate_fast(
+        self,
+        trade: TradeRequest,
+        believed: list[BelievedPosition] | list[dict[str, Any]] | None,
+    ) -> GateDecision:
+        """Millisecond hot path — single localhost hop (recon + kernel combined)."""
+        stages: dict[str, Any] = {}
+        mock_block = self._check_mock_ban()
+        stages["mock_ban"] = mock_block
+        if mock_block["decision"] != "ALLOW":
+            return GateDecision(
+                decision="DENY",
+                reason=mock_block["reason"],
+                code=mock_block["code"],
+                stages=stages,
+            )
+
+        believed_payload = []
+        for p in believed or []:
+            if isinstance(p, BelievedPosition):
+                believed_payload.append(
+                    {
+                        "venue": p.venue,
+                        "contract": p.contract,
+                        "notional_usd": p.notional_usd,
+                        "side": p.side,
+                    }
+                )
+            else:
+                believed_payload.append(p)
+
+        pending = {
+            "venue": trade.venue,
+            "contract": trade.contract,
+            "notional_usd": trade.notional_usd,
+            "side": trade.side,
+        }
+        body = {
+            "believed": believed_payload,
+            "pending": pending,
+            "trade": {
+                "trade_id": trade.trade_id,
+                "venue": trade.venue,
+                "contract": trade.contract,
+                "side": trade.side,
+                "notional_usd": trade.notional_usd,
+                "leverage": trade.leverage,
+                "expected_price": trade.expected_price,
+                "worst_price": trade.worst_price,
+                "strategy_id": trade.strategy_id,
+                "confidence": trade.confidence,
+                "bft_votes": trade.bft_votes,
+            },
+        }
+        try:
+            result = self._post(
+                f"{self.kernel_url}/v1/fast_validate",
+                body,
+                timeout=self.fast_timeout,
+            )
+            stages["fast_validate"] = result
+            if result.get("decision") != "ALLOW":
+                stage = result.get("stage", "fast_validate")
+                return GateDecision(
+                    decision="DENY",
+                    reason=f"{stage}: {result.get('reason', 'denied')}",
+                    code=str(result.get("code", "FAST_GATE_DENY")),
+                    stages=stages,
+                )
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+            stages["fast_validate"] = {"decision": "DENY", "error": str(exc)}
+            return GateDecision(
+                decision="DENY",
+                reason=f"Fast validate unreachable — fail-closed: {exc}",
+                code="FAST_GATE_UNREACHABLE",
+                stages=stages,
+            )
+
+        receipt = issue_gate_receipt(trade, self.safety_dir)
+        stages["gate_receipt"] = {"issued": True, "trade_id": receipt.trade_id, "ts": receipt.ts}
+        return GateDecision(
+            decision="ALLOW",
+            reason="passed fast_validate (recon + kernel)",
+            code="OK_FAST",
             stages=stages,
             receipt=receipt.token,
         )

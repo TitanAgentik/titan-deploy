@@ -33,5 +33,24 @@ if [[ -f /etc/default/irqbalance ]]; then
   sudo systemctl stop irqbalance 2>/dev/null || true
 fi
 
+# CPU governor — performance for ms hot path
+if [[ -d /sys/devices/system/cpu/cpu0/cpufreq ]]; then
+  if command -v cpupower &>/dev/null; then
+    sudo cpupower frequency-set -g performance 2>/dev/null || true
+    echo "OK: cpupower performance governor"
+  elif [[ -f /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]]; then
+    echo performance | sudo tee /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor >/dev/null 2>&1 || true
+    echo "OK: scaling_governor=performance (cpu0; replicate via tuned if needed)"
+  fi
+fi
+
+# Hot-path shared memory arena (gate cache, edge intent queue)
+if ! mountpoint -q /dev/shm/titan_hot 2>/dev/null; then
+  sudo mkdir -p /dev/shm/titan_hot
+  sudo mount -t tmpfs -o size=4G,mode=1777 tmpfs /dev/shm/titan_hot 2>/dev/null \
+    || echo "WARN: could not mount /dev/shm/titan_hot"
+fi
+sudo chown -R "${SUDO_USER:-$USER}:${SUDO_USER:-$USER}" /dev/shm/titan_hot 2>/dev/null || true
+
 chmod +x "$INFRA/forge_gpu_schedule_enforce.sh" 2>/dev/null || true
-echo "Done — verify: chronyc tracking, sysctl net.ipv4.tcp_low_latency"
+echo "Done — verify: chronyc tracking, sysctl net.ipv4.tcp_low_latency, ls /dev/shm/titan_hot"

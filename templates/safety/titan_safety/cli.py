@@ -196,7 +196,7 @@ def cmd_gate_check(args: argparse.Namespace) -> int:
     gate = ExecutionGate(policy, safety_dir=Path(args.safety_dir) if args.safety_dir else None)
     trade = TradeRequest.from_dict(json.loads(args.trade))
     believed = json.loads(args.believed) if args.believed else []
-    decision = gate.gate(trade, believed)
+    decision = gate.gate(trade, believed, fast_path=True if args.fast else None)
     print(json.dumps(decision.to_dict(), indent=2))
     return 0 if decision.allowed else 1
 
@@ -228,7 +228,9 @@ def cmd_gate_sign(args: argparse.Namespace) -> int:
     trade_data = json.loads(args.trade)
     trade = TradeRequest.from_dict(trade_data)
     believed = json.loads(args.believed) if args.believed else []
-    decision = ExecutionGate(policy, safety_dir=safety).gate(trade, believed)
+    decision = ExecutionGate(policy, safety_dir=safety).gate(
+        trade, believed, fast_path=True if getattr(args, "fast", False) else None
+    )
     if not decision.allowed:
         print(json.dumps({"gate": decision.to_dict(), "signed": False}, indent=2))
         return 1
@@ -781,12 +783,14 @@ def main(argv: list[str] | None = None) -> int:
     gc.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
     gc.add_argument("--trade", required=True, help="JSON TradeRequest")
     gc.add_argument("--believed", default="", help="JSON list of believed positions")
+    gc.add_argument("--fast", action="store_true", help="Millisecond hot path via /v1/fast_validate")
     gc.add_argument("--safety-dir", default="", help="~/.openclaw/safety for receipt secret")
     gc.set_defaults(func=cmd_gate_check)
     gs = gate_sub.add_parser("sign", help="Gate check + signing_node POST (autonomous path)")
     gs.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
     gs.add_argument("--trade", required=True, help="JSON TradeRequest incl. confidence + bft_votes")
     gs.add_argument("--believed", default="", help="JSON believed positions")
+    gs.add_argument("--fast", action="store_true", help="Millisecond hot path via /v1/fast_validate")
     gs.add_argument("--calldata", default="", help="Hex calldata for live venues")
     gs.add_argument("--typed-data", default="", help="JSON EIP-712 typed_data for live venues")
     gs.add_argument("--signing-endpoint", default="http://127.0.0.1:19010")

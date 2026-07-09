@@ -316,9 +316,12 @@ edge_mesh:
   phase1: single_pop
   default_pop: EDGE-FRA
   latency_budget_ms:
-    home_to_edge_fra_p95: 100
-    edge_to_jito_p95: 50
+    hot_path_gate_p95: 15
+    hot_path_submit_p95: 50
+    home_to_edge_fra_p95: 25
+    edge_to_jito_p95: 5
     nostr_dispatch: 3
+    warm_path_gate_p95: 150
   phase1_apac_deferred: true
   routing_policy: lowest_live_p50_rtt
   active_pops:
@@ -759,6 +762,8 @@ capital:
   },
   "inference": {
     "latencyBudgetPath": "~/.openclaw/infra/latency_budget.yaml",
+    "latencyFastPath": "~/.openclaw/infra/latency_fast_path.yaml",
+    "edgeHotPath": "~/.openclaw/infra/edge_hot_path.yaml",
     "tier1_critical": {
       "port": 30000,
       "gpu": 0,
@@ -909,6 +914,8 @@ capital:
     "powerRequirementsPath": "~/.openclaw/infra/power_requirements.yaml",
     "gpuSchedulePath": "~/.openclaw/infra/gpu_schedule.yaml",
     "latencyBudgetPath": "~/.openclaw/infra/latency_budget.yaml",
+    "latencyFastPath": "~/.openclaw/infra/latency_fast_path.yaml",
+    "edgeHotPath": "~/.openclaw/infra/edge_hot_path.yaml",
     "edgeRttProbePath": "~/.openclaw/infra/edge_rtt_probe.yaml",
     "signingNodeConfigPath": "~/.openclaw/infra/signing_node.yaml"
   },
@@ -948,9 +955,12 @@ capital:
       "EDGE-AMS"
     ],
     "latencyBudgetMs": {
-      "homeToEdgeFraP95": 100,
-      "edgeToJitoP95": 50,
-      "nostrDispatch": 3
+      "hotPathGateP95": 15,
+      "hotPathSubmitP95": 50,
+      "homeToEdgeFraP95": 25,
+      "edgeToJitoP95": 5,
+      "nostrDispatch": 3,
+      "warmPathGateP95": 150
     },
     "phase1ApacDeferred": true,
     "routingPolicy": "lowest_live_p50_rtt",
@@ -1307,6 +1317,23 @@ security_ops:
     - honeypot_arm
     - edge_fail_closed
     - herald_critical
+
+# Millisecond hot path — combined gate validate for latency-critical pipelines
+latency:
+  target: millisecond
+  fast_path_ref: ~/.openclaw/infra/latency_fast_path.yaml
+  hot_path:
+    enabled: true
+    combined_validate: true
+    gate_timeout_s: 0.25
+    fast_gate_timeout_s: 0.15
+    pipelines: [P22, P29, P12, P30]
+    skip_trading_agents_debate: true
+  edge:
+    colocate_trench_ops: true
+    default_pop: EDGE-FRA
+    max_broadcast_ms: 3
+    max_jito_ms: 5
 
 service:
   risk_kernel_port: 19001

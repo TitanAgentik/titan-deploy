@@ -35,8 +35,8 @@ Natural-language scheduling for Hermes cron + OpenClaw heartbeat.
 
 - **ARCHON:** orchestration loop — delegate tasks, monitor agent health (30s)
 - **GUARDIAN:** risk scan — position sizing, drawdown tiers, CB triggers (15s)
-- **NEXUS:** data feed health — RPC latency, feed staleness (30s max; alert >2s RPC)
-- **FORGE:** infrastructure — inference TTFT, edge RTT p95, MPS enforce, GPU schedule, UPS (60s)
+- **NEXUS:** data feed health — RPC latency, feed staleness (60s)
+- **FORGE:** infrastructure — service health, GPU inference schedule, NATS bus, UPS telemetry (60s)
 - **SENTINEL:** security scan — CodeQL gate, dissent review queue (5m)
 
 ## Weekly
@@ -49,11 +49,9 @@ Natural-language scheduling for Hermes cron + OpenClaw heartbeat.
 
 ## GPU Schedule (TITANHOME)
 
-- **Priority 1:** Tier 1 Qwen3-30B FP8 :30000 GPU 0 — **NEVER preempted** (GUARDIAN, TRENCH-OPS critical)
-- **Priority 2:** Tier 2 Qwen3-Coder-80B :30001 GPU 1 — orchestration; must not block Tier 1
-- **Embedder :30004:** ride-along GPU 0 via MPS (~10% SM)
-- **Off-peak only:** Tier 3 DeepSeek :30005, GLM :30003, CuEVM, backtest (22:00-06:00 UTC)
-- Spec: `gpu_schedule.yaml` + `latency_budget.yaml` — FORGE runs `forge_gpu_schedule_enforce.sh`
+- **Priority 1-2 inference:** GLM-5.2 orchestrator + REVM — **NEVER preempted** during market hours
+- **Off-peak only:** CuEVM fuzzing, Monte Carlo backtest, skill evolution training (06:00-10:00 UTC or 22:00-06:00)
+- Spec: `~/.openclaw/infra/gpu_schedule.yaml` — enforced by FORGE heartbeat
 
 ## Phase-Dependent
 
@@ -67,7 +65,7 @@ Catalog size ≠ required set. Allocator `max_active_pipelines` (default 4) is t
 ## CRITICAL Alert Bypass
 
 Immediate Telegram alert (bypasses hourly schedule) for:
-1. 12% drawdown in 24h
+1. Drawdown tier crossings (2/5/8/10/12%) — **notify only; trading continues autonomously**
 2. Hardware failure (GPU/CPU/NVMe)
 3. Security breach
 4. DGM-H SOUL.md modification attempt

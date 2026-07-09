@@ -54,11 +54,11 @@ flatten exposure, revoke session keys, CRITICAL alert via HERALD.
 1. **Inference health:** curl `:30000/health`, `:30001/health`, `:30004/health` — TTFT probe if cold
 2. **MPS enforce:** `bash ~/.openclaw/infra/forge_gpu_schedule_enforce.sh --dry-run` then apply if drift
 3. **Edge RTT:** run probes from `edge_rtt_probe.yaml`; append JSONL to `memory/infra/rtt.jsonl`
-4. **Latency budget:** compare live metrics vs `latency_budget.yaml`; CRITICAL if gate p95 >150ms or home→FRA p95 >100ms
+4. **Latency budget:** compare live metrics vs `latency_budget.yaml`; CRITICAL if hot-path gate p95 >15ms or home→FRA p95 >25ms
 5. **Chrony:** `chronyc tracking` — offset must be <500µs with GPSDO; warn if PPS lost >5min
 6. **GPU schedule:** kill Tier 3/3a if market-hours window active per `gpu_schedule.yaml`
 
 ## Integration
 
 - Heartbeat: HEARTBEAT.md → FORGE continuous heartbeat (60s)
-- Edge mesh Phase 1: EDGE-FRA only
+- Edge mesh: full 5-PoP — see `edge_mesh.yaml`

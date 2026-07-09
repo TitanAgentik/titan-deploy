@@ -56,17 +56,32 @@ autonomous_signing:
   require_typed_data_live: true
   note: "Human gates remain for promotion, evolution, leverage, flash-loan live, large withdrawals"
 
+# Portfolio drawdown — notify-only; trading continues autonomously (no pause/halt gates).
+drawdown_notify_only: true
+
+drawdown_volatile_exempt:
+  pipelines: [P22, P29, P30, P12]
+  correlation_groups: [memecoin_trench, mev_arb]
+  venues: [solana_pumpfun, solana_pumpswap, jito, paper]
+  note: "Memecoin/trench/MEV hot lanes — memecoin_circuit_breakers + velocity only"
+
 drawdown_tiers:
   - pct: 2.0
-    action: alert_operator
+    action: notify_operator
+    severity: MEDIUM
   - pct: 5.0
-    action: soft_pause_new_entries
+    action: notify_operator
+    severity: HIGH
   - pct: 8.0
-    action: reduce_exposure_50pct
+    action: notify_operator
+    severity: HIGH
   - pct: 10.0
-    action: critical_alert_human_required
+    action: notify_critical_continue
+    severity: CRITICAL
   - pct: 12.0
-    action: full_halt_flatten
+    action: notify_critical_continue
+    severity: CRITICAL
+    note: "Immediate HERALD alert — trading continues; no operator ack required"
 
 drawdown_velocity:
   max_loss_usd_per_60s: 150.0
@@ -325,6 +340,23 @@ security_ops:
     - honeypot_arm
     - edge_fail_closed
     - herald_critical
+
+# Millisecond hot path — combined gate validate for latency-critical pipelines
+latency:
+  target: millisecond
+  fast_path_ref: ~/.openclaw/infra/latency_fast_path.yaml
+  hot_path:
+    enabled: true
+    combined_validate: true
+    gate_timeout_s: 0.25
+    fast_gate_timeout_s: 0.15
+    pipelines: [P22, P29, P12, P30]
+    skip_trading_agents_debate: true
+  edge:
+    colocate_trench_ops: true
+    default_pop: EDGE-FRA
+    max_broadcast_ms: 3
+    max_jito_ms: 5
 
 service:
   risk_kernel_port: 19001

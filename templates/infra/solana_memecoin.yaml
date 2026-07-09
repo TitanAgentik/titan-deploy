@@ -20,7 +20,7 @@ jito:
 # Edge dispatch
 edge:
   default_pop: EDGE-FRA
-  max_rtt_ms: 50
+  max_rtt_ms: 5
 
 # Live unlock checklist (operator)
 live_checklist:

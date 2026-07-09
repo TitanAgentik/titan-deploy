@@ -104,7 +104,7 @@ def test_gate_allow_when_stages_pass(tmp_path: Path) -> None:
     policy = load_policy(_write_policy(tmp_path))
     gate = ExecutionGate(policy, safety_dir=tmp_path)
 
-    def fake_post(url, body, auth_command=None):
+    def fake_post(url, body, auth_command=None, timeout=None):
         if "pre_trade" in url:
             return {"decision": "ALLOW", "reason": "ok"}
         return {"decision": "ALLOW", "reason": "ok"}
@@ -125,3 +125,39 @@ def test_gate_allow_when_stages_pass(tmp_path: Path) -> None:
     assert decision.code == "OK"
     assert decision.receipt
     assert decision.receipt.startswith("GATE_ALLOW|")
+
+
+def test_gate_fast_path_single_hop(tmp_path: Path) -> None:
+    policy = load_policy(
+        _write_policy(
+            tmp_path,
+            latency={
+                "hot_path": {
+                    "enabled": True,
+                    "combined_validate": True,
+                    "pipelines": ["P22"],
+                }
+            },
+        )
+    )
+    gate = ExecutionGate(policy, safety_dir=tmp_path)
+
+    def fake_post(url, body, auth_command=None, timeout=None):
+        assert "fast_validate" in url
+        return {"decision": "ALLOW", "reason": "ok", "stage": "risk_kernel"}
+
+    trade = TradeRequest(
+        trade_id="t2",
+        venue="jito",
+        contract="mint123",
+        side="buy",
+        notional_usd=5.0,
+        leverage=1.0,
+        expected_price=1.0,
+        worst_price=1.1,
+        strategy_id="P22",
+    )
+    with patch.object(gate, "_post", side_effect=fake_post):
+        decision = gate.gate(trade, fast_path=True)
+    assert decision.allowed is True
+    assert decision.code == "OK_FAST"

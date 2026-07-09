@@ -13,6 +13,8 @@ from .kill_switch import KillSwitch
 from .kernel import RiskKernel, TradeRequest
 from .observability import METRICS, setup_logging
 from .policy_loader import expand_path, load_policy
+from .reconciliation import BelievedPosition
+from .reconciliation_service import build_reconciliation_service
 
 logger = setup_logging("risk_kernel")
 
@@ -76,6 +78,19 @@ def create_app(
 
     def validate(body: dict[str, Any], _headers: dict[str, str]) -> tuple[int, dict[str, Any]]:
         kernel.kill_switch_active = ks.is_active()
+        if "drawdown_pct_24h" in body:
+            previous = kernel.state.drawdown_pct_24h
+            kernel.state.drawdown_pct_24h = float(body["drawdown_pct_24h"])
+            kernel.state.save()
+            from .drawdown_notifier import process_drawdown_update
+
+            process_drawdown_update(
+                policy.raw or {},
+                safety_dir or Path.home() / ".openclaw" / "safety",
+                previous_pct=previous,
+                current_pct=kernel.state.drawdown_pct_24h,
+                source=str(body.get("source", "GUARDIAN")),
+            )
         trade = TradeRequest.from_dict(body)
         result = kernel.validate_trade(trade)
         METRICS.inc("risk_kernel_validations_total")
@@ -85,6 +100,76 @@ def create_app(
             METRICS.inc("risk_kernel_deny_total")
         logger.info(f"validate {trade.trade_id}: {result.decision} {result.code}")
         return 200, result.to_dict()
+
+    recon_service = build_reconciliation_service(policy)
+
+    def fast_validate(body: dict[str, Any], _headers: dict[str, str]) -> tuple[int, dict[str, Any]]:
+        """Single-process recon + kernel — one HTTP hop for ms hot path."""
+        kernel.kill_switch_active = ks.is_active()
+        try:
+            believed = [
+                BelievedPosition(
+                    venue=str(p["venue"]),
+                    contract=str(p["contract"]).lower(),
+                    notional_usd=float(p["notional_usd"]),
+                    side=str(p.get("side", "long")),
+                )
+                for p in body.get("believed", [])
+            ]
+        except (KeyError, TypeError, ValueError) as exc:
+            return 400, {"decision": "DENY", "code": "INVALID_BELIEVED", "reason": str(exc)}
+        pending_raw = body.get("pending", {})
+        try:
+            pending = BelievedPosition(
+                venue=str(pending_raw.get("venue", "paper")),
+                contract=str(pending_raw.get("contract", "")).lower(),
+                notional_usd=float(pending_raw.get("notional_usd", 0)),
+                side=str(pending_raw.get("side", "long")),
+            )
+        except (TypeError, ValueError) as exc:
+            return 400, {"decision": "DENY", "code": "INVALID_PENDING", "reason": str(exc)}
+
+        recon = recon_service.pre_trade_gate(believed, pending)
+        METRICS.inc("fast_validate_total")
+        if recon.decision != "ALLOW":
+            METRICS.inc("fast_validate_recon_deny_total")
+            payload = recon.to_dict()
+            payload["stage"] = "reconciliation"
+            return 200, payload
+
+        trade_raw = body.get("trade", body)
+        try:
+            trade = TradeRequest.from_dict(trade_raw)
+        except (KeyError, TypeError, ValueError) as exc:
+            return 400, {"decision": "DENY", "code": "INVALID_TRADE", "reason": str(exc)}
+
+        if "drawdown_pct_24h" in body:
+            previous = kernel.state.drawdown_pct_24h
+            kernel.state.drawdown_pct_24h = float(body["drawdown_pct_24h"])
+            kernel.state.save()
+            from .drawdown_notifier import process_drawdown_update
+
+            process_drawdown_update(
+                policy.raw or {},
+                safety_dir or Path.home() / ".openclaw" / "safety",
+                previous_pct=previous,
+                current_pct=kernel.state.drawdown_pct_24h,
+                source=str(body.get("source", "GUARDIAN")),
+            )
+
+        result = kernel.validate_trade(trade)
+        METRICS.inc("risk_kernel_validations_total")
+        if result.decision == "ALLOW":
+            METRICS.inc("risk_kernel_allow_total")
+            METRICS.inc("fast_validate_allow_total")
+        else:
+            METRICS.inc("risk_kernel_deny_total")
+            METRICS.inc("fast_validate_kernel_deny_total")
+        payload = result.to_dict()
+        payload["stage"] = "risk_kernel"
+        payload["reconciliation"] = "ALLOW"
+        logger.info(f"fast_validate {trade.trade_id}: {result.decision} {result.code}")
+        return 200, payload
 
     def flatten(_body: dict[str, Any], _headers: dict[str, str]) -> tuple[int, dict[str, Any]]:
         from .flatten_executor import FlattenExecutor
@@ -112,7 +197,25 @@ def create_app(
 
     def health(_body: dict[str, Any], _headers: dict[str, str]) -> tuple[int, dict[str, Any]]:
         kernel.kill_switch_active = ks.is_active()
-        return 200, kernel.health()
+        payload = kernel.health()
+        payload["drawdown_pct_24h"] = kernel.state.drawdown_pct_24h
+        return 200, payload
+
+    def drawdown(body: dict[str, Any], _headers: dict[str, str]) -> tuple[int, dict[str, Any]]:
+        previous = kernel.state.drawdown_pct_24h
+        pct = float(body.get("drawdown_pct_24h", body.get("drawdown_pct", 0.0)))
+        kernel.state.drawdown_pct_24h = pct
+        kernel.state.save()
+        from .drawdown_notifier import process_drawdown_update
+
+        payload = process_drawdown_update(
+            policy.raw or {},
+            safety_dir or Path.home() / ".openclaw" / "safety",
+            previous_pct=previous,
+            current_pct=pct,
+            source=str(body.get("source", "GUARDIAN")),
+        )
+        return 200, payload
 
     def metrics(_body: dict[str, Any], _headers: dict[str, str]) -> tuple[int, dict[str, Any]]:
         accept = _headers.get("Accept", "")
@@ -122,6 +225,8 @@ def create_app(
 
     routes = {
         "POST /v1/validate": validate,
+        "POST /v1/fast_validate": fast_validate,
+        "POST /v1/drawdown": drawdown,
         "POST /v1/flatten": flatten,
         "GET /v1/flatten_status": flatten_status,
         "GET /health": health,

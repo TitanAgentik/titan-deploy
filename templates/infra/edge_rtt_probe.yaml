@@ -1,35 +1,64 @@
-# Edge RTT probes — FORGE/NEXUS record p50/p95/p99 to posture.jsonl
+# Edge RTT probes — all 5 PoPs (paper + live)
 # Deploy: ~/.openclaw/infra/edge_rtt_probe.yaml
 
-version: "1.0"
+version: "1.1"
 interval_seconds: 30
 samples_per_window: 20
+paper_latency_faithful: true
 
-phase1:
-  home_to_edge:
-    - name: edge_fra_wg
-      target: "10.0.10.100"
-      method: ping
-      budget_p95_ms: 100
-    - name: edge_fra_erigon
-      url: "http://10.0.10.100:8545"
-      method: http_head
-      budget_p95_ms: 120
-  edge_local:
-    - name: jito_fra_block_engine
-      url: "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles"
-      method: tcp_connect
-      budget_p95_ms: 50
-    - name: solana_rpc_fra
-      env: SOLANA_RPC_URL
-      method: jsonrpc_getVersion
-      budget_p95_ms: 80
+home_to_edge:
+  - name: edge_fra_wg
+    pop: EDGE-FRA
+    target: "10.0.10.100"
+    method: ping
+    budget_p95_ms: 25
+  - name: edge_tky_wg
+    pop: EDGE-TKY
+    target: "10.0.10.101"
+    method: ping
+    budget_p95_ms: 120
+  - name: edge_sin_wg
+    pop: EDGE-SIN
+    target: "10.0.10.102"
+    method: ping
+    budget_p95_ms: 130
+  - name: edge_use_wg
+    pop: EDGE-USE
+    target: "10.0.10.103"
+    method: ping
+    budget_p95_ms: 90
+  - name: edge_ams_wg
+    pop: EDGE-AMS
+    target: "10.0.10.104"
+    method: ping
+    budget_p95_ms: 30
 
-deferred_phase3:
-  - name: edge_tky_binance_ws
-    note: "Enable when EDGE-TKY live — target p95 <5ms same-AZ"
-  - name: edge_sin_bybit
-    note: "Enable when EDGE-SIN live"
+edge_local:
+  - name: jito_fra
+    pop: EDGE-FRA
+    url: "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles"
+    method: tcp_connect
+    budget_p95_ms: 5
+  - name: erigon_fra
+    pop: EDGE-FRA
+    url: "http://10.0.10.100:8545"
+    method: http_head
+    budget_p95_ms: 8
+  - name: hyperliquid_tky
+    pop: EDGE-TKY
+    env: HYPERLIQUID_API_URL
+    method: http_head
+    budget_p95_ms: 1
+  - name: bybit_sin
+    pop: EDGE-SIN
+    env: BYBIT_API_URL
+    method: http_head
+    budget_p95_ms: 1
+  - name: coinbase_use
+    pop: EDGE-USE
+    env: COINBASE_API_URL
+    method: http_head
+    budget_p95_ms: 3
 
 actions:
   on_p95_breach:
@@ -37,4 +66,4 @@ actions:
     - herald: WATCH
   on_p95_breach_sustained_5m:
     - herald: HIGH
-    - archon: reroute_edge_if_alternate_pop
+    - archon: reroute_to_fallback_pop

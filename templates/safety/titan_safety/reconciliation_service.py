@@ -101,8 +101,8 @@ def _load_live_fetcher(policy: Any) -> Any:
     return None
 
 
-def create_app(policy_path: Path) -> SafetyHTTPServer:
-    policy = load_policy(policy_path)
+def build_reconciliation_service(policy: Any) -> ReconciliationService:
+    """Construct ReconciliationService with policy-appropriate adapter wiring."""
     from .reconciliation import assert_adapter_allowed_for_policy
 
     capital_profile = str(policy.raw.get("capital_profile", "paper")).lower()
@@ -110,9 +110,8 @@ def create_app(policy_path: Path) -> SafetyHTTPServer:
         assert_adapter_allowed_for_policy(policy.reconciliation.adapter, policy)
     except ValueError as exc:
         if capital_profile == "live":
-            logger.error(str(exc))
             raise
-        logger.warning(f"{exc} (capital_profile={capital_profile} — execution gate will DENY live trades)")
+        logger.warning(f"{exc} (capital_profile={capital_profile})")
 
     adapter_name = policy.reconciliation.adapter
     fetcher = None
@@ -128,7 +127,12 @@ def create_app(policy_path: Path) -> SafetyHTTPServer:
         fetcher=fetcher,
         venues=list(policy.allowed_venues),
     )
-    service = ReconciliationService(policy, adapter)
+    return ReconciliationService(policy, adapter)
+
+
+def create_app(policy_path: Path) -> SafetyHTTPServer:
+    policy = load_policy(policy_path)
+    service = build_reconciliation_service(policy)
 
     def pre_trade(body: dict[str, Any], _headers: dict[str, str]) -> tuple[int, dict[str, Any]]:
         try:

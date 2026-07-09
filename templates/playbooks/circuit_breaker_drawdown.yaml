@@ -1,41 +1,55 @@
-# Incident response — drawdown circuit breakers
+# Incident response — drawdown tiers (notify-only; autonomous continue)
 category: drawdown
-version: "1.0"
+version: "1.2"
+
+policy: notify_only
+note: "Never pause, halt, or flatten on drawdown tiers — HERALD immediate alert; trading continues"
+
+volatile_exempt:
+  pipelines: [P22, P29, P30, P12]
+  correlation_groups: [memecoin_trench, mev_arb]
+  venues: [solana_pumpfun, solana_pumpswap, jito, paper]
+  note: "Volatile lanes use lane-local CBs; portfolio tier alerts still fire globally"
 
 tiers:
   - pct: 2.0
-    action: alert_operator
+    action: notify_operator
+    severity: MEDIUM
     playbook:
-      - HERALD CRITICAL alert to Telegram
-      - Log to dissent_log
-      - Continue trading with heightened monitoring
+      - HERALD → Telegram (informational)
+      - Continue trading — heightened monitoring
   - pct: 5.0
-    action: soft_pause_new_entries
+    action: notify_operator
+    severity: HIGH
     playbook:
-      - Pause all new entries
-      - Allow exits and de-risk only
-      - Review MRM drift reports
+      - HERALD immediate alert
+      - Continue trading autonomously
   - pct: 8.0
-    action: reduce_exposure_50pct
+    action: notify_operator
+    severity: HIGH
     playbook:
-      - titan-safety wind-down derisk --operator YOU
-      - Reduce aggregate exposure 50%
+      - HERALD immediate alert
+      - Continue trading — GUARDIAN logs posture
   - pct: 10.0
-    action: critical_alert_human_required
+    action: notify_critical_continue
+    severity: CRITICAL
     playbook:
-      - Immediate operator notification
-      - Safe mode entry recommended
+      - HERALD CRITICAL bypass (§TGCMD.2a)
+      - Continue trading — no operator ack gate
   - pct: 12.0
-    action: full_halt_flatten
+    action: notify_critical_continue
+    severity: CRITICAL
     playbook:
-      - titan-safety kill activate --reason "12pct drawdown tier"
-      - POST /v1/flatten on risk kernel
-      - Incident post-mortem within 24h
+      - HERALD CRITICAL immediate
+      - Do NOT kill switch or flatten automatically
+      - Operator may manually intervene; system does not wait
 
 velocity_breakers:
   max_loss_60s_usd: 150
   max_loss_15m_usd: 400
   action: deny_new_trades
+  note: "Velocity still fail-closed — faster than 24h drawdown tiers"
 
 wind_down:
   command: titan-safety wind-down derisk|flatten|resume
+  note: "Manual operator only — not auto-triggered by drawdown tiers"

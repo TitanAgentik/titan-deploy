@@ -1,0 +1,38 @@
+# EDGE-FRA millisecond execution plane (Phase 1)
+# Deploy: ~/.openclaw/infra/edge_hot_path.yaml
+
+version: "1.0"
+pop: EDGE-FRA
+region: eu-central
+
+targets_ms:
+  nostr_ingress_to_worker: 1
+  worker_to_jito_tcp: 5
+  worker_to_erigon_rpc: 8
+  worker_to_eth_builder: 10
+  geyser_to_predator: 15   # Solana processed commitment
+
+services:
+  trench_ops_worker:
+    bind: "0.0.0.0:19100"
+    health: "/health"
+    note: "Stateless — receives Kind 1059 intents, builds + submits locally"
+  rtt_probe_interval_s: 30
+
+wireguard:
+  home_hub: 10.0.10.1
+  edge_ip: 10.0.10.100
+  mtu: 1420
+  persistent_keepalive_s: 10
+
+jito:
+  endpoint: https://frankfurt.mainnet.block-engine.jito.wtf
+  max_rtt_ms: 5
+
+phase3_pops:
+  EDGE-TKY:
+    target_exchange_rtt_ms: 1
+    exchanges: [binance, okx, hyperliquid]
+  EDGE-SIN:
+    target_exchange_rtt_ms: 1
+    exchanges: [bybit, bsc]

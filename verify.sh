@@ -324,7 +324,7 @@ done
 
 # Infra specs (power, signing, GPU schedule)
 INFRA_DIR="$OPENCLAW_HOME/infra"
-for spec in power_requirements.yaml signing_node.yaml gpu_schedule.yaml latency_budget.yaml edge_rtt_probe.yaml; do
+for spec in power_requirements.yaml signing_node.yaml gpu_schedule.yaml latency_budget.yaml latency_fast_path.yaml edge_hot_path.yaml edge_mesh.yaml edge_rtt_probe.yaml; do
   if [[ -f "$INFRA_DIR/$spec" ]]; then
     pass "Infra spec: $spec"
   else
@@ -460,6 +460,12 @@ if [[ -f "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" ]]; then
     pass "policy.yaml: P22 memecoin_trench + CBs"
   else
     fail "policy.yaml missing memecoin_trench block"
+  fi
+  if grep -q "drawdown_notify_only: true" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null \
+     && grep -q "notify_critical_continue" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null; then
+    pass "policy.yaml: drawdown tiers notify-only (autonomous continue)"
+  else
+    fail "policy.yaml missing drawdown_notify_only / notify actions"
   fi
 fi
 if [[ -f "$PROJECT_ROOT/templates/safety/titan_safety/memecoin_filter.py" ]]; then

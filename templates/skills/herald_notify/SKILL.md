@@ -41,6 +41,7 @@ Every notification MUST include:
 | PnL realized | `tgcmd.herald.pnl` | Immediate if material |
 | Hourly digest | `tgcmd.herald.report.hourly` | `:00 UTC` cron |
 | Urgent alert | `tgcmd.herald.alert.urgent` | Immediate (§TGCMD.2a) |
+| Drawdown tier cross | `herald_queue.jsonl` → `drawdown_tier` | Immediate CRITICAL/HIGH — **trading continues** |
 | Capital deposit/withdraw | operator Telegram → `titan_safety.telegram_capital` | Immediate on large withdraw |
 
 ## Operator Capital Commands (Simple)

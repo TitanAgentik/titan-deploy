@@ -106,7 +106,7 @@
     "criticalAlertsOnly": false,
     "criticalConditions": [
       "drawdown_10pct_24h",
-      "drawdown_12pct_halt",
+      "drawdown_12pct_notify",
       "drawdown_velocity_15m",
       "hardware_failure",
       "security_breach",
@@ -223,7 +223,15 @@
     "softPause": 5.0,
     "reduce": 8.0,
     "critical": 10.0,
-    "halt": 12.0
+    "halt": 12.0,
+    "notifyOnly": true,
+    "note": "Tiers notify via HERALD — trading continues autonomously; no operator ack"
+  },
+  "drawdownVolatileExempt": {
+    "pipelines": ["P22", "P29", "P30", "P12"],
+    "correlationGroups": ["memecoin_trench", "mev_arb"],
+    "venues": ["solana_pumpfun", "solana_pumpswap", "jito", "paper"],
+    "note": "Portfolio drawdown tiers 2–12% do not apply — lane-local CBs only"
   },
   "quantum": {
     "status": "dormant",
@@ -234,6 +242,8 @@
   },
   "inference": {
     "latencyBudgetPath": "~/.openclaw/infra/latency_budget.yaml",
+    "latencyFastPath": "~/.openclaw/infra/latency_fast_path.yaml",
+    "edgeHotPath": "~/.openclaw/infra/edge_hot_path.yaml",
     "tier1_critical": {
       "port": 30000,
       "gpu": 0,
@@ -372,6 +382,8 @@
     "powerRequirementsPath": "~/.openclaw/infra/power_requirements.yaml",
     "gpuSchedulePath": "~/.openclaw/infra/gpu_schedule.yaml",
     "latencyBudgetPath": "~/.openclaw/infra/latency_budget.yaml",
+    "latencyFastPath": "~/.openclaw/infra/latency_fast_path.yaml",
+    "edgeHotPath": "~/.openclaw/infra/edge_hot_path.yaml",
     "edgeRttProbePath": "~/.openclaw/infra/edge_rtt_probe.yaml",
     "signingNodeConfigPath": "~/.openclaw/infra/signing_node.yaml"
   },
@@ -396,18 +408,23 @@
     "note": "Concentrate capital on ≤4 TCA-HEALTHY lanes"
   },
   "edgeMesh": {
-    "phase1": "single_pop",
+    "mode": "full_mesh",
+    "phase1": "full_five_pop",
     "defaultPop": "EDGE-FRA",
-    "activePops": ["EDGE-FRA"],
-    "deferredPopsPhase3Plus": ["EDGE-TKY", "EDGE-SIN", "EDGE-USE", "EDGE-AMS"],
+    "activePops": ["EDGE-FRA", "EDGE-TKY", "EDGE-SIN", "EDGE-USE", "EDGE-AMS"],
+    "paperLatencyFaithful": true,
+    "meshConfigPath": "~/.openclaw/infra/edge_mesh.yaml",
     "latencyBudgetMs": {
-      "homeToEdgeFraP95": 100,
-      "edgeToJitoP95": 50,
-      "nostrDispatch": 3
+      "hotPathGateP95": 15,
+      "hotPathSubmitP95": 50,
+      "homeToEdgeFraP95": 25,
+      "edgeToJitoP95": 5,
+      "nostrDispatch": 3,
+      "warmPathGateP95": 150
     },
-    "phase1ApacDeferred": true,
+    "phase1ApacDeferred": false,
     "routingPolicy": "lowest_live_p50_rtt",
-    "note": "Phase 1: EU/Solana/ETH lanes only; APAC <1ms needs Phase 3+ PoPs"
+    "note": "Full 5-PoP from paper — same routing as live for TCA/latency measurement"
   },
   "capital": {
     "capital_profile": "live",

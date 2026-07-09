@@ -1,0 +1,119 @@
+# TITAN Edge Mesh — 5 PoP full mesh (paper + live, same routing)
+# Deploy: ~/.openclaw/infra/edge_mesh.yaml
+# Latency: each PoP colocated same region/AZ as target exchange matching engine.
+
+version: "2.0"
+mode: full_mesh
+paper_trading:
+  latency_faithful: true
+  note: "Paper uses identical PoP routing + RTT probes as live — measures true TCA/latency during shadow"
+
+routing_policy: lowest_live_p50_rtt
+
+pops:
+  EDGE-FRA:
+    wireguard_ip: "10.0.10.100"
+    provider: vultr
+    region: eu-central
+    instance: bare_metal
+    roles: [erigon_archive, jito_fra, eth_builders, eu_dex, telegram_relay, solana_eu]
+    targets:
+      exchanges: []
+      chains: [ethereum, arbitrum, optimism, base, solana_eu]
+      infra: [jito_block_engine_fra, flashbots_eu]
+    rtt_target_p95_ms: 5
+    worker_port: 19100
+
+  EDGE-TKY:
+    wireguard_ip: "10.0.10.101"
+    provider: aws
+    region: ap-northeast-1
+    instance: c7i.metal-24xl
+    roles: [binance, okx, hyperliquid, jito_tky]
+    targets:
+      exchanges: [binance, okx, hyperliquid]
+      chains: [hyperliquid_l1]
+    rtt_target_p95_ms: 1
+    worker_port: 19100
+
+  EDGE-SIN:
+    wireguard_ip: "10.0.10.102"
+    provider: aws
+    region: ap-southeast-1
+    instance: c7i.4xlarge
+    roles: [bybit, bsc, sui, apac_failover]
+    targets:
+      exchanges: [bybit]
+      chains: [bsc, sui]
+    rtt_target_p95_ms: 1
+    worker_port: 19100
+
+  EDGE-USE:
+    wireguard_ip: "10.0.10.103"
+    provider: aws
+    region: us-east-1
+    instance: c7i.2xlarge
+    roles: [coinbase, l2_sequencers, flashbots_us, eth_relay_us]
+    targets:
+      exchanges: [coinbase]
+      chains: [arbitrum, optimism, base]
+      infra: [flashbots_protect]
+    rtt_target_p95_ms: 3
+    worker_port: 19100
+
+  EDGE-AMS:
+    wireguard_ip: "10.0.10.104"
+    provider: vultr
+    region: amsterdam
+    instance: bare_metal
+    roles: [solana_grpc_redundancy, eth_relay_redundancy, nostr_relay, bridge_monitor]
+    targets:
+      chains: [solana_secondary]
+      infra: [ams_ix_peering, nostr]
+    rtt_target_p95_ms: 5
+    worker_port: 19100
+
+# Strategy → primary PoP (ARCHON/TRENCH-OPS route by venue + chain)
+strategy_routing:
+  P22: { primary: EDGE-FRA, fallback: [EDGE-AMS], note: "memecoin/Jito FRA; AMS gRPC backup" }
+  P29: { primary: EDGE-TKY, fallback: [EDGE-FRA], note: "MEV — colo with matching engine" }
+  P30: { primary: EDGE-TKY, fallback: [EDGE-SIN, EDGE-FRA], note: "cross-chain MEV" }
+  P12: { primary: EDGE-FRA, fallback: [EDGE-USE], note: "intent solver EU/US builders" }
+  P1:  { primary: EDGE-FRA, fallback: [EDGE-TKY], note: "DeFi yield — route by chain" }
+  P3:  { primary: EDGE-FRA, fallback: [EDGE-USE], note: "DeFi" }
+  P7:  { primary: EDGE-FRA, fallback: [EDGE-USE], note: "DeFi" }
+  P8:  { primary: EDGE-TKY, fallback: [EDGE-SIN], note: "APAC CEX-adjacent" }
+  P11: { primary: EDGE-TKY, fallback: [EDGE-FRA], note: "liquidations HL/APAC" }
+  P6:  { primary: EDGE-FRA, fallback: [EDGE-TKY], note: "liquidations ETH" }
+  P18: { primary: EDGE-FRA, fallback: [EDGE-USE], note: "liquidations L2" }
+
+venue_routing:
+  binance_spot: EDGE-TKY
+  okx_spot: EDGE-TKY
+  hyperliquid: EDGE-TKY
+  bybit_spot: EDGE-SIN
+  coinbase_spot: EDGE-USE
+  jito: EDGE-FRA
+  solana_pumpfun: EDGE-FRA
+  solana_pumpswap: EDGE-FRA
+  solana_jupiter: EDGE-FRA
+  flashbots_protect: EDGE-USE
+  uniswap_v3: EDGE-FRA
+  paper: EDGE-FRA
+
+bootstrap_order:
+  - EDGE-FRA
+  - EDGE-TKY
+  - EDGE-SIN
+  - EDGE-USE
+  - EDGE-AMS
+
+# Do NOT add a 6th PoP unless a promoted strategy targets an uncovered venue/region.
+add_pop_when:
+  - "New exchange matching engine in a region not listed above"
+  - "Sustained p95 RTT >25ms from nearest PoP during paper TCA"
+  - "Human YES on promotion gate for region-specific pipeline"
+
+cost_note: |
+  Paper phase: use smallest instances (SIN/USE c7i.large, TKY metal only when APAC lanes active).
+  Scale metal TKY before live capital on P8/P11/P29.

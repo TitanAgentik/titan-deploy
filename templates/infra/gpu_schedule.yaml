@@ -88,6 +88,8 @@ enforcement:
   script: ~/.openclaw/infra/forge_gpu_schedule_enforce.sh
   heartbeat_check: HEARTBEAT.md
   latency_budget: ~/.openclaw/infra/latency_budget.yaml
+  latency_fast_path: ~/.openclaw/infra/latency_fast_path.yaml
+  edge_hot_path: ~/.openclaw/infra/edge_hot_path.yaml
   on_violation:
     action: kill_off_peak_job
     alert: MEDIUM
