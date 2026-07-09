@@ -29,6 +29,7 @@ import {
   Newspaper,
   Flame,
   Timer,
+  Atom,
 } from "lucide-react";
 import { portfolio, pnl, formatPnl } from "@/lib/data";
 
@@ -51,6 +52,7 @@ export const NAV = [
     label: "Trading",
     items: [
       { to: "/pipelines", icon: GitBranch, label: "Pipelines" },
+      { to: "/qi-optimizer", icon: Atom, label: "QI Optimizer" },
       { to: "/promotions", icon: Rocket, label: "Promotions", badge: 3 },
       { to: "/memecoin", icon: Flame, label: "Memecoin Trench" },
       { to: "/edge", icon: Globe2, label: "Edge Mesh" },

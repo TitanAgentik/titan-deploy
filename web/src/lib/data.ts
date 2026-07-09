@@ -1729,6 +1729,110 @@ export const flashLoanRouter = {
   ],
 };
 
+/** Quantum-inspired lane optimizer — advisory demo (matches `titan-safety qi demo`). */
+export type QiLaneEdge = {
+  pipeline_id: string;
+  net_bps: number;
+  return_std: number;
+  trade_count: number;
+  capacity_usd: number;
+  decaying: boolean;
+  cluster: string;
+};
+
+export type QiKellyAllocation = {
+  pipeline_id: string;
+  target_notional_usd: number;
+  weight: number;
+  kelly_signal: number;
+  cluster: string;
+  capped_by: string;
+};
+
+export const quantumInspired = {
+  advisoryOnly: true,
+  livePath: false,
+  backend: "classical_sa" as const,
+  quantumEnabled: false,
+  dormantAgents: ["QCC", "QSA", "QRP"],
+  cli: "titan-safety qi demo --seed 42 --k 4 --compare-kelly",
+  config: {
+    k: 4,
+    seed: 42,
+    sweeps: 5000,
+    risk_lambda: 1.0,
+    cluster_penalty: 2.0,
+    cardinality_lambda: 5.0,
+    min_net_bps: 1.0,
+    min_trades: 100,
+  },
+  equityUsd: 10000,
+  regime: "neutral" as const,
+  drawdownPct: 0,
+  lanes: [
+    { pipeline_id: "P1", net_bps: 12, return_std: 0.015, trade_count: 1500, capacity_usd: 0, decaying: false, cluster: "arb" },
+    { pipeline_id: "P5", net_bps: 18, return_std: 0.012, trade_count: 900, capacity_usd: 0, decaying: false, cluster: "funding" },
+    { pipeline_id: "P11", net_bps: 22, return_std: 0.025, trade_count: 600, capacity_usd: 0, decaying: false, cluster: "lp" },
+    { pipeline_id: "P12", net_bps: 28, return_std: 0.02, trade_count: 1100, capacity_usd: 0, decaying: false, cluster: "mev_arb" },
+    { pipeline_id: "P22", net_bps: 35, return_std: 0.04, trade_count: 400, capacity_usd: 0, decaying: false, cluster: "memecoin" },
+    { pipeline_id: "P29", net_bps: 30, return_std: 0.03, trade_count: 1200, capacity_usd: 0, decaying: false, cluster: "mev_arb" },
+  ] satisfies QiLaneEdge[],
+  result: {
+    selected_pipeline_ids: ["P1", "P5", "P11", "P12"],
+    bitstring: "111100",
+    energy: -82.266873,
+    cardinality: 4,
+    rewards: [5.333333, 12.5, 3.52, 7.0, 2.1875, 3.333333],
+    excluded: {} as Record<string, string>,
+  },
+  kelly: {
+    deployed_usd: 2092.54,
+    utilization: 0.2093,
+    allocations: [
+      { pipeline_id: "P5", target_notional_usd: 922.53, weight: 0.369, kelly_signal: 12.5, cluster: "funding", capped_by: "" },
+      { pipeline_id: "P12", target_notional_usd: 516.62, weight: 0.2066, kelly_signal: 7.0, cluster: "mev_arb", capped_by: "" },
+      { pipeline_id: "P1", target_notional_usd: 393.61, weight: 0.1574, kelly_signal: 5.3333, cluster: "arb", capped_by: "" },
+      { pipeline_id: "P11", target_notional_usd: 259.78, weight: 0.1039, kelly_signal: 3.52, cluster: "lp", capped_by: "" },
+    ] satisfies QiKellyAllocation[],
+    excluded: { P29: "max_active_pipelines=4", P22: "max_active_pipelines=4" },
+    notes: [
+      "ADVISORY — targets logged only; not enforced on execution",
+      "capped to 4 active pipelines (of 6 eligible)",
+    ],
+  },
+  comparison: {
+    overlap: ["P1", "P11", "P12", "P5"],
+    overlap_count: 4,
+    qi_only: [] as string[],
+    kelly_only: [] as string[],
+    qi_cardinality: 4,
+    kelly_active_count: 4,
+    target_k: 4,
+  },
+  altScenarios: [
+    {
+      label: "k=3 · seed=7",
+      seed: 7,
+      k: 3,
+      selected: ["P5", "P12", "P22"],
+      energy: -61.42,
+      overlap_count: 2,
+      qi_only: ["P22"],
+      kelly_only: ["P1", "P11"],
+    },
+    {
+      label: "k=4 · seed=99",
+      seed: 99,
+      k: 4,
+      selected: ["P1", "P5", "P12", "P29"],
+      energy: -78.91,
+      overlap_count: 3,
+      qi_only: ["P29"],
+      kelly_only: ["P11"],
+    },
+  ],
+};
+
 export const memecoinTrench = {
   pipelineId: "P22",
   enabled: false,

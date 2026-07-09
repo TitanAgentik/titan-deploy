@@ -29,6 +29,7 @@ import { WalletTracker } from "@/pages/WalletTracker";
 import { CryptoTwitter } from "@/pages/CryptoTwitter";
 import { CryptoNews } from "@/pages/CryptoNews";
 import { Latency } from "@/pages/Latency";
+import { QuantumInspired } from "@/pages/QuantumInspired";
 
 export default function App() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="promotions" element={<Promotions />} />
           <Route path="edge" element={<EdgeMesh />} />
           <Route path="latency" element={<Latency />} />
+          <Route path="qi-optimizer" element={<QuantumInspired />} />
           <Route path="flash-loans" element={<FlashLoans />} />
           <Route path="memecoin" element={<MemecoinTrench />} />
           <Route path="signing" element={<Signing />} />

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { PageHeader, Card, Tag, Btn } from "@/components/ui";
 import { pipelinesCatalog } from "@/lib/data";
 
@@ -7,7 +8,14 @@ export function Pipelines() {
       <PageHeader
         title="Pipelines"
         subtitle="DEX-only strategy catalog (R02 / R46). Concentration cap: ≤4 funded HEALTHY lanes via allocator."
-        actions={<Btn>Request activation</Btn>}
+        actions={
+          <>
+            <Link className="btn" to="/qi-optimizer">
+              QI Optimizer
+            </Link>
+            <Btn>Request activation</Btn>
+          </>
+        }
       />
       <Card>
         <div className="table-wrap">

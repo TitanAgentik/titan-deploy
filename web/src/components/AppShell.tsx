@@ -22,6 +22,7 @@ const TITLES: Record<string, string> = {
   "/promotions": "Promotions",
   "/edge": "Edge Mesh",
   "/latency": "Latency",
+  "/qi-optimizer": "QI Optimizer",
   "/flash-loans": "Flash Loans",
   "/memecoin": "Memecoin Trench",
   "/signing": "Signing Node",

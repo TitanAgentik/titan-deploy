@@ -14,6 +14,7 @@ const GROUP: Record<string, string> = {
   "/promotions": "Trading",
   "/edge": "Trading",
   "/latency": "Trading",
+  "/qi-optimizer": "Trading",
   "/flash-loans": "Trading",
   "/memecoin": "Trading",
   "/signing": "Trading",
