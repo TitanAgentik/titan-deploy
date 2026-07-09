@@ -962,7 +962,24 @@ def build_bootstrap() -> str:
 ## Completion
 
 - [ ] All checks pass → delete this BOOTSTRAP.md file
-- [ ] Enable systemd: `systemctl --user enable --now llama-server-tier1 llama-server-tier2 titan-risk-kernel titan-reconciliation titan-dead-mans-switch openclaw-gateway hermes-gateway`
+- [ ] Enable systemd: `systemctl --user enable --now llama-server-tier1 llama-server-tier2 titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-signing-node openclaw-gateway hermes-gateway`
+"""
+
+
+def build_boot() -> str:
+    """OpenClaw BOOT.md — short gateway-restart checklist (docs.openclaw.ai)."""
+    return """# BOOT.md — Gateway Restart Checklist
+
+Keep short. Runs on gateway restart when internal hooks are enabled.
+
+1. Confirm safety services healthy: `:19001`–`:19007`, `:19010` (`curl …/health`)
+2. Confirm kill switch inactive: `titan-safety kill status`
+3. Confirm evolution freeze if live capital: `titan-safety evolution status`
+4. Confirm inference tiers up: `:30000` (critical), `:30001` (reasoning)
+5. Do **not** auto-promote or auto-resume halted pipelines
+6. Notify HERALD only on CRITICAL/HIGH failures
+
+Outbound alerts: use the message tool / herald_notify — do not spam routine OK.
 """
 
 
@@ -976,6 +993,7 @@ def extract_all(text: str) -> dict[str, str]:
         "IDENTITY.md": lambda t: build_identity(t),
         "HEARTBEAT.md": lambda t: build_heartbeat(t),
         "BOOTSTRAP.md": lambda t: build_bootstrap(),
+        "BOOT.md": lambda t: build_boot(),
     }
     result = {}
     for name in BOOTSTRAP_FILES:

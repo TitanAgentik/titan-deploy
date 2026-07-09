@@ -15,6 +15,12 @@
     }
   },
   "agents": {
+    "defaults": {
+      "workspace": "~/.openclaw/workspace",
+      "bootstrapMaxChars": 20000,
+      "bootstrapTotalMaxChars": 150000,
+      "skipBootstrap": false
+    },
     "defaultModel": "qwen3-critical",
     "subAgentPromptMode": "minimal",
     "confidenceGate": {

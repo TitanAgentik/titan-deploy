@@ -113,11 +113,28 @@ install_files() {
   mkdir -p "$OPENCLAW_HOME/capital"
   log "Ensured capital dir -> $OPENCLAW_HOME/capital/"
 
-  # Bootstrap files (9)
-  for f in SOUL.md AGENTS.md MEMORY.md USER.md TOOLS.md IDENTITY.md HEARTBEAT.md BOOTSTRAP.md; do
-    cp "$OUTPUT/bootstrap/$f" "$OPENCLAW_HOME/$f"
-    log "Installed $OPENCLAW_HOME/$f"
+  # OpenClaw workspace bootstrap (docs.openclaw.ai/concepts/agent-workspace)
+  # Prefer ~/.openclaw/workspace/; also keep copies at ~/.openclaw/ for legacy TITAN paths
+  mkdir -p "$OPENCLAW_HOME/workspace" "$OPENCLAW_HOME/workspace/memory" "$OPENCLAW_HOME/workspace/skills"
+  for f in SOUL.md AGENTS.md MEMORY.md USER.md TOOLS.md IDENTITY.md HEARTBEAT.md BOOTSTRAP.md BOOT.md; do
+    if [[ -f "$OUTPUT/bootstrap/$f" ]]; then
+      cp "$OUTPUT/bootstrap/$f" "$OPENCLAW_HOME/workspace/$f"
+      cp "$OUTPUT/bootstrap/$f" "$OPENCLAW_HOME/$f"
+      log "Installed workspace/$f (+ legacy $OPENCLAW_HOME/$f)"
+    fi
   done
+  if [[ -f "$PROJECT_ROOT/workspace/iron-laws.md" ]]; then
+    cp "$PROJECT_ROOT/workspace/iron-laws.md" "$OPENCLAW_HOME/workspace/iron-laws.md"
+    cp "$PROJECT_ROOT/workspace/iron-laws.md" "$OPENCLAW_HOME/iron-laws.md"
+  fi
+  # Hermes identity + project context
+  if [[ -f "$OUTPUT/bootstrap/SOUL.md" ]]; then
+    cp "$OUTPUT/bootstrap/SOUL.md" "$HERMES_HOME/SOUL.md"
+    log "Installed $HERMES_HOME/SOUL.md"
+  fi
+  if [[ -f "$PROJECT_ROOT/.hermes.md" ]]; then
+    cp "$PROJECT_ROOT/.hermes.md" "$HERMES_HOME/.hermes.md"
+  fi
 
   cp "$OUTPUT/openclaw.json" "$OPENCLAW_HOME/openclaw.json"
   cp "$OUTPUT/config.yaml" "$HERMES_HOME/config.yaml"

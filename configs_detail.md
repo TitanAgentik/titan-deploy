@@ -1,26 +1,39 @@
 # §CONFIGS_detail.md — TITAN Configuration Reference
 
-> **Status:** Reconstructed for this workspace. The original companion file
-> referenced by `TITAN.md` (`§CONFIGS_detail.md`) was **never present on disk** —
-> only stubs like `# → see §CONFIGS_detail.md (N lines)`.
+> **Auto-generated** by `scripts/sync_workspace_docs.py` on every `build.py` run.
+> Do not hand-edit — change `templates/*` then rebuild.
 >
-> **Source of truth:** `templates/` (copied to `output/` by `scripts/build.py`,
-> installed to `~/.openclaw` / `~/.hermes` by `deploy.sh`).
+> Aligns stubs in `output/TITAN.reconciled.md` (`# → see §CONFIGS_detail.md`)
+> with the live OpenClaw + Hermes configs.
 >
-> **Path:** `/home/hyperion/Documents/Cursor Projects/titan-deploy/configs_detail.md`
+> Docs: [OpenClaw agent workspace](https://docs.openclaw.ai/concepts/agent-workspace) ·
+> [Hermes configuration](https://hermes-agent.nousresearch.com/docs/user-guide/configuration) ·
+> [Hermes context files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files)
 
 ---
+
+## Index from TITAN.reconciled.md
+
+### Config sections
+- `# §M  — openclaw.json Configuration (OpenClaw gateway + agents + providers)`
+- `# §MA — config.yaml Configuration (Hermes cognitive engine + MCP + cron + Telegram)`
+- `# §MA — config.yaml Configuration (Hermes)`
+
+### Stub references (20 unique)
+Source TITAN offloads full YAML/JSON bodies to this companion file. Bodies below are the **live templates** (source of truth), not the missing original §REF dump.
+
+
 
 ## File map
 
 | Deploy path | Template | Role |
 |-------------|----------|------|
+| `~/.openclaw/workspace/*.md` | `workspace/` ← `output/bootstrap/` | OpenClaw bootstrap context |
+| `~/.hermes/SOUL.md` | `workspace/SOUL.md` | Hermes identity (slot #1) |
 | `~/.hermes/config.yaml` | `templates/config.yaml` | Hermes agent config |
-| `~/.openclaw/openclaw.json` | `templates/openclaw.json` | OpenClaw gateway + autonomy |
-| `~/.openclaw/risk_kernel/policy.yaml` | `templates/risk_kernel/policy.yaml` | Risk kernel / safety policy |
+| `~/.openclaw/openclaw.json` | `templates/openclaw.json` | OpenClaw gateway + agents |
+| `~/.openclaw/risk_kernel/policy.yaml` | `templates/risk_kernel/policy.yaml` | Risk / safety policy |
 | `~/.openclaw/infra/signing_node.yaml` | `templates/infra/signing_node.yaml` | Signing isolation |
-| `~/.openclaw/infra/gpu_schedule.yaml` | `templates/infra/gpu_schedule.yaml` | GPU schedule |
-| `~/.openclaw/infra/power_requirements.yaml` | `templates/infra/power_requirements.yaml` | UPS / power |
 
 ---
 
@@ -336,7 +349,7 @@ capital:
 
 ---
 
-## openclaw.json (OpenClaw)
+## §M — openclaw.json (OpenClaw)
 
 ```json
 {
@@ -358,6 +371,12 @@ capital:
     }
   },
   "agents": {
+    "defaults": {
+      "workspace": "~/.openclaw/workspace",
+      "bootstrapMaxChars": 20000,
+      "bootstrapTotalMaxChars": 150000,
+      "skipBootstrap": false
+    },
     "defaultModel": "qwen3-critical",
     "subAgentPromptMode": "minimal",
     "confidenceGate": {
@@ -1008,10 +1027,78 @@ service:
 
 ---
 
+## infra/signing_node.yaml
+
+```yaml
+# TITAN Signing Node — logically isolated transaction signing
+# Deploy target: ~/.openclaw/infra/signing_node.yaml
+# May be co-located on TITANHOME hardware but MUST be logically isolated from evolution workloads.
+
+version: "1.0"
+enabled: true
+
+endpoint:
+  host: localhost  # override to dedicated host FQDN when physically separated
+  port: 19010
+  url: http://127.0.0.1:19010
+  health: http://127.0.0.1:19010/health
+
+isolation:
+  minimal_os: true
+  no_evolution_workloads: true
+  no_llm_inference: true
+  no_agent_runtime: true
+  power_protected: true  # UPS-backed per power_requirements.yaml
+  cgroup: openclaw-signing
+  allowed_processes:
+    - openclaw-trezor-bridge
+    - openclaw-signing-daemon
+    - tpm-pcr-watch
+  forbidden_on_node:
+    - dgm-h
+    - gepa
+    - hyevo
+    - skill_evolution
+    - cuquantum
+    - cudev_fuzzing
+
+routing:
+  agents:
+    - TRENCH-OPS
+    - LAMARCK
+  pre_sign_gates:
+    - guardian_risk_validation
+    - execution_gate_allow_receipt  # X-Titan-Gate-Receipt required on POST /v1/sign
+    - risk_kernel_pre_trade
+    - tenderly_simulation  # bridge txs
+    - eip712_typed_data_only
+  receipt:
+    header: X-Titan-Gate-Receipt
+    max_age_seconds: 30
+    issued_by: titan_safety.execution_gate
+  on_compromise:
+    action: halt_all_signing
+    circuit_breaker: CB_KEYS_SIGNING_ENV_COMPROMISED
+    file_flag: ~/.openclaw/safety/SIGNING_HALTED
+
+hardware_options:
+  co_located:
+    description: "Dedicated VM or cgroup on TITANHOME; separate from GPU MPS partitions"
+    acceptable_for_phase1: true
+  dedicated_host:
+    description: "Minimal Ubuntu on separate NUC/RPi with USB to Trezor"
+    recommended_for_phase3_plus: true
+
+macmini_vault:
+  role: "Trezor ceremony + cold key metadata; signing requests proxied via NATS"
+  not_a_substitute_for: "isolated signing daemon — vault holds metadata, signing_node executes"
+```
+
+---
+
 ## Notes
 
 - Paper default: `reconciliation.adapter: mock`, `capital.withdrawal_adapter: mock`.
-- Live: set adapter to `live` + fetcher; withdrawal to `trezor_signing`; require gate receipts on `:19010`.
-- Mutating safety POSTs need `X-Titan-Auth` HMAC (`titan-safety auth sign`).
-- Evolution freeze: `titan-safety evolution freeze` while live capital is at risk.
-- This file is a **readable dump** of templates; edit `templates/*` then rebuild — do not treat this markdown as the runtime config.
+- Live: `adapter: live` + fetcher; `withdrawal_adapter: trezor_signing`; gate receipts on `:19010`.
+- Mutating safety POSTs need `X-Titan-Auth` (`titan-safety auth sign`).
+- Edit `templates/*` or regenerate bootstrap via `python3 scripts/build.py` — this file refreshes automatically.

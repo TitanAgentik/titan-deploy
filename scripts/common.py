@@ -14,6 +14,7 @@ BOOTSTRAP_FILES = [
     "IDENTITY.md",
     "HEARTBEAT.md",
     "BOOTSTRAP.md",
+    "BOOT.md",
 ]
 
 BOOTSTRAP_MAX_CHARS = 20_000

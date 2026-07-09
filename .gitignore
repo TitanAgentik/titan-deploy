@@ -3,3 +3,9 @@ output/
 __pycache__/
 *.pyc
 .DS_Store
+.env
+**/*.key
+**/*.pem
+**/secrets*
+# Generated workspace mirrors are committed so Cursor can open them;
+# rebuild with scripts/build.py to refresh from TITAN.reconciled.md
