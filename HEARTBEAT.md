@@ -65,7 +65,7 @@ Catalog size ≠ required set. Allocator `max_active_pipelines` (default 4) is t
 ## CRITICAL Alert Bypass
 
 Immediate Telegram alert (bypasses hourly schedule) for:
-1. Drawdown tier crossings (2/5/8/10/12%) — **notify only; trading continues autonomously**
+1. 12% drawdown in 24h
 2. Hardware failure (GPU/CPU/NVMe)
 3. Security breach
 4. DGM-H SOUL.md modification attempt

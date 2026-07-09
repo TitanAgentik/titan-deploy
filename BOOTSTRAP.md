@@ -50,9 +50,11 @@
 ## Infrastructure
 
 - [ ] NATS JetStream running (`nats-server -js`)
-- [ ] Erigon node syncing (Ethereum mainnet txpool) — EDGE-FRA for Phase 1
+- [ ] Erigon node syncing (Ethereum mainnet txpool) — EDGE-FRA
 - [ ] Yellowstone gRPC (Solana) connected
-- [ ] Verify Phase 1 edge: EDGE-FRA RTT <100ms (single PoP sufficient for $2.5K)
+- [ ] Bootstrap all 5 edge PoPs: `POP=EDGE-* bash ~/.openclaw/infra/edge_pop_bootstrap.sh`
+- [ ] Verify edge routing: `titan-safety edge route --venue jito --strategy P22`
+- [ ] WireGuard mesh: `edge_mesh_wg_setup.sh` + `wg_peers.env`
 - [ ] Deploy infra specs: `~/.openclaw/infra/` (hardware_bom, power_requirements, signing_node, gpu_schedule)
 - [ ] **UPS installed and tested** — ≥3000VA, ≥15 min runtime (REQUIRED before live capital)
 - [ ] Power-loss drill: mains disconnect → trading HALT + CRITICAL alert

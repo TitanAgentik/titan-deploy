@@ -108,19 +108,22 @@ nodes:
       pps: "1 PPS → serial/GPIO or dedicated timing input"
       note: "Configure chrony after OS install on TITANHOME"
 
-# ─── Phase 1 Edge (cloud — no physical cable to home) ───────────────────────
+# ─── Edge mesh (full 5-PoP — paper + live, same routing) ────────────────────
 
 edge_mesh:
-  phase1_pop:
-    id: EDGE-FRA
-    provider: vultr
-    region: eu-central
-    public_ip: ""               # fill after VPS provision
-    wireguard_ip: "10.0.10.100"
-    roles:
-      - erigon_archive
-      - telegram_relay
-      - eu_rpc_relay
+  mode: full_mesh
+  config_ref: ~/.openclaw/infra/edge_mesh.yaml
+  paper_latency_faithful: true
+  pops:
+    EDGE-FRA: { provider: vultr, region: eu-central, wireguard_ip: "10.0.10.100", worker_port: 19100 }
+    EDGE-TKY: { provider: aws, region: ap-northeast-1, wireguard_ip: "10.0.10.101", worker_port: 19100 }
+    EDGE-SIN: { provider: aws, region: ap-southeast-1, wireguard_ip: "10.0.10.102", worker_port: 19100 }
+    EDGE-USE: { provider: aws, region: us-east-1, wireguard_ip: "10.0.10.103", worker_port: 19100 }
+    EDGE-AMS: { provider: vultr, region: amsterdam, wireguard_ip: "10.0.10.104", worker_port: 19100 }
+  bootstrap_order: [EDGE-FRA, EDGE-TKY, EDGE-SIN, EDGE-USE, EDGE-AMS]
+  operator_scripts:
+    pop_bootstrap: ~/.openclaw/infra/edge_pop_bootstrap.sh
+    wg_mesh: ~/.openclaw/infra/edge_mesh_wg_setup.sh
 
 # ─── WireGuard mesh (after LAN works) ───────────────────────────────────────
 
@@ -132,14 +135,19 @@ wireguard_mesh:
     titanspark: "10.0.10.3"
     macmini_vault: "10.0.10.4"
     edge_fra: "10.0.10.100"
+    edge_tky: "10.0.10.101"
+    edge_sin: "10.0.10.102"
+    edge_use: "10.0.10.103"
+    edge_ams: "10.0.10.104"
   utility_inference_url: "http://10.0.10.3:30002/v1"
   utility_lan_url: "http://192.168.10.20:30002/v1"
   note: "Utility agents on TITANHOME use LAN URL; cross-node via WireGuard"
 
 latency:
   budget_ref: ~/.openclaw/infra/latency_budget.yaml
-  home_to_edge_fra_p95_ms: null  # FORGE records after bootstrap probe
-  phase1_apac_sub_ms: false
+  home_to_edge_p95_ms: 25
+  edge_to_exchange_p95_ms: 1
+  note: "Paper uses identical PoP routing as live (latency_faithful)"
 
 # ─── Physical connection order (do in this sequence) ────────────────────────
 

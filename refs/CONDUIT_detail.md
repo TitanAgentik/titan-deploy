@@ -21,7 +21,7 @@ under related sections.
 
 ## See also
 
-- Edge mesh Phase 1: EDGE-FRA only (`openclaw.json` edgeMesh)
+- Edge mesh full 5-PoP (`openclaw.json` edgeMesh.mode: full_mesh)
 
 ## Operator note
 

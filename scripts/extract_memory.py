@@ -342,17 +342,19 @@ def titanspark_doc() -> str:
 def edge_mesh_doc() -> str:
     return """# Edge VPS Mesh
 
-**Phase 1 ($2.5K):** `single_pop` — **EDGE-FRA** only
+**Full 5-PoP mesh** (`mode: full_mesh`) — paper + live use identical routing (`latency_faithful: true`)
 
 | PoP | Status | Role |
 |-----|--------|------|
-| EDGE-FRA | **Active (Phase 1)** | Telegram/EU relay, Erigon archive, EU RPC |
-| EDGE-TKY | Deferred Phase 3+ | Hyperliquid / APAC latency |
-| EDGE-SIN | Deferred Phase 3+ | APAC secondary |
-| EDGE-USE | Deferred Phase 3+ | US East exchange colo |
-| EDGE-AMS | Deferred Phase 3+ | Amsterdam DE-CIX |
+| EDGE-FRA | Active | Erigon archive, Jito FRA, EU DEX, Telegram relay |
+| EDGE-TKY | Active | Binance, OKX, Hyperliquid, Jito TKY |
+| EDGE-SIN | Active | Bybit, BSC, Sui, APAC failover |
+| EDGE-USE | Active | Coinbase, L2 sequencers, Flashbots US |
+| EDGE-AMS | Active | Solana gRPC redundancy, Nostr, bridge monitor |
 
-Full 5-PoP mesh is **not required at launch**. Config: `edge_mesh.phase1: single_pop` in config.yaml.
+Config: `~/.openclaw/infra/edge_mesh.yaml` + `openclaw.json` → `edgeMesh.mode: full_mesh`.
+Bootstrap: `POP=EDGE-TKY bash ~/.openclaw/infra/edge_pop_bootstrap.sh`
+Route: `titan-safety edge route --venue jito --strategy P22`
 """
 
 

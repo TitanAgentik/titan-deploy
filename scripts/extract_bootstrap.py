@@ -302,11 +302,6 @@ Four pillars (Impenetrable baseline; Evasion/Stalking/Predatory on demand). No :
         content,
     )
     content = re.sub(
-        r"5-PoP global mesh",
-        "Phase 1 single-PoP (EDGE-FRA); full mesh Phase 3+",
-        content,
-    )
-    content = re.sub(
         r"tx signing on workstation",
         "tx signing via signing_node (isolated endpoint)",
         content,
@@ -533,7 +528,7 @@ def build_memory_trimmed(text: str) -> str:
         "## Infrastructure Pointers",
         "- **TITANHOME (primary):** 9995WX + 2× RTX PRO 6000 + Tier 1/2 inference + safety → memory/hardware/workstation.md",
         "- TITANSPARK: utility inference + operator gateway → memory/hardware/titanspark.md",
-        "- Edge mesh (Phase 1 single PoP): → memory/hardware/edge-mesh.md",
+        "- Edge mesh (full 5-PoP): → memory/hardware/edge-mesh.md",
         "- Mac Mini vault: key metadata + Trezor → memory/hardware/macmini-vault.md",
         "- Infra specs: `~/.openclaw/infra/` (power, signing, GPU schedule)",
         "",
@@ -779,7 +774,7 @@ def build_identity(text: str) -> str:
   — Tier 1/2 inference, REVM, risk kernel + safety services
 - **TITANSPARK:** ASUS GX10 — utility inference (Qwen3-30B :30002) + operator gateway failover
 - **Mac Mini vault:** Mac Mini 2018 i7 6-core, 64GB DDR4 — key metadata, Trezor ceremonies
-- **Edge mesh (Phase 1):** single PoP — **EDGE-FRA** — TKY/SIN/USE/AMS deferred Phase 3+
+- **Edge mesh:** full 5-PoP (`full_mesh`) — EDGE-FRA, EDGE-TKY, EDGE-SIN, EDGE-USE, EDGE-AMS — paper + live identical routing
 - **Signing node:** isolated endpoint (`signingNode` :19010) — UPS-protected
 - **BOM:** `~/.openclaw/infra/hardware_bom.yaml`
 
@@ -939,9 +934,11 @@ def build_bootstrap() -> str:
 ## Infrastructure
 
 - [ ] NATS JetStream running (`nats-server -js`)
-- [ ] Erigon node syncing (Ethereum mainnet txpool) — EDGE-FRA for Phase 1
+- [ ] Erigon node syncing (Ethereum mainnet txpool) — EDGE-FRA
 - [ ] Yellowstone gRPC (Solana) connected
-- [ ] Verify Phase 1 edge: EDGE-FRA RTT <100ms (single PoP sufficient for $2.5K)
+- [ ] Bootstrap all 5 edge PoPs: `POP=EDGE-* bash ~/.openclaw/infra/edge_pop_bootstrap.sh`
+- [ ] Verify edge routing: `titan-safety edge route --venue jito --strategy P22`
+- [ ] WireGuard mesh: `edge_mesh_wg_setup.sh` + `wg_peers.env`
 - [ ] Deploy infra specs: `~/.openclaw/infra/` (hardware_bom, power_requirements, signing_node, gpu_schedule)
 - [ ] **UPS installed and tested** — ≥3000VA, ≥15 min runtime (REQUIRED before live capital)
 - [ ] Power-loss drill: mains disconnect → trading HALT + CRITICAL alert

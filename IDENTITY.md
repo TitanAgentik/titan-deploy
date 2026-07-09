@@ -21,7 +21,7 @@
   — Tier 1/2 inference, REVM, risk kernel + safety services
 - **TITANSPARK:** ASUS GX10 — utility inference (Qwen3-30B :30002) + operator gateway failover
 - **Mac Mini vault:** Mac Mini 2018 i7 6-core, 64GB DDR4 — key metadata, Trezor ceremonies
-- **Edge mesh (Phase 1):** single PoP — **EDGE-FRA** — TKY/SIN/USE/AMS deferred Phase 3+
+- **Edge mesh:** full 5-PoP (`full_mesh`) — EDGE-FRA, EDGE-TKY, EDGE-SIN, EDGE-USE, EDGE-AMS — paper + live identical routing
 - **Signing node:** isolated endpoint (`signingNode` :19010) — UPS-protected
 - **BOM:** `~/.openclaw/infra/hardware_bom.yaml`
 

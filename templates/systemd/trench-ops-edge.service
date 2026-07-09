@@ -1,0 +1,17 @@
+[Unit]
+Description=TITAN TRENCH-OPS Edge Worker (template — set POP on target host)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=TITAN_EDGE_POP=EDGE-FRA
+Environment=TITAN_EDGE_WORKER_PORT=19100
+EnvironmentFile=-/etc/titan-edge/pop.env
+ExecStart=/usr/bin/python3 /opt/titan-edge/health_server.py
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

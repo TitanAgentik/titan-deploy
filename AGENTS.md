@@ -145,7 +145,7 @@ Four pillars (Impenetrable baseline; Evasion/Stalking/Predatory on demand). No :
 | Primary reranker | `Qwen/Qwen3-Reranker-0.6B` (Apache 2.0) | cuda:0 ride-along FP8 (\~0.6 GB) |  
 | Latency-pick reranker | `Alibaba-NLP/gte-reranker-modernbert-base` (149 M, ¼ compute, near-parity Hit@1) | CPU FP16 |
 
-### Edge workers (stateless, no LLM — Phase 1 single-PoP (EDGE-FRA); full mesh Phase 3+, same-AZ as exchange matching engines)  
+### Edge workers (stateless, no LLM — 5-PoP global mesh, same-AZ as exchange matching engines)  
 | Worker | Node | Provider / Instance | Region | Primary Targets | Expected RTT |  
 | --- | --- | --- | --- | --- | --- |  
 | TRENCH-OPS-TKY | EDGE-TKY | AWS `c7i.metal-24xl` (96 vCPU, 192 GB, 25 Gbps ENA) | `ap-northeast-1` (Tokyo) | Binance, OKX, Hyperliquid (hl-visor), Jito-TKY | **<1ms** |  

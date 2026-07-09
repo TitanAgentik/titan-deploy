@@ -605,6 +605,23 @@ def cmd_tca_profit_loop(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_edge_route(args: argparse.Namespace) -> int:
+    from .edge_router import EdgeRouter
+
+    router = EdgeRouter.from_path(Path(args.mesh) if args.mesh else None)
+    decision = router.route(venue=args.venue or "", strategy_id=args.strategy or "")
+    print(json.dumps(decision.to_dict(), indent=2))
+    return 0
+
+
+def cmd_edge_list(args: argparse.Namespace) -> int:
+    from .edge_router import EdgeRouter
+
+    router = EdgeRouter.from_path(Path(args.mesh) if args.mesh else None)
+    print(json.dumps({"pops": router.list_pops(), "mode": router.mesh.get("mode")}, indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="TITAN Safety CLI")
     parser.add_argument("--safety-dir", default=str(Path.home() / ".openclaw" / "safety"))
@@ -859,6 +876,17 @@ def main(argv: list[str] | None = None) -> int:
     tpl.add_argument("--regime", default="neutral")
     tpl.add_argument("--drawdown-pct", type=float, default=0.0)
     tpl.set_defaults(func=cmd_tca_profit_loop)
+
+    p_edge = sub.add_parser("edge", help="5-PoP edge mesh routing (venue/strategy → PoP)")
+    edge_sub = p_edge.add_subparsers(dest="edge_cmd", required=True)
+    er = edge_sub.add_parser("route", help="Resolve target PoP for venue/strategy")
+    er.add_argument("--venue", default="", help="Venue id (e.g. binance, jito_fra)")
+    er.add_argument("--strategy", default="", help="Pipeline/strategy id (e.g. P22, P29)")
+    er.add_argument("--mesh", default=None, help="Override edge_mesh.yaml path")
+    er.set_defaults(func=cmd_edge_route)
+    el = edge_sub.add_parser("list", help="List active PoPs and mesh mode")
+    el.add_argument("--mesh", default=None, help="Override edge_mesh.yaml path")
+    el.set_defaults(func=cmd_edge_list)
 
     p_mc = sub.add_parser("memecoin", help="P22 memecoin trench filter / sim / status")
     mc_sub = p_mc.add_subparsers(dest="mc_cmd", required=True)

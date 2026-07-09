@@ -316,7 +316,7 @@ if profile == 'live':
 fi
 
 # Systemd unit files in output (optional install)
-for svc in titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-status-aggregator titan-allocator titan-tca titan-signing-node titan-portfolio-risk titan-security-ops llama-server-tier1 llama-server-tier2 llama-server-embedder cuda-mps; do
+for svc in titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-status-aggregator titan-allocator titan-tca titan-signing-node titan-portfolio-risk titan-security-ops trench-ops-edge llama-server-tier1 llama-server-tier2 llama-server-embedder cuda-mps; do
   if [[ -f "$PROJECT_ROOT/output/systemd/${svc}.service" ]] || [[ -f "$PROJECT_ROOT/templates/systemd/${svc}.service" ]]; then
     pass "systemd unit template: ${svc}.service"
   fi
@@ -333,13 +333,32 @@ for spec in power_requirements.yaml signing_node.yaml gpu_schedule.yaml latency_
 done
 
 # Latency tuning artifacts
-for script in titanhome-latency-tune.sh forge_gpu_schedule_enforce.sh titanhome-prewarm-tier1.sh; do
+for script in titanhome-latency-tune.sh forge_gpu_schedule_enforce.sh titanhome-prewarm-tier1.sh edge_pop_bootstrap.sh edge_mesh_wg_setup.sh; do
   if [[ -x "$INFRA_DIR/$script" ]] || [[ -f "$INFRA_DIR/$script" ]]; then
     pass "Infra script: $script"
   else
     fail "Missing infra script: $INFRA_DIR/$script"
   fi
 done
+if [[ -f "$INFRA_DIR/edge_mesh.yaml" ]] && command -v python3 &>/dev/null; then
+  python3 -c "
+import yaml, sys
+from pathlib import Path
+m = yaml.safe_load(Path('$INFRA_DIR/edge_mesh.yaml').read_text())
+if m.get('mode') != 'full_mesh':
+    sys.exit(1)
+if len(m.get('pops') or {}) < 5:
+    sys.exit(2)
+if not (m.get('paper_trading') or {}).get('latency_faithful'):
+    sys.exit(3)
+" 2>/dev/null && pass "edge_mesh.yaml: full_mesh + 5 PoPs + paper latency_faithful" \
+    || fail "edge_mesh.yaml invalid or not full_mesh"
+fi
+if [[ -f "$PROJECT_ROOT/templates/safety/titan_safety/edge_router.py" ]]; then
+  pass "edge_router.py present"
+else
+  fail "Missing templates/safety/titan_safety/edge_router.py"
+fi
 if [[ -f "$INFRA_DIR/sysctl/99-openclaw-performance.conf" ]]; then
   pass "Infra sysctl: 99-openclaw-performance.conf"
 else
@@ -370,7 +389,7 @@ if [[ -f "$OPENCLAW_HOME/risk_kernel/policy.yaml" ]]; then
   fi
 fi
 
-# Signing isolation + edge mesh phase1 in openclaw.json
+# Signing isolation + edge mesh full_mesh in openclaw.json
 if [[ -f "$OPENCLAW_HOME/openclaw.json" ]] && command -v python3 &>/dev/null; then
   python3 -c "
 import json, sys
@@ -383,12 +402,17 @@ if not sn.get('endpoint'):
     sys.exit(2)
 if not sn.get('requireGateReceipt', True):
     sys.exit(5)
-if em.get('phase1') != 'single_pop':
+if em.get('mode') != 'full_mesh':
     sys.exit(3)
-if em.get('defaultPop') != 'EDGE-FRA':
+pops = em.get('activePops') or []
+if len(pops) < 5:
     sys.exit(4)
-" 2>/dev/null && pass "openclaw.json signingNode + edgeMesh phase1 OK" \
-    || fail "openclaw.json missing signingNode or edgeMesh phase1 config"
+if not em.get('paperLatencyFaithful', False):
+    sys.exit(6)
+if em.get('defaultPop') != 'EDGE-FRA':
+    sys.exit(7)
+" 2>/dev/null && pass "openclaw.json signingNode + edgeMesh full_mesh OK" \
+    || fail "openclaw.json missing signingNode or edgeMesh full_mesh config"
 fi
 
 # Evolution freeze + allocator concentration config
@@ -515,11 +539,11 @@ if [[ -f "$OPENCLAW_HOME/IDENTITY.md" ]]; then
   else
     fail "IDENTITY.md missing TITANHOME primary role"
   fi
-  if grep -q "5-PoP" "$OPENCLAW_HOME/IDENTITY.md" 2>/dev/null \
-     && ! grep -qi "Phase 1\|single PoP\|single_pop\|deferred" "$OPENCLAW_HOME/IDENTITY.md" 2>/dev/null; then
-    fail "IDENTITY.md implies all 5 PoPs required at launch"
+  if grep -qi "full.5-PoP\|full_mesh\|full mesh" "$OPENCLAW_HOME/IDENTITY.md" 2>/dev/null \
+     && ! grep -qi "single PoP\|single_pop\|deferred Phase 3" "$OPENCLAW_HOME/IDENTITY.md" 2>/dev/null; then
+    pass "IDENTITY.md: full 5-PoP edge mesh documented"
   else
-    pass "IDENTITY.md: edge mesh Phase 1 single PoP documented"
+    fail "IDENTITY.md missing full 5-PoP edge mesh (still single-PoP/deferred?)"
   fi
 fi
 

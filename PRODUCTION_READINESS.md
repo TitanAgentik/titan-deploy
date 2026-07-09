@@ -18,7 +18,7 @@
 | **TITANSPARK** | Utility inference (Qwen3-30B) + operator gateway failover | UPS recommended |
 | **Mac Mini vault** | Key metadata + Trezor ceremonies + profit workloads | UPS mandatory |
 | **Signing node** | Isolated tx signing (`:19010`) — no evolution workloads | UPS mandatory (co-located or dedicated) |
-| **Edge mesh Phase 1** | Single PoP: **EDGE-FRA** (Telegram/EU, Erigon) | Cloud provider redundancy |
+| **Edge mesh** | Full 5-PoP: FRA + TKY + SIN + USE + AMS (paper + live, latency-faithful) | Cloud provider redundancy per PoP |
 
 Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_schedule.yaml`
 
@@ -104,7 +104,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 - **Capital execution adapter** — `withdrawal_adapter: mock` in config; wire Trezor Safe 7 + `signing_node` for live sweeps/withdrawals.
 - **Paper + shadow trading duration** — software gates exist; calendar time and performance evidence do not.
 - **Production infra** — GPU inference on TITANHOME (P2 never preempted), NATS, chain nodes, firewall, **UPS on all signing paths**.
-- **Edge mesh Phase 1** — one PoP (EDGE-FRA) sufficient for $2.5K; defer TKY/SIN/USE/AMS to Phase 3+.
+- **Edge mesh** — full 5-PoP from paper; bootstrap via `edge_pop_bootstrap.sh` per PoP after WireGuard.
 - **BFT independence** — orchestrator agents share GLM-5.2; correlated consensus is documented, not fixed.
 - **Agent runtime integration** — OpenClaw/Hermes must call `preTradeValidationUrl` before every execution; wiring is config-level; execution skills must honor DENY.
 - **Key revocation side effects** — kernel sets `keys_revoked` flag; actual API key disable at exchange must be operationalized.
@@ -124,7 +124,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 3. **Config-only agent wiring** — If an execution path bypasses pre-trade HTTP call, capital is exposed. Code review of execution skills required.
 4. **Mock reconciliation** — Until live adapter is implemented and tested, position truth is not verified against chain/exchange.
 5. **No formal verification** — Limits are unit-tested, not mathematically proven.
-6. **Single-host deployment** — No multi-region failover in this bundle (Phase 1 single PoP only).
+6. **Multi-region edge** — 5 PoP mesh configured; operator must provision WireGuard + bootstrap each PoP for live colo paths.
 7. **Power dependency** — Without UPS, mains loss can corrupt in-flight trades; UPS + HALT policy mitigates but does not eliminate risk.
 8. **Signed kill switch secret** — Stored locally; compromise of host compromises kill switch.
 9. **LLM prompt injection** — Kernel does not parse LLM output; but poisoned data feeds can still cause bad proposals (blocked by slippage/limits if configured correctly).

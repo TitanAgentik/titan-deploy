@@ -491,7 +491,7 @@ def main() -> int:
     write_narrative_stub(
         "CONDUIT_detail.md",
         "Conduit / bridging narrative.",
-        "- Edge mesh Phase 1: EDGE-FRA only (`openclaw.json` edgeMesh)",
+        "- Edge mesh full 5-PoP (`openclaw.json` edgeMesh.mode: full_mesh)",
     )
     write_narrative_stub(
         "XB_detail.md",

@@ -15,7 +15,7 @@
 ## Infrastructure Pointers
 - **TITANHOME (primary):** 9995WX + 2× RTX PRO 6000 + Tier 1/2 inference + safety → memory/hardware/workstation.md
 - TITANSPARK: utility inference + operator gateway → memory/hardware/titanspark.md
-- Edge mesh (Phase 1 single PoP): → memory/hardware/edge-mesh.md
+- Edge mesh (full 5-PoP): → memory/hardware/edge-mesh.md
 - Mac Mini vault: key metadata + Trezor → memory/hardware/macmini-vault.md
 - Infra specs: `~/.openclaw/infra/` (power, signing, GPU schedule)
 

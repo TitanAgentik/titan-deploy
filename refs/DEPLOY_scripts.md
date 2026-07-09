@@ -41,6 +41,7 @@ INSTALL_SYSTEMD=0
 START_SERVICES=0
 START_INFERENCE=0
 LATENCY_TUNE=0
+EDGE_BOOTSTRAP=0
 DO_VERIFY=0
 DO_BUILD=0
 
@@ -58,6 +59,7 @@ Options:
   --start-services    Enable and start titan-* safety systemd units (implies --systemd)
   --start-inference   Enable cuda-mps + llama-server tier1/2/embedder (implies --systemd)
   --latency-tune      Run titanhome-latency-tune.sh after install (sysctl, chrony, tmpfs)
+  --edge-bootstrap    Print per-PoP edge bootstrap commands (run on each EDGE-* VM)
   -h, --help          Show this help
 
 Examples:
@@ -65,6 +67,15 @@ Examples:
   ./deploy.sh --dry-run
   ./deploy.sh --verify
 EOF
+}
+
+print_edge_bootstrap() {
+  log "Edge PoP bootstrap (run each command ON the target VM after WireGuard is up):"
+  for pop in EDGE-FRA EDGE-TKY EDGE-SIN EDGE-USE EDGE-AMS; do
+    echo "  POP=$pop OPENCLAW_HOME=$OPENCLAW_HOME bash $OPENCLAW_HOME/infra/edge_pop_bootstrap.sh"
+  done
+  log "WireGuard mesh helper: bash $OPENCLAW_HOME/infra/edge_mesh_wg_setup.sh"
+  log "Route check on TITANHOME: titan-safety edge route --venue jito --strategy P22"
 }
 
 log() { echo "[titan-deploy] $*"; }
@@ -78,6 +89,7 @@ while [[ $# -gt 0 ]]; do
     --start-services) INSTALL_SYSTEMD=1; START_SERVICES=1; shift ;;
     --start-inference) INSTALL_SYSTEMD=1; START_INFERENCE=1; shift ;;
     --latency-tune) LATENCY_TUNE=1; shift ;;
+    --edge-bootstrap) EDGE_BOOTSTRAP=1; shift ;;
     --verify) DO_VERIFY=1; shift ;;
     --build) DO_BUILD=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -86,7 +98,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Default action: build + install if no flags
-if [[ $DO_VERIFY -eq 0 && $DO_BUILD -eq 0 ]]; then
+if [[ $DO_VERIFY -eq 0 && $DO_BUILD -eq 0 && $EDGE_BOOTSTRAP -eq 0 ]]; then
   DO_BUILD=1
 fi
 
@@ -359,6 +371,10 @@ fi
 
 if [[ $DO_VERIFY -eq 1 ]]; then
   exec "$PROJECT_ROOT/verify.sh" "$OPENCLAW_HOME" "$HERMES_HOME"
+fi
+
+if [[ $EDGE_BOOTSTRAP -eq 1 ]]; then
+  print_edge_bootstrap
 fi
 ```
 

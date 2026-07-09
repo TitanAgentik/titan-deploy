@@ -150,6 +150,14 @@ dead_mans_switch:
   on_miss: derisk_flatten
   never_auto_promote: true
 
+drawdown_notify_only: true
+
+drawdown_volatile_exempt:
+  pipelines: [P22, P29, P30, P12]
+  correlation_groups: [memecoin_trench, mev_arb]
+  venues: [solana_pumpfun, solana_pumpswap, jito, paper]
+  note: "No portfolio drawdown tiers — lane-local CBs only"
+
 drawdown_tiers:
   alert: 2.0
   soft_pause: 5.0
@@ -289,35 +297,48 @@ signing_node:
     - LAMARCK
 
 edge_mesh:
-  phase1: single_pop
+  mode: full_mesh
+  phase1: full_five_pop
   default_pop: EDGE-FRA
+  paper_latency_faithful: true
+  mesh_config: ~/.openclaw/infra/edge_mesh.yaml
   latency_budget_ms:
     hot_path_gate_p95: 15
     hot_path_submit_p95: 50
-    home_to_edge_fra_p95: 25
+    home_to_edge_p95: 25
     edge_to_jito_p95: 5
+    edge_to_exchange_p95: 1
     nostr_dispatch: 3
     warm_path_gate_p95: 150
-  phase1_apac_deferred: true
+  phase1_apac_deferred: false
   routing_policy: lowest_live_p50_rtt
   active_pops:
     - id: EDGE-FRA
+      wireguard_ip: 10.0.10.100
       provider: vultr
       region: eu-central
-      roles:
-        - telegram_relay
-        - erigon_archive
-        - eu_rpc
-  deferred_pops_phase3_plus:
+      roles: [erigon_archive, jito_fra, eu_rpc, telegram_relay]
     - id: EDGE-TKY
-      note: "Hyperliquid / APAC latency — Phase 3+"
+      wireguard_ip: 10.0.10.101
+      provider: aws
+      region: ap-northeast-1
+      roles: [binance, okx, hyperliquid]
     - id: EDGE-SIN
-      note: "APAC secondary — Phase 3+"
+      wireguard_ip: 10.0.10.102
+      provider: aws
+      region: ap-southeast-1
+      roles: [bybit, bsc, sui]
     - id: EDGE-USE
-      note: "US East exchange colo — Phase 3+"
+      wireguard_ip: 10.0.10.103
+      provider: aws
+      region: us-east-1
+      roles: [coinbase, l2_sequencers, flashbots_us]
     - id: EDGE-AMS
-      note: "Amsterdam DE-CIX — Phase 3+"
-  phase1_note: "One PoP sufficient for $2.5K Phase 1; full 5-PoP mesh deferred to Phase 3+"
+      wireguard_ip: 10.0.10.104
+      provider: vultr
+      region: amsterdam
+      roles: [solana_grpc_redundancy, nostr_relay]
+  note: "Full 5-PoP from paper — scale instance size with capital; routing identical to live"
 
 capital:
   capital_profile: live
@@ -571,7 +592,7 @@ capital:
     "criticalAlertsOnly": false,
     "criticalConditions": [
       "drawdown_10pct_24h",
-      "drawdown_12pct_halt",
+      "drawdown_12pct_notify",
       "drawdown_velocity_15m",
       "hardware_failure",
       "security_breach",
@@ -725,7 +746,28 @@ capital:
     "softPause": 5.0,
     "reduce": 8.0,
     "critical": 10.0,
-    "halt": 12.0
+    "halt": 12.0,
+    "notifyOnly": true,
+    "note": "Tiers notify via HERALD \u2014 trading continues autonomously; no operator ack"
+  },
+  "drawdownVolatileExempt": {
+    "pipelines": [
+      "P22",
+      "P29",
+      "P30",
+      "P12"
+    ],
+    "correlationGroups": [
+      "memecoin_trench",
+      "mev_arb"
+    ],
+    "venues": [
+      "solana_pumpfun",
+      "solana_pumpswap",
+      "jito",
+      "paper"
+    ],
+    "note": "Portfolio drawdown tiers 2\u201312% do not apply \u2014 lane-local CBs only"
   },
   "quantum": {
     "status": "dormant",
@@ -917,17 +959,18 @@ capital:
     "note": "Concentrate capital on \u22644 TCA-HEALTHY lanes"
   },
   "edgeMesh": {
-    "phase1": "single_pop",
+    "mode": "full_mesh",
+    "phase1": "full_five_pop",
     "defaultPop": "EDGE-FRA",
     "activePops": [
-      "EDGE-FRA"
-    ],
-    "deferredPopsPhase3Plus": [
+      "EDGE-FRA",
       "EDGE-TKY",
       "EDGE-SIN",
       "EDGE-USE",
       "EDGE-AMS"
     ],
+    "paperLatencyFaithful": true,
+    "meshConfigPath": "~/.openclaw/infra/edge_mesh.yaml",
     "latencyBudgetMs": {
       "hotPathGateP95": 15,
       "hotPathSubmitP95": 50,
@@ -936,9 +979,9 @@ capital:
       "nostrDispatch": 3,
       "warmPathGateP95": 150
     },
-    "phase1ApacDeferred": true,
+    "phase1ApacDeferred": false,
     "routingPolicy": "lowest_live_p50_rtt",
-    "note": "Phase 1: EU/Solana/ETH lanes only; APAC <1ms needs Phase 3+ PoPs"
+    "note": "Full 5-PoP from paper \u2014 same routing as live for TCA/latency measurement"
   },
   "capital": {
     "capital_profile": "live",
@@ -1020,17 +1063,32 @@ autonomous_signing:
   require_typed_data_live: true
   note: "Human gates remain for promotion, evolution, leverage, flash-loan live, large withdrawals"
 
+# Portfolio drawdown — notify-only; trading continues autonomously (no pause/halt gates).
+drawdown_notify_only: true
+
+drawdown_volatile_exempt:
+  pipelines: [P22, P29, P30, P12]
+  correlation_groups: [memecoin_trench, mev_arb]
+  venues: [solana_pumpfun, solana_pumpswap, jito, paper]
+  note: "Memecoin/trench/MEV hot lanes — memecoin_circuit_breakers + velocity only"
+
 drawdown_tiers:
   - pct: 2.0
-    action: alert_operator
+    action: notify_operator
+    severity: MEDIUM
   - pct: 5.0
-    action: soft_pause_new_entries
+    action: notify_operator
+    severity: HIGH
   - pct: 8.0
-    action: reduce_exposure_50pct
+    action: notify_operator
+    severity: HIGH
   - pct: 10.0
-    action: critical_alert_human_required
+    action: notify_critical_continue
+    severity: CRITICAL
   - pct: 12.0
-    action: full_halt_flatten
+    action: notify_critical_continue
+    severity: CRITICAL
+    note: "Immediate HERALD alert — trading continues; no operator ack required"
 
 drawdown_velocity:
   max_loss_usd_per_60s: 150.0
