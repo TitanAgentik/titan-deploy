@@ -24,6 +24,11 @@ def reconcile_counts(text: str) -> str:
         "Active Strategies (47 pipelines",
         text,
     )
+    # Agent/pipeline totals drift throughout the doc — normalize to 23 agents / 47 pipelines.
+    text = text.replace("all 46 pipelines", "all 47 pipelines")
+    text = re.sub(r"\bALL 24 agents\b", "ALL 23 agents", text)
+    text = re.sub(r"\ball 24 agents\b", "all 23 agents", text)
+    text = re.sub(r"\b24 agents communicate\b", "23 agents communicate", text)
     return text
 
 
@@ -330,6 +335,53 @@ def reconcile_phase5_and_timeout(text: str) -> str:
         "Phase 6: Promotion Decision (end of Tier 3 — human YES required for live)",
         text,
     )
+
+    # Phase 5 body still contradicted its (already-fixed) header — the strategy
+    # is held pending explicit YES, not auto-promoted.
+    text = text.replace(
+        "Strategies that pass Phases 1-4 are AUTO-PROMOTED to full live deployment.  \n"
+        "No Telegram confirmation required. Pre-authorized by default.",
+        "Strategies that pass Phases 1-4 enter PENDING_PROMOTION_APPROVAL and wait "
+        "for explicit operator YES via Telegram/GUI.  \n"
+        "Silence = HOLD/de-risk. Never auto-promote on timeout.",
+    )
+    text = re.sub(
+        r"phase_5_auto_promote:\s*\n"
+        r"\s*confirmation_required: false  # WAS: true — REMOVED per §AUTONOMY PRINCIPLE\s*\n"
+        r"\s*auto_promote: true\s*\n"
+        r'\s*notification_mode: "informational_only"',
+        'phase_5_go_no_go:\n'
+        '  confirmation_required: true   # explicit operator YES before full live\n'
+        '  auto_promote: false\n'
+        '  timeout_policy: "hold_derisk"  # silence never promotes\n'
+        '  notification_mode: "approval_required"',
+        text,
+    )
+    text = text.replace(
+        "    ⚡ DEPLOY PIPELINE — AUTO-PROMOTED",
+        "    ⏸ DEPLOY PIPELINE — AWAITING OPERATOR YES",
+    )
+    text = text.replace(
+        "    Phase:       5/6 — Auto-Promotion (No Human Gate)",
+        "    Phase:       5/6 — Go/No-Go (operator YES required)",
+    )
+    text = text.replace(
+        "    ⚡ AUTO-PROMOTED to full live trading.  \n"
+        "    Watch mode: 24h active monitoring enabled.",
+        "    ⏸ HELD pending operator YES before full live.  \n"
+        "    Reply YES to promote; watch mode arms on promotion.",
+    )
+    # Freeform auto-promote narrative line (runs before 7-day→3-day rewrite,
+    # so match only the stable tail).
+    text = text.replace(
+        "(§DEPLOY_LIFECYCLE) → auto-promote → deploy",
+        "(§DEPLOY_LIFECYCLE) → Phase 5 operator YES → deploy",
+    )
+    text = text.replace(
+        "# The system auto-archives on failure, auto-promotes on success, auto-rollbacks on breach.",
+        "# The system auto-archives on failure and auto-rollbacks on breach; "
+        "promotion to live requires explicit operator YES.",
+    )
     return text
 
 
@@ -557,6 +609,17 @@ def reconcile_implicit_approval(text: str) -> str:
             r"timeout_policy: \"No timeout — system never waits for operator\. Auto-promote is default\.",
             'timeout_policy: "Silence defaults to HOLD/de-risk. Never auto-promote on timeout.',
         ),
+        (
+            # GUI/Telegram mirror comment: routine trades don't queue; promotions do.
+            r"# All system actions and trade proposals halt in a `PENDING_HUMAN_APPROVAL`\s*\n+"
+            r"# state\. Approving a trade via the GUI instantly clears the Telegram\s*\n+"
+            r"# prompt, and vice-versa, utilizing the shared NATS event bus\.",
+            "# Routine trades execute autonomously (no per-trade approval queue).\n"
+            "#\n"
+            "# Promotions / high-risk actions enter PENDING_PROMOTION_APPROVAL; approving\n"
+            "#\n"
+            "# via GUI or Telegram clears the other over the shared NATS event bus.",
+        ),
     ]
     for pattern, repl in replacements:
         text = re.sub(pattern, repl, text)
@@ -603,6 +666,21 @@ def reconcile_model_tiers(text: str) -> str:
             r"\*\*BFT Voting Consensus:\*\* 2-out-of-3 threshold consensus \(AUGUR \+ PREDATOR \+ ATLAS\)",
             "**Trade Voting Consensus:** 2-of-3 threshold (AUGUR + PREDATOR + ATLAS) — advisory; "
             "risk_kernel has final DENY",
+        ),
+        (
+            # TRENCH-OPS is Tier 1 Qwen3-30B critical-path — never GLM-5.2 (offline R&D only)
+            r"Runs on the shared GLM-5\.2 model with a coder-specialized system prompt; "
+            r"FrontierSWE frontier-class coding quality — trades with GPT-5\.5/Claude Opus 4\.8 "
+            r"on agentic coding benchmarks\. hot-swap to Qwen3-Coder-Next-80B-A3B FP8 "
+            r"\(single-GPU TP=1 on cuda:1\) is available for high-throughput batch coding "
+            r"sessions when ARCHON pre-empts the TP=2 deployment\.",
+            "Runs on Tier 1 `:30000` Qwen3-30B-A3B FP8 (critical path — never GLM-5.2 or any "
+            "cloud model). For high-throughput batch coding, ARCHON may route to Tier 2 "
+            "`:30001` Qwen3-Coder-Next-80B FP8; live signing stays on Tier 1/2 local weights only.",
+        ),
+        (
+            r'"frontier_swe": "frontier-class \(trades with GPT-5\.5 / Claude Opus 4\.8\)",',
+            '"frontier_swe": "frontier-class local coding (Qwen3-Coder-Next-80B FP8)",',
         ),
         (
             r"- \*\*BFT Voting Consensus:\*\* 2-out-of-3 threshold consensus \(AUGUR \+ PREDATOR \+ ATLAS\) for trade authorization",
