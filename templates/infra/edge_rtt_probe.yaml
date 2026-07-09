@@ -1,0 +1,40 @@
+# Edge RTT probes — FORGE/NEXUS record p50/p95/p99 to posture.jsonl
+# Deploy: ~/.openclaw/infra/edge_rtt_probe.yaml
+
+version: "1.0"
+interval_seconds: 30
+samples_per_window: 20
+
+phase1:
+  home_to_edge:
+    - name: edge_fra_wg
+      target: "10.0.10.100"
+      method: ping
+      budget_p95_ms: 100
+    - name: edge_fra_erigon
+      url: "http://10.0.10.100:8545"
+      method: http_head
+      budget_p95_ms: 120
+  edge_local:
+    - name: jito_fra_block_engine
+      url: "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/bundles"
+      method: tcp_connect
+      budget_p95_ms: 50
+    - name: solana_rpc_fra
+      env: SOLANA_RPC_URL
+      method: jsonrpc_getVersion
+      budget_p95_ms: 80
+
+deferred_phase3:
+  - name: edge_tky_binance_ws
+    note: "Enable when EDGE-TKY live — target p95 <5ms same-AZ"
+  - name: edge_sin_bybit
+    note: "Enable when EDGE-SIN live"
+
+actions:
+  on_p95_breach:
+    - log: ~/.openclaw/memory/infra/rtt.jsonl
+    - herald: WATCH
+  on_p95_breach_sustained_5m:
+    - herald: HIGH
+    - archon: reroute_edge_if_alternate_pop

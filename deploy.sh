@@ -12,6 +12,8 @@ DRY_RUN=0
 INSTALL_PACKAGES=0
 INSTALL_SYSTEMD=0
 START_SERVICES=0
+START_INFERENCE=0
+LATENCY_TUNE=0
 DO_VERIFY=0
 DO_BUILD=0
 
@@ -27,6 +29,8 @@ Options:
   --verify            Verify deployed bootstrap limits and file presence
   --build             Build only (no install)
   --start-services    Enable and start titan-* safety systemd units (implies --systemd)
+  --start-inference   Enable cuda-mps + llama-server tier1/2/embedder (implies --systemd)
+  --latency-tune      Run titanhome-latency-tune.sh after install (sysctl, chrony, tmpfs)
   -h, --help          Show this help
 
 Examples:
@@ -45,6 +49,8 @@ while [[ $# -gt 0 ]]; do
     --install-packages) INSTALL_PACKAGES=1; shift ;;
     --systemd) INSTALL_SYSTEMD=1; shift ;;
     --start-services) INSTALL_SYSTEMD=1; START_SERVICES=1; shift ;;
+    --start-inference) INSTALL_SYSTEMD=1; START_INFERENCE=1; shift ;;
+    --latency-tune) LATENCY_TUNE=1; shift ;;
     --verify) DO_VERIFY=1; shift ;;
     --build) DO_BUILD=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -234,6 +240,7 @@ CLIOF
   if [[ -d "$OUTPUT/infra" ]]; then
     mkdir -p "$OPENCLAW_HOME/infra"
     cp -r "$OUTPUT/infra/"* "$OPENCLAW_HOME/infra/"
+    chmod +x "$OPENCLAW_HOME/infra/"*.sh 2>/dev/null || true
     log "Installed infra specs -> $OPENCLAW_HOME/infra/"
   fi
 
@@ -288,6 +295,24 @@ ENVEOF
   else
     log "Systemd units installed. Start with: ./deploy.sh --start-services"
   fi
+  if [[ $START_INFERENCE -eq 1 ]]; then
+    local infer_units=(cuda-mps llama-server-tier1 llama-server-tier2 llama-server-embedder)
+    for u in "${infer_units[@]}"; do
+      if [[ -f "/etc/systemd/system/${u}.service" ]] || systemctl cat "${u}.service" &>/dev/null; then
+        $SUDO systemctl enable --now "${u}.service" 2>/dev/null \
+          && log "Started ${u}.service" \
+          || log "WARN: could not start ${u}.service (models may be missing)"
+      else
+        log "WARN: missing inference unit ${u}.service"
+      fi
+    done
+  fi
+  fi
+
+  if [[ $LATENCY_TUNE -eq 1 && -x "$OPENCLAW_HOME/infra/titanhome-latency-tune.sh" ]]; then
+    log "Running latency tune (requires sudo)..."
+    OPENCLAW_HOME="$OPENCLAW_HOME" bash "$OPENCLAW_HOME/infra/titanhome-latency-tune.sh" \
+      || log "WARN: latency tune failed — run manually with sudo"
   fi
 }
 

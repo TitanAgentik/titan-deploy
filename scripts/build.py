@@ -33,9 +33,12 @@ def copy_templates() -> None:
     if infra_src.exists():
         infra_dest = OUTPUT / "infra"
         infra_dest.mkdir(parents=True, exist_ok=True)
-        for f in infra_src.iterdir():
+        for f in infra_src.rglob("*"):
             if f.is_file():
-                shutil.copy(f, infra_dest / f.name)
+                rel = f.relative_to(infra_src)
+                dest = infra_dest / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(f, dest)
         print(f"Copied infra specs -> {infra_dest}")
     # Risk kernel policy
     rk_src = TEMPLATES / "risk_kernel"

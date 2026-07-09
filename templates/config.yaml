@@ -45,9 +45,16 @@ model:
     model: zai-org/GLM-5.2
     role: rd_evolution_batch_only
     critical_path: false
+  tier3a_deepseek:
+    provider: openai-compatible
+    base_url: http://localhost:30005/v1
+    model: deepseek-ai/DeepSeek-V4-Pro
+    role: rd_evolution_primary
+    critical_path: false
   utility:
     provider: openai-compatible
-    base_url: http://localhost:30002/v1
+    base_url: http://192.168.10.20:30002/v1
+    fallback_url: http://10.0.10.3:30002/v1
     model: Qwen3-30B-A3B-Instruct-2507
     host: titanspark
   embedder:
@@ -266,6 +273,12 @@ signing_node:
 edge_mesh:
   phase1: single_pop
   default_pop: EDGE-FRA
+  latency_budget_ms:
+    home_to_edge_fra_p95: 100
+    edge_to_jito_p95: 50
+    nostr_dispatch: 3
+  phase1_apac_deferred: true
+  routing_policy: lowest_live_p50_rtt
   active_pops:
     - id: EDGE-FRA
       provider: vultr

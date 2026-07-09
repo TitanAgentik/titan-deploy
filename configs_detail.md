@@ -87,9 +87,16 @@ model:
     model: zai-org/GLM-5.2
     role: rd_evolution_batch_only
     critical_path: false
+  tier3a_deepseek:
+    provider: openai-compatible
+    base_url: http://localhost:30005/v1
+    model: deepseek-ai/DeepSeek-V4-Pro
+    role: rd_evolution_primary
+    critical_path: false
   utility:
     provider: openai-compatible
-    base_url: http://localhost:30002/v1
+    base_url: http://192.168.10.20:30002/v1
+    fallback_url: http://10.0.10.3:30002/v1
     model: Qwen3-30B-A3B-Instruct-2507
     host: titanspark
   embedder:
@@ -308,6 +315,12 @@ signing_node:
 edge_mesh:
   phase1: single_pop
   default_pop: EDGE-FRA
+  latency_budget_ms:
+    home_to_edge_fra_p95: 100
+    edge_to_jito_p95: 50
+    nostr_dispatch: 3
+  phase1_apac_deferred: true
+  routing_policy: lowest_live_p50_rtt
   active_pops:
     - id: EDGE-FRA
       provider: vultr
@@ -411,8 +424,9 @@ capital:
       {
         "id": "CORTEX",
         "tier": "orchestrator",
-        "endpoint": "http://localhost:30001",
-        "model": "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct"
+        "endpoint": "http://localhost:30005",
+        "fallbackEndpoint": "http://localhost:30001",
+        "model": "deepseek-ai/DeepSeek-V4-Pro"
       },
       {
         "id": "GUARDIAN",
@@ -744,19 +758,44 @@ capital:
     "note": "100% classical execution \u2014 QCC/QSA/QRP disabled for live capital"
   },
   "inference": {
+    "latencyBudgetPath": "~/.openclaw/infra/latency_budget.yaml",
     "tier1_critical": {
       "port": 30000,
       "gpu": 0,
       "model": "Qwen/Qwen3-30B-A3B-Instruct-2507-FP8",
       "role": "signals_risk_execution",
-      "target_tps": "50-70"
+      "target_tps": "50-70",
+      "parallel_slots": 12,
+      "prewarm": true,
+      "agents_critical": [
+        "GUARDIAN",
+        "TRENCH-OPS"
+      ],
+      "agents_shared": [
+        "ORACLE",
+        "PREDATOR",
+        "AUGUR",
+        "WRAITH",
+        "NARRATIVE"
+      ]
     },
     "tier2_reasoning": {
       "port": 30001,
       "gpu": 1,
       "model": "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct",
       "role": "orchestration_strategy_code",
-      "target_tps": "50-70"
+      "target_tps": "50-70",
+      "parallel_slots": 6,
+      "must_not_block_tier1": true
+    },
+    "tier3a_deepseek": {
+      "port": 30005,
+      "gpu": "0+1_expert_offload",
+      "model": "deepseek-ai/DeepSeek-V4-Pro",
+      "role": "rd_evolution_primary",
+      "target_tps": "10-20",
+      "critical_path": false,
+      "market_hours": "forbidden"
     },
     "tier3_offline": {
       "port": 30003,
@@ -764,11 +803,22 @@ capital:
       "model": "zai-org/GLM-5.2",
       "role": "rd_evolution_batch_only",
       "target_tps": "10-20",
-      "critical_path": false
+      "critical_path": false,
+      "market_hours": "forbidden"
+    },
+    "embedder": {
+      "port": 30004,
+      "gpu": 0,
+      "model": "Qwen/Qwen3-Embedding-0.6B",
+      "role": "memory_rerank_ride_along",
+      "mps_sm_pct": 10
     },
     "utility": {
       "port": 30002,
       "host": "titanspark",
+      "lanUrl": "http://192.168.10.20:30002/v1",
+      "wireguardUrl": "http://10.0.10.3:30002/v1",
+      "localhostUrl": "http://127.0.0.1:30002/v1",
       "model": "Qwen3-30B-A3B-Instruct-2507"
     }
   },
@@ -790,8 +840,19 @@ capital:
     },
     "qwen3-utility": {
       "type": "openai-compatible",
-      "baseUrl": "http://localhost:30002/v1",
+      "baseUrl": "http://192.168.10.20:30002/v1",
+      "fallbackUrl": "http://10.0.10.3:30002/v1",
       "model": "Qwen3-30B-A3B-Instruct-2507"
+    },
+    "qwen3-embedder": {
+      "type": "openai-compatible",
+      "baseUrl": "http://localhost:30004/v1",
+      "model": "Qwen/Qwen3-Embedding-0.6B"
+    },
+    "deepseek-offline": {
+      "type": "openai-compatible",
+      "baseUrl": "http://localhost:30005/v1",
+      "model": "deepseek-ai/DeepSeek-V4-Pro"
     }
   },
   "skills": {
@@ -847,6 +908,8 @@ capital:
     },
     "powerRequirementsPath": "~/.openclaw/infra/power_requirements.yaml",
     "gpuSchedulePath": "~/.openclaw/infra/gpu_schedule.yaml",
+    "latencyBudgetPath": "~/.openclaw/infra/latency_budget.yaml",
+    "edgeRttProbePath": "~/.openclaw/infra/edge_rtt_probe.yaml",
     "signingNodeConfigPath": "~/.openclaw/infra/signing_node.yaml"
   },
   "signingNode": {
@@ -856,7 +919,7 @@ capital:
     "port": 19010,
     "isolated": true,
     "requireGateReceipt": true,
-    "maxReceiptAgeSeconds": 30,
+    "maxReceiptAgeSeconds": 10,
     "routeAgents": [
       "TRENCH-OPS",
       "LAMARCK"
@@ -884,7 +947,14 @@ capital:
       "EDGE-USE",
       "EDGE-AMS"
     ],
-    "note": "Phase 1 ($2.5K): one PoP only; full 5-PoP mesh is Phase 3+"
+    "latencyBudgetMs": {
+      "homeToEdgeFraP95": 100,
+      "edgeToJitoP95": 50,
+      "nostrDispatch": 3
+    },
+    "phase1ApacDeferred": true,
+    "routingPolicy": "lowest_live_p50_rtt",
+    "note": "Phase 1: EU/Solana/ETH lanes only; APAC <1ms needs Phase 3+ PoPs"
   },
   "capital": {
     "capital_profile": "live",
@@ -1015,7 +1085,7 @@ reconciliation:
 # FLATTEN, REGIME, HEARTBEAT, TCA_INGEST, PROFIT_LOOP, REFUND, ALLOCATE
 control_plane:
   auth_required: true
-  max_age_seconds: 300
+  max_age_seconds: 100
   # Prefer dedicated control_plane.secret (0600). Falls back to kill_switch.secret.
   # Isolate from agent-writable paths; do not sync to staging/ or skills/.
   secret_file: control_plane.secret
@@ -1140,7 +1210,7 @@ signing:
   config_ref: ~/.openclaw/infra/signing_node.yaml
   blind_sign_rejected: true
   require_gate_receipt: true
-  max_receipt_age_seconds: 30
+  max_receipt_age_seconds: 10
   on_env_compromised: halt_all_signing
   signer_module: "titan_safety.adapters.live_bundle:live_signer"
 
@@ -1299,7 +1369,7 @@ routing:
     - eip712_typed_data_only
   receipt:
     header: X-Titan-Gate-Receipt
-    max_age_seconds: 30
+    max_age_seconds: 10
     issued_by: titan_safety.execution_gate
   on_compromise:
     action: halt_all_signing

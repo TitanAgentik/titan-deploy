@@ -76,6 +76,18 @@ If POST fails: clear CMOS, boot at JEDEC (4800), then enable EXPO.
 | SVM Mode (AMD-V) | Enabled | [ ] |
 | IOMMU | Enabled | [ ] |
 
+### Trading Latency Profile (enable before live capital)
+
+| Setting | Target | Done |
+|---------|--------|------|
+| Global C-state Control | **Disabled** | [ ] |
+| CPU C-States | **Disabled** (re-enable for maintenance windows) | [ ] |
+| CPPC Preferred Cores | Enabled | [ ] |
+| Power Supply Idle Control | Typical Current Idle | [ ] |
+| Package Power Limit | Auto (stock) | [ ] |
+
+> **Note:** Disabling C-states increases idle power ~50–80W but removes 50–200µs wake latency on critical threads. Re-enable when not trading.
+
 ### Advanced → Onboard Devices
 
 - [ ] Primary display: PCIe slot with GPU0 (or auto)

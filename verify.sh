@@ -178,9 +178,19 @@ fi
 
 if [[ -f "$OPENCLAW_HOME/openclaw.json" ]]; then
   if python3 -c "import json; d=json.load(open('$OPENCLAW_HOME/openclaw.json')); assert d.get('inference',{}).get('tier1_critical',{}).get('port')==30000" 2>/dev/null; then
-    pass "openclaw.json: 3-tier inference config"
+    pass "openclaw.json: tier1_critical inference config"
   else
     fail "openclaw.json missing tier1_critical inference block"
+  fi
+  if python3 -c "import json; d=json.load(open('$OPENCLAW_HOME/openclaw.json')); assert d.get('inference',{}).get('embedder',{}).get('port')==30004" 2>/dev/null; then
+    pass "openclaw.json: embedder :30004 configured"
+  else
+    fail "openclaw.json missing embedder inference block"
+  fi
+  if python3 -c "import json; d=json.load(open('$OPENCLAW_HOME/openclaw.json')); lb=d.get('latencyBudgetPath') or d.get('inference',{}).get('latencyBudgetPath'); assert lb" 2>/dev/null; then
+    pass "openclaw.json: latency budget path set"
+  else
+    fail "openclaw.json missing latencyBudgetPath"
   fi
   if grep -q "implicit approval" "$OPENCLAW_HOME/openclaw.json" 2>/dev/null; then
     fail "openclaw.json contains implicit approval"
@@ -306,7 +316,7 @@ if profile == 'live':
 fi
 
 # Systemd unit files in output (optional install)
-for svc in titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-status-aggregator titan-allocator titan-tca titan-signing-node titan-portfolio-risk titan-security-ops; do
+for svc in titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-status-aggregator titan-allocator titan-tca titan-signing-node titan-portfolio-risk titan-security-ops llama-server-tier1 llama-server-tier2 llama-server-embedder cuda-mps; do
   if [[ -f "$PROJECT_ROOT/output/systemd/${svc}.service" ]] || [[ -f "$PROJECT_ROOT/templates/systemd/${svc}.service" ]]; then
     pass "systemd unit template: ${svc}.service"
   fi
@@ -314,13 +324,27 @@ done
 
 # Infra specs (power, signing, GPU schedule)
 INFRA_DIR="$OPENCLAW_HOME/infra"
-for spec in power_requirements.yaml signing_node.yaml gpu_schedule.yaml; do
+for spec in power_requirements.yaml signing_node.yaml gpu_schedule.yaml latency_budget.yaml edge_rtt_probe.yaml; do
   if [[ -f "$INFRA_DIR/$spec" ]]; then
     pass "Infra spec: $spec"
   else
     fail "Missing infra spec: $INFRA_DIR/$spec"
   fi
 done
+
+# Latency tuning artifacts
+for script in titanhome-latency-tune.sh forge_gpu_schedule_enforce.sh titanhome-prewarm-tier1.sh; do
+  if [[ -x "$INFRA_DIR/$script" ]] || [[ -f "$INFRA_DIR/$script" ]]; then
+    pass "Infra script: $script"
+  else
+    fail "Missing infra script: $INFRA_DIR/$script"
+  fi
+done
+if [[ -f "$INFRA_DIR/sysctl/99-openclaw-performance.conf" ]]; then
+  pass "Infra sysctl: 99-openclaw-performance.conf"
+else
+  fail "Missing infra/sysctl/99-openclaw-performance.conf"
+fi
 
 # UPS required for live capital (gate)
 if [[ -f "$INFRA_DIR/power_requirements.yaml" ]]; then

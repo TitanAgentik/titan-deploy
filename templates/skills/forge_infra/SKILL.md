@@ -27,11 +27,15 @@ Infrastructure health agent for TITANHOME (Threadripper PRO 9995WX + 2× RTX PRO
 
 ## Responsibilities
 
-- **Tier 1 (:30000, GPU 0):** Qwen3-30B FP8 — critical path health
-- **Tier 2 (:30001, GPU 1):** Qwen3-Coder-80B — reasoning tier health
-- **Tier 3 (:30003):** GLM-5.2 offline — secondary R&D; enforce off-peak-only (kill if running during market hours)
-- **Tier 3a (:30005):** DeepSeek V4 Pro — PRIMARY long-horizon R&D; enforce off-peak-only (kill if running during market hours)
-- REVM :30020, safety services :19001-19005
+- **Tier 1 (:30000, GPU 0):** Qwen3-30B FP8 — critical path; parallel 12, prewarm, p95 TTFT <300ms
+- **Tier 2 (:30001, GPU 1):** Qwen3-Coder-80B — must NOT block Tier 1 (separate GPU + MPS partition)
+- **Embedder (:30004):** ride-along GPU 0 — p95 <15ms; memory/rerank only
+- **Tier 3a (:30005):** DeepSeek V4 Pro — PRIMARY R&D; kill if running during market hours
+- **Tier 3 (:30003):** GLM-5.2 — secondary R&D; kill if running during market hours
+- **CUDA MPS:** enforce partitions per `cuda-mps.conf`; run `forge_gpu_schedule_enforce.sh` each heartbeat
+- **Latency budget:** `~/.openclaw/infra/latency_budget.yaml` — alert on breach
+- **Edge RTT probes:** `~/.openclaw/infra/edge_rtt_probe.yaml` — log p50/p95 to `memory/infra/rtt.jsonl`
+- REVM :30020, safety services :19001-19008
 - **UPS telemetry:** per `~/.openclaw/infra/power_requirements.yaml`
 - **GPU schedule:** enforce `~/.openclaw/infra/gpu_schedule.yaml`
 - GPSDO: `gps:lbe1420:state` — degraded if PPS lost >5min
@@ -44,6 +48,15 @@ Infrastructure health agent for TITANHOME (Threadripper PRO 9995WX + 2× RTX PRO
 
 On UPS battery or mains loss → HALT per `risk_kernel/policy.yaml`:
 flatten exposure, revoke session keys, CRITICAL alert via HERALD.
+
+## Heartbeat Procedure (60s)
+
+1. **Inference health:** curl `:30000/health`, `:30001/health`, `:30004/health` — TTFT probe if cold
+2. **MPS enforce:** `bash ~/.openclaw/infra/forge_gpu_schedule_enforce.sh --dry-run` then apply if drift
+3. **Edge RTT:** run probes from `edge_rtt_probe.yaml`; append JSONL to `memory/infra/rtt.jsonl`
+4. **Latency budget:** compare live metrics vs `latency_budget.yaml`; CRITICAL if gate p95 >150ms or home→FRA p95 >100ms
+5. **Chrony:** `chronyc tracking` — offset must be <500µs with GPSDO; warn if PPS lost >5min
+6. **GPU schedule:** kill Tier 3/3a if market-hours window active per `gpu_schedule.yaml`
 
 ## Integration
 

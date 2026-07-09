@@ -111,9 +111,19 @@ fi
 # Data mount points
 echo
 echo "=== Preparing mount points ==="
-sudo mkdir -p /data/openclaw/{memory,logs,ledger,audit}
+sudo mkdir -p /data/openclaw/{memory,logs,ledger,audit,infra}
 sudo mkdir -p /data/models
 sudo chown -R "$USER:$USER" /data 2>/dev/null || warn "Set /data ownership manually if needed"
+
+# Latency tuning (requires deploy first for scripts)
+OPENCLAW_HOME="${OPENCLAW_HOME:-$HOME/.openclaw}"
+if [[ -x "$OPENCLAW_HOME/infra/titanhome-latency-tune.sh" ]]; then
+  echo
+  echo "=== Applying latency tune (sysctl, chrony hints, tmpfs) ==="
+  OPENCLAW_HOME="$OPENCLAW_HOME" bash "$OPENCLAW_HOME/infra/titanhome-latency-tune.sh" || warn "latency tune failed — run after deploy"
+else
+  warn "Run ./deploy.sh then: OPENCLAW_HOME=$OPENCLAW_HOME bash $OPENCLAW_HOME/infra/titanhome-latency-tune.sh"
+fi
 
 if ! grep -q "/data" /etc/fstab 2>/dev/null; then
   warn "Mount WD SN8100 drives to /data and /fast — see titanhome_ubuntu_install.md"
@@ -124,8 +134,8 @@ echo
 echo "=== Next steps ==="
 echo "1. Set static IP: /etc/netplan/01-titanhome.yaml → 192.168.10.10"
 echo "2. See: ~/.openclaw/infra/titanhome_bios_checklist.md (after deploy)"
-echo "3. cd titan-deploy && ./deploy.sh && ./verify.sh"
-echo "4. Enable systemd user services (risk kernel, llama-server tiers)"
+echo "3. cd titan-deploy && ./deploy.sh --latency-tune && ./verify.sh"
+echo "4. Enable systemd user services: ./deploy.sh --systemd --start-services --start-inference"
 
 echo
 if [[ "$FAILED" -eq 0 ]]; then

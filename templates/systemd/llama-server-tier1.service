@@ -1,6 +1,6 @@
 [Unit]
-Description=TITAN Tier 1 Inference — Qwen3-30B-A3B FP8 (critical path)
-After=network-online.target
+Description=TITAN Tier 1 Inference — Qwen3-30B-A3B FP8 (critical path, low latency)
+After=network-online.target cuda-mps.service
 Wants=network-online.target
 ConditionPathExists=/data/models/Qwen3-30B-A3B-Instruct-2507-FP8
 
@@ -8,13 +8,19 @@ ConditionPathExists=/data/models/Qwen3-30B-A3B-Instruct-2507-FP8
 Type=simple
 User=hyperion
 Environment=CUDA_VISIBLE_DEVICES=0
+Environment=CUDA_MPS_ACTIVE_THREAD_PERCENTAGE=85
 ExecStart=/home/hyperion/llama.cpp/build/bin/llama-server \
   --host 127.0.0.1 --port 30000 \
   --model /data/models/Qwen3-30B-A3B-Instruct-2507-FP8/Qwen3-30B-A3B-Instruct-2507-FP8.gguf \
-  --ctx-size 8192 --parallel 8 --n-gpu-layers 99
+  --ctx-size 8192 --parallel 12 --n-gpu-layers 99 \
+  --flash-attn on --cont-batching \
+  --threads 24 --threads-batch 48 \
+  --cache-type-k q8_0 --cache-type-v q8_0
+ExecStartPost=/home/hyperion/.openclaw/infra/titanhome-prewarm-tier1.sh
 Restart=on-failure
-RestartSec=10
+RestartSec=5
 LimitNOFILE=1048576
+Nice=-5
 
 [Install]
 WantedBy=multi-user.target

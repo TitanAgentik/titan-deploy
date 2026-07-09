@@ -11,9 +11,20 @@
 
 ## Environment
 
-- [ ] Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_USER_ID` in `~/.openclaw/.env`
+- [ ] Copy `~/.openclaw/infra/live.env.example` → `~/.openclaw/.env` and fill secrets
+- [ ] Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_USER_ID`
+- [ ] Set `TITAN_RECON_FETCHER_URL` or exchange API keys (recon fail-closed until wired)
+- [ ] Set `TITAN_LIVE_SIGNING_READY=1` only after Trezor bridge + `:19010` health OK
 - [ ] Set `HERMES_HOME=~/.hermes`
-- [ ] Verify `openclaw.json` and `config.yaml` deployed
+- [ ] Verify `capital_profile: live` in policy + openclaw; `paper` venue remains for shadow lanes
+
+## Autonomous sign/verify (no human on trade path)
+
+- [ ] Confirm `autonomous_signing.enabled: true` in `~/.openclaw/risk_kernel/policy.yaml`
+- [ ] TRENCH-OPS uses `titan-safety gate sign` or gate check → receipt → signing_node
+- [ ] Live venues: every sign request includes EIP-712 `typed_data` or `calldata`
+- [ ] Trades >1% equity: attach 2-of-3 BFT votes (`titan-safety bft vote` from AUGUR/PREDATOR/ATLAS)
+- [ ] Human gates still required: promotion Phase 5, evolution deploy, leverage, flash-loan live, >20% withdraw
 
 ## Hardware Verification (TITANHOME)
 
@@ -88,14 +99,15 @@
 - [ ] Confirm promotion requires explicit `YES` via `titan-safety promotion approve`
 - [ ] Read `PRODUCTION_READINESS.md` — DO NOT deploy real capital until all gates pass
 
-## Capital Phase 1 (PAPER/SHADOW ONLY UNTIL CHECKLIST COMPLETE)
+## Capital Phase 1 (LIVE + paper shadow)
 
-- [ ] Complete 3+ days paper trading per strategy
-- [ ] Complete shadow execution phase with divergence <15%
+- [ ] Policy `capital_profile: live`; `paper` venue enabled for unpromoted/shadow lanes
+- [ ] `~/.openclaw/.env` filled from `live.env.example`
+- [ ] Agent-autonomous signing verified: confidence + BFT → gate receipt → signing_node
+- [ ] 48h reconciliation zero-divergence after creds wired
 - [ ] Micro-live ≤0.1% equity with kill switch armed
-- [ ] Phase 5 explicit operator YES recorded in promotion audit log
-- [ ] Only then configure live keys and starting capital in ATLAS
-- [ ] **UPS acknowledged** for live capital (`~/.openclaw/infra/power_requirements.yaml`)
+- [ ] Phase 5 explicit operator YES for each funded lane promotion
+- [ ] **UPS acknowledged** (`~/.openclaw/infra/power_requirements.yaml`)
 
 ## Capital Deposit / Withdraw (Smoke Test)
 

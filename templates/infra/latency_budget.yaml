@@ -1,0 +1,43 @@
+# TITAN Latency Budget — SLOs and hard ceilings (FORGE enforces)
+# Deploy: ~/.openclaw/infra/latency_budget.yaml
+
+version: "1.0"
+priority: low_latency_first
+
+# Critical path: signal → gate → sign → edge broadcast
+critical_path_ms:
+  execution_gate_total: 150       # recon + kernel HTTP round-trips
+  reconciliation: 50
+  risk_kernel: 30
+  gate_receipt_issue: 5
+  signing_node: 20                # receipt verify + Trezor RPC
+  edge_nostr_dispatch: 3          # EDGE-FRA broadcast budget
+  home_to_edge_fra_p95: 100       # Phase 1 WireGuard/LAN ceiling
+  edge_to_jito_p95: 50             # solana_memecoin.yaml alignment
+  signing_receipt_max_age_seconds: 10
+
+inference_ms:
+  tier1_first_token_warm_p95: 250
+  tier1_first_token_cold_p95: 2000
+  tier1_ttft_slo_p95: 300         # alert if exceeded under load
+  tier2_prefill_must_not_block_tier1: true
+  embedder_p95: 15
+  mem0_recall_p95: 20             # alert CB when wired
+
+feeds:
+  nexus_staleness_max_seconds: 30  # tightened from 60 for live
+  rpc_timeout_seconds: 2
+  websocket_reconnect_ms: 500
+
+phase1_constraints:
+  apac_sub_ms_unavailable: true
+  apac_deferred_pipelines: [P1, P3, P5, P7, P8, P11, P29]
+  note: "APAC same-AZ <1ms requires EDGE-TKY/SIN Phase 3+"
+
+enforcement:
+  agent: FORGE
+  on_breach:
+    - herald_alert
+    - log_posture_jsonl
+  hard_halt:
+    - home_to_edge_fra_p95_above_200ms_sustained_5m

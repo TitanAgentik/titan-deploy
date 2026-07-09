@@ -46,7 +46,7 @@ class ExecutionGate:
         policy: Policy,
         kernel_url: str | None = None,
         recon_url: str | None = None,
-        timeout: float = 2.0,
+        timeout: float = 1.0,
         auth_operator: str = "execution_gate",
         safety_dir: Path | None = None,
     ) -> None:

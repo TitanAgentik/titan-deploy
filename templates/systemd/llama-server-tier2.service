@@ -1,6 +1,6 @@
 [Unit]
-Description=TITAN Tier 2 Inference — Qwen3-Coder-Next-80B (reasoning)
-After=network-online.target llama-server-tier1.service
+Description=TITAN Tier 2 Inference — Qwen3-Coder-80B (orchestration, must not block Tier 1)
+After=network-online.target llama-server-tier1.service cuda-mps.service
 Wants=network-online.target
 ConditionPathExists=/data/models/Qwen3-Coder-Next-80B
 
@@ -8,13 +8,17 @@ ConditionPathExists=/data/models/Qwen3-Coder-Next-80B
 Type=simple
 User=hyperion
 Environment=CUDA_VISIBLE_DEVICES=1
+Environment=CUDA_MPS_ACTIVE_THREAD_PERCENTAGE=90
 ExecStart=/home/hyperion/llama.cpp/build/bin/llama-server \
   --host 127.0.0.1 --port 30001 \
   --model /data/models/Qwen3-Coder-Next-80B/Qwen3-Coder-Next-80B-A3B-Instruct-Q4_K_M.gguf \
-  --ctx-size 16384 --parallel 4 --n-gpu-layers 99
+  --ctx-size 16384 --parallel 6 --n-gpu-layers 99 \
+  --flash-attn on --cont-batching \
+  --threads 16 --threads-batch 32
 Restart=on-failure
-RestartSec=15
+RestartSec=10
 LimitNOFILE=1048576
+Nice=0
 
 [Install]
 WantedBy=multi-user.target

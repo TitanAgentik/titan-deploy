@@ -42,7 +42,7 @@ routing:
     - eip712_typed_data_only
   receipt:
     header: X-Titan-Gate-Receipt
-    max_age_seconds: 30
+    max_age_seconds: 10
     issued_by: titan_safety.execution_gate
   on_compromise:
     action: halt_all_signing

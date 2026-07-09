@@ -34,6 +34,8 @@ nodes:
     services_local:
       - "llama-server :30000 (Tier 1)"
       - "llama-server :30001 (Tier 2)"
+      - "llama-server :30004 (Embedder ride-along)"
+      - "cuda-mps (GPU 0 partition)"
       - "titan-safety :19001-19007"
       - "openclaw-gateway :18789"
       - "nats :4222"
@@ -131,7 +133,13 @@ wireguard_mesh:
     macmini_vault: "10.0.10.4"
     edge_fra: "10.0.10.100"
   utility_inference_url: "http://10.0.10.3:30002/v1"
-  note: "openclaw.json agents use localhost on each node; cross-node calls use WG IPs"
+  utility_lan_url: "http://192.168.10.20:30002/v1"
+  note: "Utility agents on TITANHOME use LAN URL; cross-node via WireGuard"
+
+latency:
+  budget_ref: ~/.openclaw/infra/latency_budget.yaml
+  home_to_edge_fra_p95_ms: null  # FORGE records after bootstrap probe
+  phase1_apac_sub_ms: false
 
 # ─── Physical connection order (do in this sequence) ────────────────────────
 
@@ -194,8 +202,9 @@ bios_titanhome:
     cpu:
       - "SMT: Enabled (192 threads)"
       - "PBO/Curve Optimizer: leave stock for stability until tuned"
-      - "C-States: Enabled for idle; monitor latency if trading-sensitive"
-      - "Global C-state Control: Auto"
+      - "C-States: Disabled for live trading window (low latency — re-enable for idle maintenance)"
+      - "Global C-state Control: Disabled when trading live"
+      - "CPPC Preferred Cores: Enabled"
     boot:
       - "Fast Boot: Disabled (for reliability)"
       - "Boot primary: Micron 7500 NVMe"

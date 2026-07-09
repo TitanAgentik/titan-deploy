@@ -103,7 +103,7 @@ reconciliation:
 # FLATTEN, REGIME, HEARTBEAT, TCA_INGEST, PROFIT_LOOP, REFUND, ALLOCATE
 control_plane:
   auth_required: true
-  max_age_seconds: 300
+  max_age_seconds: 100
   # Prefer dedicated control_plane.secret (0600). Falls back to kill_switch.secret.
   # Isolate from agent-writable paths; do not sync to staging/ or skills/.
   secret_file: control_plane.secret
@@ -228,7 +228,7 @@ signing:
   config_ref: ~/.openclaw/infra/signing_node.yaml
   blind_sign_rejected: true
   require_gate_receipt: true
-  max_receipt_age_seconds: 30
+  max_receipt_age_seconds: 10
   on_env_compromised: halt_all_signing
   signer_module: "titan_safety.adapters.live_bundle:live_signer"
 

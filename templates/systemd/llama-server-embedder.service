@@ -1,0 +1,24 @@
+[Unit]
+Description=TITAN Embedder — Qwen3-Embedding ride-along GPU 0
+After=llama-server-tier1.service cuda-mps.service
+Wants=llama-server-tier1.service
+ConditionPathExists=/data/models/Qwen3-Embedding-0.6B
+
+[Service]
+Type=simple
+User=hyperion
+Environment=CUDA_VISIBLE_DEVICES=0
+Environment=CUDA_MPS_ACTIVE_THREAD_PERCENTAGE=10
+ExecStart=/home/hyperion/llama.cpp/build/bin/llama-server \
+  --host 127.0.0.1 --port 30004 \
+  --model /data/models/Qwen3-Embedding-0.6B/Qwen3-Embedding-0.6B-Q8_0.gguf \
+  --embedding --pooling mean \
+  --ctx-size 8192 --parallel 16 --n-gpu-layers 99 \
+  --flash-attn on --cont-batching
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=65536
+Nice=5
+
+[Install]
+WantedBy=multi-user.target
