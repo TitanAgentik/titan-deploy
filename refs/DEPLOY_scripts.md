@@ -409,8 +409,11 @@ else
   fail "Hermes skills symlink missing: $HERMES_HOME/skills"
 fi
 
-# Skills count
-skill_count=$(find "$OPENCLAW_HOME/workspace/skills" -name 'SKILL.md' 2>/dev/null | wc -l | tr -d ' ')
+# Skills count (missing dir must not abort under set -o pipefail)
+skill_count=0
+if [[ -d "$OPENCLAW_HOME/workspace/skills" ]]; then
+  skill_count=$(find "$OPENCLAW_HOME/workspace/skills" -name 'SKILL.md' 2>/dev/null | wc -l | tr -d ' ') || skill_count=0
+fi
 if [[ $skill_count -gt 0 ]]; then
   pass "Skills extracted: $skill_count"
 else
@@ -571,8 +574,6 @@ if profile != 'live' and adapter != 'mock':
     || fail "openclaw.json capital config invalid (live+mock withdrawal forbidden)"
 fi
 
-# Live-profile mock ban: policy must not allow mock recon with live venues under enforce
-POLICY="$OPENCLAW_HOME/risk_kernel/policy.yaml"
-if [[ -f "$POLICY" ]] && co
+# Live-profile mock ban:
 # … truncated; see verify.sh in repo root …
 ```

@@ -50,6 +50,7 @@ def signal_catalog_doc() -> str:
 - **Funding / OI** — perpetual funding rates, open interest, basis
 - **On-chain flow** — whale wallets, exchange inflow/outflow, bridge volume
 - **Mempool / MEV** — pending txs, bundle competition (PREDATOR; edge PoP)
+- **Pump.fun / trench (P22)** — mint create, curve buy velocity, graduation/migration, smart-money wallet copy (Geyser)
 - **Macro / regime** — AUGUR risk_on / neutral / risk_off (file or HTTP feed)
 - **Catalyst / news** — NARRATIVE listings, governance, regulatory events
 - **Sentiment (grounded)** — cited social posts with timestamps only
@@ -84,6 +85,10 @@ def extract_pipelines(text: str) -> str:
         "- **P11** Prediction Market Arbitrage (micro-live path)",
         "- **P12** Intent Solver Network (when funded)",
         "",
+        "## Phase 2+ optional (high toxicity — promotion YES required)",
+        "",
+        "- **P22** Solana Memecoin Trench / Pump.fun lifecycle (catalog — real SOL gated)",
+        "",
         "## Catalog (not all active)",
         "",
     ]
@@ -102,6 +107,7 @@ def extract_pipelines(text: str) -> str:
             "- **P29** Unified MEV Arbitrage Engine",
             "- **P30** Automated Vulnerability Scanner & Bounty Hunter",
             "- **P34** Concentrated Liquidity Provision (CLMM) 2.0",
+            "- **P22** Solana Memecoin Trench (Pump.fun lifecycle)",
             "- **P37-P48** See full TITAN source",
         ]
     lines.append("")
@@ -126,6 +132,14 @@ ENDGAME_CBS = [
     "CB_ENDGAME_PHASE_GATE",
 ]
 
+MEMECOIN_CBS = [
+    "CB_MEMECOIN_DAILY_SOL_CAP",
+    "CB_MEMECOIN_FILTER_BYPASS",
+    "CB_MEMECOIN_HONEYPOT",
+    "CB_MEMECOIN_GRAD_FAIL",
+    "CB_MEMECOIN_TIP_BLEED",
+]
+
 
 def extract_critical_cbs(text: str) -> str:
     text = unescape_markdown(text)
@@ -145,6 +159,12 @@ def extract_critical_cbs(text: str) -> str:
         "",
     ]
     for cb in ENDGAME_CBS:
+        lines.append(f"- `{cb}`")
+        seen.add(cb)
+    lines.append("")
+    lines.append("## P22 Memecoin trench")
+    lines.append("")
+    for cb in MEMECOIN_CBS:
         lines.append(f"- `{cb}`")
         seen.add(cb)
     lines.append("")
@@ -175,6 +195,49 @@ def endgame_strategies_doc() -> str:
 
 Playbook: `playbooks/endgame_phase_gate.yaml`
 Gate: `CB_ENDGAME_PHASE_GATE`
+"""
+
+
+def memecoin_trench_doc() -> str:
+    return """# P22 — Solana Memecoin Trench (Pump.fun Lifecycle)
+
+> **Catalog until promotion YES.** Real SOL requires live profile, six-gate filter, and Phase 5 approval.
+> **Excluded:** §5.5.6 launch bundler dumps, honeypot/rug offensive tooling.
+
+## Strategies (default playbook)
+
+| Strategy | Trigger | Max size |
+|----------|---------|----------|
+| first_block_snipe | Mint create, G1–G6 pass | 0.1–0.5% equity |
+| curve_climb | 15–85% bonding curve | 0.5% equity |
+| graduation | ~$69k migration | 0.5% equity |
+| post_grad_pullback | Post-PumpSwap | 1.0% equity |
+| smart_money_mirror | Tracked wallet buy | 0.5% equity |
+
+## Six-gate filter
+
+1. Mint authority revoked  
+2. Freeze authority revoked  
+3. Holder concentration caps  
+4. No cabal fast-fill  
+5. Curve alive  
+6. Sell sim OK  
+
+CLI: `titan-safety memecoin filter --mint-json '…'`
+
+## Real Solana wiring
+
+- Infra: `infra/solana_memecoin.yaml` (Geyser + Jito + EDGE-FRA)  
+- Config: `openclaw.json` → `memecoinTrench.enabled` (default false)  
+- Policy: `memecoin_trench:` block + live venues when ready  
+- Agents: PREDATOR (scan) → GUARDIAN/kernel → TRENCH-OPS (Jito) → signing_node  
+
+## Capital envelope
+
+$100–$2,000 lane; daily SOL cap (default 2 SOL); correlation group `memecoin_trench`.
+
+Playbook: `playbooks/memecoin_trench.yaml`
+Skill: `memecoin_trench`
 """
 
 
@@ -320,6 +383,7 @@ def main() -> int:
         "strategies/selective-activation.md": selective_activation_doc(),
         "strategies/signal-catalog.md": signal_catalog_doc(),
         "strategies/endgame.md": endgame_strategies_doc(),
+        "strategies/memecoin-trench.md": memecoin_trench_doc(),
         "risk/circuit-breakers.md": extract_critical_cbs(text),
         "agents/routing-table.md": agent_routing_table(),
         "hardware/workstation.md": workstation_doc(),

@@ -1,0 +1,59 @@
+# P22 Memecoin Trench — Pump.fun lifecycle (catalog until promotion YES)
+version: "1.0"
+pipeline_id: P22
+note: "Mention≠mandate. Real SOL requires live profile + Phase 5 YES. No offensive launch tooling."
+
+capital_envelope_usd:
+  min: 100
+  max: 2000
+
+strategies:
+  first_block_snipe:
+    max_pct_equity: 0.5
+    daily_sol_cap: 2.0
+    requires: [G1-G6 pass, jito_bundle]
+  curve_climb:
+    min_curve_progress_pct: 15
+    max_pct_equity: 0.5
+  graduation:
+    target_mcap_usd: 69000
+    max_pct_equity: 0.5
+  post_grad_pullback:
+    max_pct_equity: 1.0
+  smart_money_mirror:
+    min_wallet_pnl_sol: 50
+    max_pct_equity: 0.5
+
+lifecycle_phases:
+  A: "First 5% bonding curve — snipe only with tiny size"
+  B: "Curve climb 15-85% — velocity + holder checks"
+  C: "Graduation approach / migration to PumpSwap"
+  D: "Post-grad pullback or smart-money mirror"
+
+exits:
+  stop_loss_pct: 40
+  trailing_stop_pct: 25
+  take_profit_ladder: [0.25, 0.25, 0.50]
+  time_exit_minutes: 15
+
+agents:
+  scan: PREDATOR
+  execute: TRENCH-OPS
+  feeds: NEXUS
+  size: GUARDIAN
+
+gates:
+  - six_gate_filter
+  - risk_kernel_19001
+  - execution_gate_receipt
+  - signing_node_19010
+  - promotion_stats
+  - operator_yes
+
+excluded:
+  - algorithmic_token_init_5.5.6
+  - bundler_dump_launches
+  - honeypot_construction
+
+playbook_ref: promotion.yaml
+red_team: red_team_checklist.yaml

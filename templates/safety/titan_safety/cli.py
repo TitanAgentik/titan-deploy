@@ -17,6 +17,9 @@ from .execution_gate import ExecutionGate
 from .kill_switch import KillSwitch
 from .promotion_gate import PromotionCategory, PromotionGate, PromotionRequest
 from .promotion_stats import StatsGateConfig, StrategyStats, StrategyStatsGate
+from .memecoin_filter import MemecoinFilter, MemecoinFilterConfig, MintCandidate
+from .memecoin_sim import run_simulation
+from .policy_loader import load_policy
 from .profit_loop import ProfitLoop
 from .tca import Fill, TCAEngine
 from .telegram_capital import format_telegram_response, handle_capital_command
@@ -403,6 +406,58 @@ def cmd_security_lockdown(args: argparse.Namespace) -> int:
     return 0 if result.get("ok", False) else 1
 
 
+def cmd_memecoin_filter(args: argparse.Namespace) -> int:
+    policy_path = Path(args.policy) if args.policy else Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"
+    policy = load_policy(policy_path)
+    cfg = MemecoinFilterConfig.from_raw(policy.raw if policy else {})
+    flt = MemecoinFilter(cfg)
+    raw = json.loads(args.mint_json)
+    fields = MintCandidate.__dataclass_fields__
+    cand = MintCandidate(**{k: raw[k] for k in fields if k in raw})
+    verdict = flt.evaluate(cand)
+    print(json.dumps(verdict.to_dict(), indent=2))
+    return 0 if verdict.passed else 1
+
+
+def cmd_memecoin_sim(args: argparse.Namespace) -> int:
+    policy_path = Path(args.policy) if args.policy else Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"
+    policy = load_policy(policy_path)
+    cfg = MemecoinFilterConfig.from_raw(policy.raw if policy else {})
+    result = run_simulation(
+        count=args.count,
+        seed=args.seed,
+        equity_usd=args.equity,
+        config=cfg,
+    )
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def cmd_memecoin_status(args: argparse.Namespace) -> int:
+    from .adapters.jito_submit import JitoSubmitAdapter
+    from .adapters.solana_recon import SolanaReconAdapter
+
+    policy_path = Path(args.policy) if args.policy else Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"
+    policy = load_policy(policy_path)
+    m = (policy.raw.get("memecoin_trench") or {}) if policy else {}
+    jito = JitoSubmitAdapter(str(m.get("jito_block_engine", "")))
+    recon = SolanaReconAdapter(str(m.get("recon_module", "")))
+    print(
+        json.dumps(
+            {
+                "pipeline_id": "P22",
+                "enabled": bool(m.get("enabled", False)),
+                "jito": jito.health(),
+                "recon": recon.health(),
+                "daily_sol_cap": m.get("daily_sol_cap"),
+                "max_snipe_pct_equity": m.get("max_snipe_pct_equity"),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
 def _load_tca_engine(safety_dir: Path) -> TCAEngine:
     """Load TCAEngine; optionally hydrate from safety_dir/tca_fills.jsonl if present."""
     engine = TCAEngine()
@@ -717,6 +772,22 @@ def main(argv: list[str] | None = None) -> int:
     tpl.add_argument("--regime", default="neutral")
     tpl.add_argument("--drawdown-pct", type=float, default=0.0)
     tpl.set_defaults(func=cmd_tca_profit_loop)
+
+    p_mc = sub.add_parser("memecoin", help="P22 memecoin trench filter / sim / status")
+    mc_sub = p_mc.add_subparsers(dest="mc_cmd", required=True)
+    mcf = mc_sub.add_parser("filter", help="Run six-gate filter on mint JSON")
+    mcf.add_argument("--mint-json", required=True, help="JSON MintCandidate fields")
+    mcf.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
+    mcf.set_defaults(func=cmd_memecoin_filter)
+    mcs = mc_sub.add_parser("sim", help="Paper sim: mock events → filter → TCA")
+    mcs.add_argument("--count", type=int, default=100)
+    mcs.add_argument("--seed", type=int, default=42)
+    mcs.add_argument("--equity", type=float, default=2500.0)
+    mcs.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
+    mcs.set_defaults(func=cmd_memecoin_sim)
+    mcst = mc_sub.add_parser("status", help="P22 adapter / policy status")
+    mcst.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
+    mcst.set_defaults(func=cmd_memecoin_status)
 
     args = parser.parse_args(argv)
     return args.func(args)

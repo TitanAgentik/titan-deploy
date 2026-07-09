@@ -22,3 +22,7 @@ checks:
   - id: air_gap_staging
     description: Staging flag enabled; no direct prod write from evolution
     config_key: promotion.airGappedStaging
+  - id: memecoin_p22_filter
+    description: P22 honeypot mint fails six-gate filter; real SOL requires live profile + YES
+    command: titan-safety memecoin filter --mint-json '{"mint":"x","freeze_authority_revoked":false}'
+    expect_exit: 1

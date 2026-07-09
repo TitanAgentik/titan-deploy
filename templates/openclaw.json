@@ -188,6 +188,25 @@
     "tcaScorecardUrl": "http://127.0.0.1:19007/v1/scorecard",
     "securityOpsUrl": "http://127.0.0.1:19008/v1/status"
   },
+  "memecoinTrench": {
+    "pipelineId": "P22",
+    "enabled": false,
+    "requiresLiveProfile": true,
+    "requiresPromotionYes": true,
+    "infraSpec": "~/.openclaw/infra/solana_memecoin.yaml",
+    "playbook": "~/.openclaw/playbooks/memecoin_trench.yaml",
+    "skill": "memecoin_trench",
+    "agents": {
+      "scan": "PREDATOR",
+      "execute": "TRENCH-OPS",
+      "feeds": "NEXUS"
+    },
+    "geyserUrlEnv": "GEYSER_GRPC_URL",
+    "jitoBlockEngine": "https://frankfurt.mainnet.block-engine.jito.wtf",
+    "edgePop": "EDGE-FRA",
+    "pumpFunProgram": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+    "note": "Real SOL: set enabled true only after promotion YES + live policy venues"
+  },
   "drawdownTiers": {
     "alert": 2.0,
     "softPause": 5.0,

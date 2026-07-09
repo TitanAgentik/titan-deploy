@@ -178,6 +178,7 @@ def sync_memory_strategies() -> None:
         "active-pipelines.md",
         "signal-catalog.md",
         "endgame.md",
+        "memecoin-trench.md",
     )
     for name in names:
         src_out = out_strat / name

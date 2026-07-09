@@ -54,6 +54,12 @@ from `openclaw.json` (default `http://127.0.0.1:19010`, host configurable).
 3. Submit signing request to signing_node (not local wallet)
 4. Broadcast via Phase 1 edge: **EDGE-FRA** (single PoP sufficient for $2.5K)
 
+## Solana / P22 memecoin (when promoted)
+
+1. Geyser stream → PREDATOR six-gate filter (`titan-safety memecoin filter`)  
+2. Gate check + receipt → signing_node → Jito bundle via EDGE-FRA  
+3. Config: `infra/solana_memecoin.yaml`, `memecoinTrench` in openclaw.json (default disabled)  
+
 ## Integration
 
 - Agent routing: AGENTS.md → TRENCH-OPS

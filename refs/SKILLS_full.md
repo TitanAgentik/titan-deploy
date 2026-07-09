@@ -41,6 +41,7 @@
 - `liquidation_hunter/` — Liquidation Hunter
 - `maintenance_scanner/` — Maintenance Scanner
 - `market_regime/` — Market Regime
+- `memecoin_trench/` — P22 Solana memecoin trench — Pump.fun lifecycle, 6-gate filter, Jito execution
 - `memory_management/` — Memory Management
 - `narrative_catalyst/` — Narrative Catalyst
 - `nexus_feeds/` — Nexus Feeds — stub skill (full definition pending §SKILLS_full.md)

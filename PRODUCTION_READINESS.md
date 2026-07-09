@@ -54,6 +54,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 | Pipeline concentration | `allocator.max_active_pipelines` (default 4) | Cap funded lanes |
 | Selective activation | `autonomy.selectiveActivation` + allocator advisory | Catalog ≠ all-on |
 | Security Ops four pillars | `security_ops.py` + HTTP `:19008` | Lockdown / honeypot / posture |
+| P22 memecoin trench | `memecoin_filter.py` + six-gate + `memecoin sim` | Catalog until YES; real SOL gated |
 | Air-gapped staging flag | `openclaw.json` `promotion.airGappedStaging` | Config |
 | Safe mode / wind-down | `wind_down.py` + CLI | De-risk |
 | Tax ledger stub | `capital/tax_ledger.py` FIFO + CSV export | Audit |
@@ -112,6 +113,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 - **Grafana dashboards** — stub only (`playbooks/observability_grafana_stub.yaml`); Prometheus scrape targets documented, not deployed.
 - **AUGUR regime feed** — portfolio risk uses stub regime; wire live AUGUR macro feed for production.
 - **MRM challenger promotion** — stub only; requires promotion gate YES for live swap.
+- **P22 real Solana** — Geyser creds (`GEYSER_GRPC_URL`), Jito tip wallet, live recon module, `capital_profile: live`, venues `solana_pumpfun`/`jito`, promotion YES, then `memecoinTrench.enabled: true` (see `infra/solana_memecoin.yaml` checklist).
 
 ---
 
@@ -209,6 +211,11 @@ curl -s -X POST http://127.0.0.1:19001/v1/validate \
 # Tests
 python3 -m pytest /path/to/titan-deploy/tests -q
 python3 /path/to/titan-deploy/tests/adversarial/adversarial_harness.py
+
+# P22 memecoin trench (paper filter + sim)
+titan-safety memecoin filter --mint-json '{"mint":"test","mint_authority_revoked":true,"freeze_authority_revoked":true,"top10_holder_pct":15,"curve_progress_pct":30,"curve_fill_minutes":60,"sell_sim_ok":true}'
+titan-safety memecoin sim --count 100 --seed 42
+titan-safety memecoin status
 
 # Portfolio risk simulation
 curl -s -X POST http://127.0.0.1:19004/v1/simulate \

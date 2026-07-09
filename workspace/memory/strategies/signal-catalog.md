@@ -9,6 +9,7 @@
 - **Funding / OI** — perpetual funding rates, open interest, basis
 - **On-chain flow** — whale wallets, exchange inflow/outflow, bridge volume
 - **Mempool / MEV** — pending txs, bundle competition (PREDATOR; edge PoP)
+- **Pump.fun / trench (P22)** — mint create, curve buy velocity, graduation/migration, smart-money wallet copy (Geyser)
 - **Macro / regime** — AUGUR risk_on / neutral / risk_off (file or HTTP feed)
 - **Catalyst / news** — NARRATIVE listings, governance, regulatory events
 - **Sentiment (grounded)** — cited social posts with timestamps only

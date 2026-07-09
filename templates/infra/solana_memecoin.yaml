@@ -1,0 +1,34 @@
+# Solana memecoin trench (P22) — real SOL wiring (secrets outside repo)
+version: "1.0"
+pipeline_id: P22
+
+# Yellowstone / Geyser (Helius, Triton, self-hosted)
+geyser:
+  endpoint: "${GEYSER_GRPC_URL}"  # e.g. https://grpc.mainnet.helius-rpc.com
+  api_key_env: HELIUS_API_KEY
+  commitment: processed
+  programs:
+    pump_fun: "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+
+# Jito block engine (EDGE-FRA co-located preferred)
+jito:
+  block_engine_url: "https://frankfurt.mainnet.block-engine.jito.wtf"
+  tip_lamports_default: 100000
+  tip_lamports_hot: 500000
+  bundle_only: true
+
+# Edge dispatch
+edge:
+  default_pop: EDGE-FRA
+  max_rtt_ms: 50
+
+# Live unlock checklist (operator)
+live_checklist:
+  - capital_profile: live in policy.yaml
+  - allowed_venues includes solana_pumpfun, solana_pumpswap, jito
+  - reconciliation.adapter: live + recon_module configured
+  - signing_node live signer (not mock)
+  - promotion approve YES for P22
+  - memecoinTrench.enabled: true in openclaw.json
+  - daily_sol_cap and max_snipe_pct_equity enforced
+  - paper/sim ≥48h filter tuning complete

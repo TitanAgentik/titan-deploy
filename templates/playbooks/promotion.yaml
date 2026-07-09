@@ -20,6 +20,7 @@ phases:
       - strategy_promotion
       - evolution_deploy
       - phase5_go_nogo
+      - memecoin_p22_activation
 
 constitutional_blocks:
   - SOUL.md

@@ -260,6 +260,21 @@ def scenario_stalk_posture_pillars() -> None:
         check("six_impenetrable_layers", len(st.get("layers") or []) == 6)
 
 
+def scenario_memecoin_honeypot_filter() -> None:
+    """P22 six-gate filter must reject freeze-authority honeypot mints."""
+    from titan_safety.memecoin_filter import MemecoinFilter, MintCandidate
+
+    v = MemecoinFilter().evaluate(
+        MintCandidate(
+            mint="honeypot1",
+            mint_authority_revoked=True,
+            freeze_authority_revoked=False,
+            sell_sim_ok=True,
+        )
+    )
+    check("memecoin_honeypot_filter_deny", not v.passed, v.reject_reason)
+
+
 def main() -> int:
     print("[adversarial] Running red-team scenarios...")
     scenario_data_poisoning()
@@ -271,6 +286,7 @@ def main() -> int:
     scenario_security_lockdown_halts_signing()
     scenario_honeypot_default_armed()
     scenario_stalk_posture_pillars()
+    scenario_memecoin_honeypot_filter()
     print(f"[adversarial] {PASS} passed, {FAIL} failed")
     return 1 if FAIL else 0
 

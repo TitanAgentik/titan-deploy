@@ -251,6 +251,7 @@ export const pipelinesCatalog = [
   { id: "P11", name: "Prediction Arb", phase: "micro_live", edge: "EDGE-USE" },
   { id: "P12", name: "Intent Solver", phase: "funded", edge: "EDGE-FRA" },
   { id: "P16", name: "RWA Basis", phase: "scorecard", edge: "EDGE-FRA" },
+  { id: "P22", name: "Memecoin Trench", phase: "catalog", edge: "EDGE-FRA" },
   { id: "P29", name: "MEV Bundle", phase: "defunded", edge: "EDGE-FRA" },
   { id: "P32", name: "Bridge Security", phase: "shadow", edge: "EDGE-FRA" },
   { id: "P34", name: "CLMM 2.0", phase: "pending_yes", edge: "EDGE-FRA" },

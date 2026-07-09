@@ -48,5 +48,6 @@ See `output/memory/` after build. Deploy copies them to `~/.openclaw/memory/`.
 - `security/README.md`
 - `strategies/active-pipelines.md`
 - `strategies/endgame.md`
+- `strategies/memecoin-trench.md`
 - `strategies/selective-activation.md`
 - `strategies/signal-catalog.md`

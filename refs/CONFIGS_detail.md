@@ -667,6 +667,25 @@ capital:
     "tcaScorecardUrl": "http://127.0.0.1:19007/v1/scorecard",
     "securityOpsUrl": "http://127.0.0.1:19008/v1/status"
   },
+  "memecoinTrench": {
+    "pipelineId": "P22",
+    "enabled": false,
+    "requiresLiveProfile": true,
+    "requiresPromotionYes": true,
+    "infraSpec": "~/.openclaw/infra/solana_memecoin.yaml",
+    "playbook": "~/.openclaw/playbooks/memecoin_trench.yaml",
+    "skill": "memecoin_trench",
+    "agents": {
+      "scan": "PREDATOR",
+      "execute": "TRENCH-OPS",
+      "feeds": "NEXUS"
+    },
+    "geyserUrlEnv": "GEYSER_GRPC_URL",
+    "jitoBlockEngine": "https://frankfurt.mainnet.block-engine.jito.wtf",
+    "edgePop": "EDGE-FRA",
+    "pumpFunProgram": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+    "note": "Real SOL: set enabled true only after promotion YES + live policy venues"
+  },
   "drawdownTiers": {
     "alert": 2.0,
     "softPause": 5.0,
@@ -851,6 +870,8 @@ capital:
 
 version: "2.1"
 mode: enforce
+# Paper-first default. Live capital: set capital_profile=live, adapter=live, expand allowed_venues.
+capital_profile: paper
 
 trading_limits:
   max_notional_usd_per_trade: 500.0
@@ -861,14 +882,15 @@ trading_limits:
   max_slippage_bps: 50
   equity_usd: 2500.0
 
+# PAPER DEFAULT: paper-only. Uncomment live venues only with reconciliation.adapter=live.
 allowed_venues:
   - paper
-  - binance_spot
-  - uniswap_v3
+  # - binance_spot
+  # - uniswap_v3
 
 allowed_contracts:
   - "0x0000000000000000000000000000000000000000"  # paper sentinel
-  - "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
+  # - "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH (live)
 
 position_limits:
   max_equity_pct_per_trade: 2.0
@@ -912,6 +934,7 @@ portfolio_risk:
     defi_yield: ["P1", "P3", "P7", "P8"]
     mev_arb: ["P29", "P30", "P41"]
     liquidations: ["P6", "P11", "P18"]
+    memecoin_trench: ["P22"]
 
 reconciliation:
   divergence_threshold_usd: 25.0
@@ -974,6 +997,31 @@ promotion_stats:
   min_deflated_sharpe: 0.90       # DSR probability, corrects for multiple-testing/overfit
   min_psr: 0.90                   # probabilistic Sharpe vs zero
   max_shadow_divergence_pct: 15.0 # live/shadow Sharpe must track backtest
+
+# P22 Solana memecoin trench — Pump.fun lifecycle (catalog until promotion YES)
+memecoin_trench:
+  pipeline_id: P22
+  enabled: false  # operator + openclaw memecoinTrench.enabled after YES
+  max_top10_holder_pct: 30.0
+  max_insider_pct: 15.0
+  min_curve_progress_pct: 2.0
+  max_fast_fill_minutes: 30.0
+  min_curve_progress_for_climb: 15.0
+  graduation_target_usd: 69000.0
+  max_snipe_pct_equity: 0.5
+  daily_sol_cap: 2.0
+  require_sell_sim: true
+  recon_module: ""  # live: module:attr for SolanaReconAdapter impl
+  jito_block_engine: "https://frankfurt.mainnet.block-engine.jito.wtf"
+  strategies_enabled:
+    - curve_climb
+    - graduation
+    - post_grad_pullback
+    - smart_money_mirror
+    - first_block_snipe
+  # LIVE unlock (commented — uncomment only with live profile + YES):
+  # allowed_venues_add: [solana_pumpfun, solana_pumpswap, jito]
+
   min_net_bps: 1.0
   require_cost_model: true         # backtests with zero modeled cost are rejected
 
@@ -1106,6 +1154,17 @@ security_ops:
       action: halt_clmm_lp
     - id: CB_ENDGAME_PHASE_GATE
       action: deny_until_phase_unlock
+  memecoin_circuit_breakers:
+    - id: CB_MEMECOIN_DAILY_SOL_CAP
+      action: halt_p22_until_reset
+    - id: CB_MEMECOIN_FILTER_BYPASS
+      action: deny_trade_fail_closed
+    - id: CB_MEMECOIN_HONEYPOT
+      action: deny_and_alert
+    - id: CB_MEMECOIN_GRAD_FAIL
+      action: halt_lane_p22
+    - id: CB_MEMECOIN_TIP_BLEED
+      action: reduce_size_p22
   lockdown_sequence:
     - kill_switch_activate
     - evolution_freeze

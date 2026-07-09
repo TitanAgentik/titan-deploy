@@ -387,6 +387,50 @@ if [[ -f "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" ]]; then
   else
     fail "policy.yaml missing promotion_stats / endgame_circuit_breakers / advisory_mode"
   fi
+  if grep -q "memecoin_trench:" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null \
+     && grep -q "CB_MEMECOIN_FILTER_BYPASS" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null; then
+    pass "policy.yaml: P22 memecoin_trench + CBs"
+  else
+    fail "policy.yaml missing memecoin_trench block"
+  fi
+fi
+if [[ -f "$PROJECT_ROOT/templates/safety/titan_safety/memecoin_filter.py" ]]; then
+  pass "memecoin_filter module present"
+else
+  fail "Missing memecoin_filter.py"
+fi
+if [[ -f "$PROJECT_ROOT/templates/infra/solana_memecoin.yaml" ]]; then
+  pass "infra/solana_memecoin.yaml present"
+else
+  fail "Missing solana_memecoin.yaml"
+fi
+_mc_mem=""
+for _mc in \
+  "$PROJECT_ROOT/output/memory/strategies/memecoin-trench.md" \
+  "$PROJECT_ROOT/workspace/memory/strategies/memecoin-trench.md"; do
+  if [[ -f "$_mc" ]]; then _mc_mem="$_mc"; break; fi
+done
+if [[ -n "$_mc_mem" ]] && grep -qiE 'P22|six-gate|Pump\.fun' "$_mc_mem" 2>/dev/null; then
+  pass "memory/strategies/memecoin-trench.md present"
+else
+  fail "Missing memory/strategies/memecoin-trench.md"
+fi
+if [[ -f "$OPENCLAW_HOME/openclaw.json" ]] && command -v python3 &>/dev/null; then
+  python3 -c "
+import json, sys
+cfg = json.load(open('$OPENCLAW_HOME/openclaw.json'))
+mc = cfg.get('memecoinTrench') or {}
+if mc.get('pipelineId') != 'P22':
+    sys.exit(1)
+if mc.get('enabled') is True:
+    sys.exit(2)
+" 2>/dev/null && pass "openclaw.json memecoinTrench P22 catalog (disabled by default)" \
+    || fail "openclaw.json memecoinTrench invalid or enabled at deploy"
+fi
+if [[ -f "$PROJECT_ROOT/templates/skills/memecoin_trench/SKILL.md" ]]; then
+  pass "Skill memecoin_trench present"
+else
+  fail "Missing memecoin_trench skill"
 fi
 
 # TITANHOME retained in IDENTITY

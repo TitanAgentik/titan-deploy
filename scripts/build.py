@@ -122,6 +122,7 @@ def overlay_infra_skills() -> None:
         "forge_infra",
         "sentinel_security",
         "predator_scanner",
+        "memecoin_trench",
     ):
         src = TEMPLATES / "skills" / skill_name
         if not src.exists():

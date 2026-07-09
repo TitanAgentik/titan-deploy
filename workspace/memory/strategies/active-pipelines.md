@@ -15,6 +15,10 @@ Typical starters when capital allows — still subject to promotion gates:
 - **P11** Prediction Market Arbitrage (micro-live path)
 - **P12** Intent Solver Network (when funded)
 
+## Phase 2+ optional (high toxicity — promotion YES required)
+
+- **P22** Solana Memecoin Trench / Pump.fun lifecycle (catalog — real SOL gated)
+
 ## Catalog (not all active)
 
 - **P9** NFT / RWA Market Making
