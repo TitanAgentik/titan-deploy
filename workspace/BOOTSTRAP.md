@@ -145,4 +145,4 @@
 ## Completion
 
 - [ ] All checks pass → delete this BOOTSTRAP.md file
-- [ ] Enable systemd: `systemctl --user enable --now llama-server-tier1 llama-server-tier2 titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-signing-node openclaw-gateway hermes-gateway`
+- [ ] Enable systemd: `systemctl --user enable --now llama-server-tier1 llama-server-tier2 titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-portfolio-risk titan-status-aggregator titan-allocator titan-tca titan-security-ops titan-signing-node openclaw-gateway hermes-gateway`

@@ -1,0 +1,13 @@
+[Unit]
+Description=Run TITAN profit loop every 15 minutes
+Requires=titan-profit-loop.service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+AccuracySec=1min
+Persistent=true
+Unit=titan-profit-loop.service
+
+[Install]
+WantedBy=timers.target

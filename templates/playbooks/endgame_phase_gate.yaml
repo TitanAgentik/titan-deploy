@@ -1,0 +1,34 @@
+# ENDGAME strategy unlock — Phase 3+ only (openclaw capital.endgame_phase_unlock: 3)
+# Catalog stubs — Mention≠mandate. Do not fund until promotion + allocator + TCA clear.
+version: "1.0"
+phase_unlock: 3
+note: "Documented high-alpha catalog from TITAN §ENDGAME. Enable only when capital phase ≥3 and operator YES."
+
+strategies:
+  - id: funding_rate_harvester
+    overlaps: [P18]
+    cb: CB_FUNDING_FLIP
+  - id: restaking_engine
+    overlaps: [P10, P15]
+    cbs: [CB_RESTAKING_SLASH, CB_RESTAKING_DEPEG]
+  - id: prediction_market_arb
+    overlaps: [P11]
+    cb: CB_PRED_MARKET_RESOLVE_RISK
+  - id: vol_harvester
+    venue: deribit
+    cb: CB_VOL_HARVEST_GAP
+  - id: new_chain_mev
+    cb: CB_NEW_CHAIN_MEV_HALT
+  - id: airdrop_positioning
+    cb: CB_AIRDROP_SYBIL
+  - id: rate_arbitrage
+    cb: CB_RATE_ARB_LIQUIDITY
+  - id: concentrated_lp
+    overlaps: [P34]
+    cb: CB_CLMM_IL_SPIKE
+
+gates:
+  - CB_ENDGAME_PHASE_GATE  # deny until phase unlock
+  - statistical_promotion
+  - human_YES
+  - max_active_pipelines

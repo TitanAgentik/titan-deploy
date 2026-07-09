@@ -74,8 +74,11 @@ else
   fail "Hermes skills symlink missing: $HERMES_HOME/skills"
 fi
 
-# Skills count
-skill_count=$(find "$OPENCLAW_HOME/workspace/skills" -name 'SKILL.md' 2>/dev/null | wc -l | tr -d ' ')
+# Skills count (missing dir must not abort under set -o pipefail)
+skill_count=0
+if [[ -d "$OPENCLAW_HOME/workspace/skills" ]]; then
+  skill_count=$(find "$OPENCLAW_HOME/workspace/skills" -name 'SKILL.md' 2>/dev/null | wc -l | tr -d ' ') || skill_count=0
+fi
 if [[ $skill_count -gt 0 ]]; then
   pass "Skills extracted: $skill_count"
 else
@@ -259,8 +262,8 @@ if (mode == 'enforce' or profile == 'live') and live and adapter == 'mock':
 fi
 
 # Systemd unit files in output (optional install)
-for svc in titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-status-aggregator titan-allocator titan-tca titan-signing-node titan-portfolio-risk; do
-  if [[ -f "$PROJECT_ROOT/output/systemd/${svc}.service" ]]; then
+for svc in titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-status-aggregator titan-allocator titan-tca titan-signing-node titan-portfolio-risk titan-security-ops; do
+  if [[ -f "$PROJECT_ROOT/output/systemd/${svc}.service" ]] || [[ -f "$PROJECT_ROOT/templates/systemd/${svc}.service" ]]; then
     pass "systemd unit template: ${svc}.service"
   fi
 done
@@ -333,6 +336,57 @@ if int(alloc.get('maxActivePipelines', 0)) < 1:
     sys.exit(2)
 " 2>/dev/null && pass "openclaw.json evolution freeze + pipeline concentration OK" \
     || fail "openclaw.json missing evolution.freezeDuringLive or allocator.maxActivePipelines"
+fi
+
+# Selective activation — catalog ≠ all-on (Mention≠mandate)
+if [[ -f "$OPENCLAW_HOME/openclaw.json" ]] && command -v python3 &>/dev/null; then
+  python3 -c "
+import json, sys
+cfg = json.load(open('$OPENCLAW_HOME/openclaw.json'))
+aut = cfg.get('autonomy') or {}
+if not aut.get('selectiveActivation', False):
+    sys.exit(1)
+alloc = cfg.get('allocator') or {}
+if int(alloc.get('maxActivePipelines', 0)) > 12:
+    sys.exit(2)
+" 2>/dev/null && pass "openclaw.json selectiveActivation + concentration cap OK" \
+    || fail "openclaw.json missing autonomy.selectiveActivation or maxActivePipelines too high"
+fi
+if [[ -f "$OPENCLAW_HOME/HEARTBEAT.md" ]]; then
+  if grep -qiE 'all 4[67] pipelines active' "$OPENCLAW_HOME/HEARTBEAT.md" 2>/dev/null; then
+    fail "HEARTBEAT.md still says all 46/47 pipelines active"
+  else
+    pass "HEARTBEAT.md: no all-pipelines-active mandate"
+  fi
+fi
+if [[ -f "$OPENCLAW_HOME/IDENTITY.md" ]]; then
+  if grep -qiE 'selective activation|catalog.*required|max_active_pipelines' "$OPENCLAW_HOME/IDENTITY.md" 2>/dev/null; then
+    pass "IDENTITY.md: selective activation documented"
+  else
+    fail "IDENTITY.md missing selective activation / catalog note"
+  fi
+fi
+# Selective-activation memory sidecar (build must emit / preserve)
+_sel=""
+for _cand in \
+  "$OPENCLAW_HOME/memory/strategies/selective-activation.md" \
+  "$PROJECT_ROOT/output/memory/strategies/selective-activation.md" \
+  "$PROJECT_ROOT/workspace/memory/strategies/selective-activation.md"; do
+  if [[ -f "$_cand" ]]; then _sel="$_cand"; break; fi
+done
+if [[ -n "$_sel" ]] && grep -qiE 'max_active_pipelines|Mention|catalog' "$_sel" 2>/dev/null; then
+  pass "memory/strategies/selective-activation.md present"
+else
+  fail "Missing memory/strategies/selective-activation.md"
+fi
+if [[ -f "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" ]]; then
+  if grep -q "promotion_stats:" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null \
+     && grep -q "endgame_circuit_breakers:" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null \
+     && grep -q "advisory_mode:" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null; then
+    pass "policy.yaml: promotion_stats + endgame CBs + allocator advisory_mode"
+  else
+    fail "policy.yaml missing promotion_stats / endgame_circuit_breakers / advisory_mode"
+  fi
 fi
 
 # TITANHOME retained in IDENTITY
@@ -424,6 +478,73 @@ if [[ -f "$OPENCLAW_HOME/playbooks/promotion.yaml" ]]; then
   pass "Promotion playbook present"
 else
   fail "Missing playbooks/promotion.yaml"
+fi
+
+if [[ -f "$OPENCLAW_HOME/playbooks/security_lockdown.yaml" ]]; then
+  pass "Security lockdown playbook present"
+else
+  fail "Missing playbooks/security_lockdown.yaml"
+fi
+
+# Four-pillar security ops
+if [[ -f "$OPENCLAW_HOME/safety/titan_safety/security_ops.py" ]] \
+   || [[ -f "$PROJECT_ROOT/templates/safety/titan_safety/security_ops.py" ]]; then
+  pass "security_ops module present"
+else
+  fail "Missing titan_safety/security_ops.py"
+fi
+
+if [[ -f "$OPENCLAW_HOME/risk_kernel/policy.yaml" ]]; then
+  if grep -q "security_ops:" "$OPENCLAW_HOME/risk_kernel/policy.yaml" 2>/dev/null; then
+    pass "policy.yaml: security_ops four-pillar block"
+  else
+    fail "risk_kernel/policy.yaml missing security_ops block"
+  fi
+  if grep -q "CB_SECURITY_LOCKDOWN\|CB_TPM_PCR_DRIFT\|CB_DARKINT_HONEYPOT" \
+       "$OPENCLAW_HOME/risk_kernel/policy.yaml" 2>/dev/null; then
+    pass "policy.yaml: security circuit breakers"
+  else
+    fail "risk_kernel/policy.yaml missing security CBs"
+  fi
+fi
+
+for skill in sentinel_security predator_scanner; do
+  skill_md="$OPENCLAW_HOME/workspace/skills/${skill}/SKILL.md"
+  if [[ ! -f "$skill_md" ]]; then
+    skill_md="$PROJECT_ROOT/output/workspace/skills/${skill}/SKILL.md"
+  fi
+  if [[ -f "$skill_md" ]]; then
+    if grep -qi "stub" "$skill_md" 2>/dev/null && ! grep -qi "status: live\|Pillars owned" "$skill_md" 2>/dev/null; then
+      fail "Skill $skill still stub"
+    else
+      pass "Skill $skill non-stub"
+    fi
+  else
+    fail "Missing skill: $skill"
+  fi
+done
+
+for ref in AEGIS_detail.md FORTRESS_detail.md GHOST_detail.md MEV_detail.md REAPER_detail.md; do
+  if [[ -f "$PROJECT_ROOT/refs/$ref" ]] && grep -qE "Pillar:|## Pillar|Impenetrable|Evasion|Predatory|Hardening|MEV-shield" "$PROJECT_ROOT/refs/$ref" 2>/dev/null; then
+    pass "Ref companion fleshed: $ref"
+  else
+    fail "Ref companion missing/stub: $ref"
+  fi
+done
+
+if [[ -f "$OPENCLAW_HOME/AGENTS.md" ]]; then
+  if grep -q "Four pillars" "$OPENCLAW_HOME/AGENTS.md" 2>/dev/null; then
+    pass "AGENTS.md: four-pillar Security section"
+  else
+    fail "AGENTS.md missing four-pillar Security section"
+  fi
+fi
+
+if [[ -f "$OPENCLAW_HOME/memory/security/README.md" ]] \
+   || [[ -f "$PROJECT_ROOT/output/memory/security/README.md" ]]; then
+  pass "memory/security present"
+else
+  fail "Missing memory/security"
 fi
 
 if [[ -f "$OPENCLAW_HOME/capital/tax_ledger.py" ]]; then

@@ -122,6 +122,8 @@ install_files() {
     "$OPENCLAW_HOME/capital"
     "$OPENCLAW_HOME/playbooks"
     "$OPENCLAW_HOME/staging"
+    "$OPENCLAW_HOME/memory/security"
+    "$OPENCLAW_HOME/safety/honeypots"
     "$HERMES_HOME"
     "$HERMES_HOME/memory"
   )
@@ -247,6 +249,13 @@ CLIOF
     cp -r "$OUTPUT/memory/"* "$OPENCLAW_HOME/memory/"
     log "Installed memory -> $OPENCLAW_HOME/memory/"
   fi
+  mkdir -p "$OPENCLAW_HOME/memory/security" "$OPENCLAW_HOME/safety/honeypots"
+  if [[ -f "$OUTPUT/memory/security/README.md" ]]; then
+    cp "$OUTPUT/memory/security/README.md" "$OPENCLAW_HOME/memory/security/README.md"
+  fi
+  # Ensure honeypot lattice dir exists (armed by default on first security status)
+  touch "$OPENCLAW_HOME/safety/honeypots/.keep"
+  log "Ensured memory/security + honeypots dirs"
 
   # Infra specs (power, signing, GPU schedule)
   if [[ -d "$OUTPUT/infra" ]]; then
@@ -284,6 +293,7 @@ ENVEOF
       titan-allocator
       titan-tca
       titan-signing-node
+      titan-security-ops
     )
     for u in "${units[@]}"; do
       if [[ -f "/etc/systemd/system/${u}.service" ]] || systemctl cat "${u}.service" &>/dev/null; then

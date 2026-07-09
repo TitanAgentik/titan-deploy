@@ -8,6 +8,10 @@ prometheus:
     - http://127.0.0.1:19003/metrics  # status aggregator
     - http://127.0.0.1:19004/metrics  # portfolio risk
     - http://127.0.0.1:19005/metrics  # dead man's switch
+    - http://127.0.0.1:19006/metrics  # capital allocator
+    - http://127.0.0.1:19007/metrics  # TCA / execution quality
+    - http://127.0.0.1:19008/metrics  # security ops
+    - http://127.0.0.1:19010/metrics  # signing node (if exposed)
 
 dashboard_panels:
   - title: TITAN Safety Overview

@@ -37,7 +37,8 @@
 
 ## Scale
 
-- 23 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 26 workflows | 47 pipelines
+- 23 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 26 workflows | **47-pipeline catalog**
+- **Selective activation:** catalog size ≠ required set — fund ≤`max_active_pipelines` (default 4) HEALTHY lanes
 - Quantum agents: DORMANT (100% classical execution)
 
 ## Bootstrap Limits

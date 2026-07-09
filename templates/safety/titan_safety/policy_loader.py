@@ -36,6 +36,7 @@ class ServicePorts:
     dead_mans_switch_port: int = 19005
     allocator_port: int = 19006
     tca_port: int = 19007
+    security_ops_port: int = 19008
     signing_node_port: int = 19010
 
 
@@ -118,6 +119,7 @@ def load_policy(path: str | Path) -> Policy:
             dead_mans_switch_port=int(svc.get("dead_mans_switch_port", 19005)),
             allocator_port=int(svc.get("allocator_port", 19006)),
             tca_port=int(svc.get("tca_port", 19007)),
+            security_ops_port=int(svc.get("security_ops_port", 19008)),
             signing_node_port=int(svc.get("signing_node_port", 19010)),
         ),
         raw=data,

@@ -9,6 +9,7 @@
 
 ## Preferences
 
+- **Selective activation:** catalog ≠ required set — fund few HEALTHY lanes (allocator `max_active_pipelines` default 4); do not enable every strategy/feature named in specs
 - Trade notifications: JSON-first institutional format via HERALD (§TGCMD.3); immediate alert on material trades >0.5% equity or CRITICAL
 - Daily brief at 08:00 UTC: portfolio snapshot, top 3 signals, risk flags, edge-mesh health, classical compute status (quantum dormant), Mac Mini vault status + BTC SPV sync height, §MAINT status (pending updates, days since last cycle, next window ETA), §RDSCOUT status (items crawled last 24h, candidates in triage, strategies in paper-trade, last promotion date)  
 - Hourly reports at :00 UTC: institutional-grade performance report via §TGCMD.2 (overall summary, per-strategy breakdown with trade-level reason codes, system health, flags/pending actions)  
@@ -67,7 +68,7 @@ CLI mirror: `~/.openclaw/safety/bin/titan-safety capital deposit|withdraw|balanc
 
 ## Capital Phase
 
-- Start: Phase 1 (Foundation, $2,500 starting + biweekly $2,500 injections) — 5 active strategies  
+- Start: Phase 1 (Foundation, $2,500 starting + biweekly $2,500 injections) — few funded lanes (allocator cap)  
 - Growth: Phases 2-3 ($10K-$100K) — incremental pipeline activation  
-- Full: Phase 4 ($100K+) — all active pipelines + classical optimization only (quantum dormant)  
+- Full: Phase 4 ($100K+) — more capacity available — still fund HEALTHY lanes only + classical optimization (quantum dormant)  
 - Transitions: event-triggered on 3-consecutive-day equity snapshots

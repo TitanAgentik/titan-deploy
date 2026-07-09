@@ -45,4 +45,8 @@ See `output/memory/` after build. Deploy copies them to `~/.openclaw/memory/`.
 - `research/hydra-models.md`
 - `research/skill-evolution.md`
 - `risk/circuit-breakers.md`
+- `security/README.md`
 - `strategies/active-pipelines.md`
+- `strategies/endgame.md`
+- `strategies/selective-activation.md`
+- `strategies/signal-catalog.md`

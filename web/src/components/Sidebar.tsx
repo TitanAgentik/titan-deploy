@@ -14,17 +14,37 @@ import {
   FolderOpen,
   FileBarChart2,
   Settings,
+  Wallet,
+  ShieldAlert,
+  GitBranch,
+  Globe2,
+  KeyRound,
+  Rocket,
+  Cpu,
+  Shield,
 } from "lucide-react";
 import { portfolio } from "@/lib/data";
 
-const NAV = [
+export const NAV = [
   {
     label: "Control",
     items: [
       { to: "/", icon: LayoutDashboard, label: "Dashboard" },
       { to: "/command", icon: Command, label: "Command Center" },
-      { to: "/forge", icon: Hammer, label: "Forge" },
+      { to: "/capital", icon: Wallet, label: "Capital & Wallets" },
+      { to: "/risk", icon: ShieldAlert, label: "Risk & CBs" },
+      { to: "/security", icon: Shield, label: "Security Ops", badge: 2 },
       { to: "/ops", icon: Radar, label: "Ops Center" },
+      { to: "/forge", icon: Hammer, label: "Forge" },
+    ],
+  },
+  {
+    label: "Trading",
+    items: [
+      { to: "/pipelines", icon: GitBranch, label: "Pipelines" },
+      { to: "/promotions", icon: Rocket, label: "Promotions", badge: 1 },
+      { to: "/edge", icon: Globe2, label: "Edge Mesh" },
+      { to: "/signing", icon: KeyRound, label: "Signing Node" },
     ],
   },
   {
@@ -33,6 +53,7 @@ const NAV = [
       { to: "/automations", icon: Workflow, label: "Automations" },
       { to: "/goals", icon: Target, label: "Goals Lab" },
       { to: "/identity", icon: Fingerprint, label: "Identity" },
+      { to: "/models", icon: Cpu, label: "Model Tiers" },
       { to: "/ai-log", icon: ScrollText, label: "AI Log" },
       { to: "/questions", icon: MessageCircleQuestion, label: "Questions", badge: 3 },
     ],
@@ -89,6 +110,16 @@ export function Sidebar() {
       </nav>
 
       <div className="sidebar-foot">
+        <div className="mini-stats">
+          <div className="mini-stat">
+            <div className="k">Equity</div>
+            <div className="v">${(portfolio.equityUsd / 1000).toFixed(1)}k</div>
+          </div>
+          <div className="mini-stat">
+            <div className="k">DD</div>
+            <div className="v">{portfolio.drawdownPct}%</div>
+          </div>
+        </div>
         <div className="status-pill">
           <span className={`dot${portfolio.killActive ? " danger" : ""}`} />
           <span>

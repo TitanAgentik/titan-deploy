@@ -35,6 +35,8 @@ def aggregate(policy_path: Path) -> dict[str, Any]:
         "dead_mans_switch": f"http://127.0.0.1:{ports.dead_mans_switch_port}/health",
         "allocator": f"http://127.0.0.1:{ports.allocator_port}/health",
         "tca": f"http://127.0.0.1:{ports.tca_port}/health",
+        "security_ops": f"http://127.0.0.1:{getattr(ports, 'security_ops_port', 19008)}/health",
+        "signing_node": f"http://127.0.0.1:{ports.signing_node_port}/health",
     }
     results: dict[str, Any] = {}
     overall = "ok"

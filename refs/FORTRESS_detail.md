@@ -1,29 +1,28 @@
-# §FORTRESS_detail.md
+# §FORTRESS_detail.md — Perimeter Hardening
 
-> **Reconstructed companion** for OpenClaw + Hermes deploy.
-> Original `FORTRESS_detail.md` was referenced by TITAN.md but never present on disk.
->
-> **Purpose:** Fortress / hardening narrative.
->
-> **Runtime source of truth:** live files under `templates/`, `output/`, and
-> `~/.openclaw` / `~/.hermes` after `./deploy.sh` — not this markdown dump.
->
-> Docs: [OpenClaw workspace](https://docs.openclaw.ai/concepts/agent-workspace) ·
-> [Hermes context files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files)
+> Companion for host / edge / vault perimeter. Complements AEGIS (in-process DENY).
 
----
+## Pillar: Impenetrable (perimeter)
 
-## Status
+Complements AEGIS L1–L6 with host / edge / vault hardening.
 
-The original companion body was **not included** in the TITAN.md dump shipped to
-this machine. Narrative / research content remains in `output/TITAN.reconciled.md`
-under related sections.
+## Scope
+
+- Protectli / OPNsense / Suricata perimeter (ops-installed)
+- Headscale mesh for operator + edge PoPs
+- UPS-protected signing path (power_requirements.yaml)
+- Air-gapped staging for promotions (`airGappedStaging: true`)
+- Mac Mini vault metadata only — never live signing
+
+## Hardening checklist
+
+1. Signing node: minimal OS, no evolution workloads, UPS, TPM-SPI PCR baseline
+2. Agent FS cannot write `control_plane.secret` or `kill_switch.secret`
+3. Staging dir isolated from live skills/
+4. Edge workers: stateless, no LLM, same-AZ as exchange matching engines
+5. Cockpit: Tailscale / SSH tunnel only — never raw public admin UI
 
 ## See also
 
-- `PRODUCTION_READINESS.md` + safety package under `templates/safety/`
-
-## Operator note
-
-Do not block OpenClaw/Hermes startup on this file. Bootstrap context is the
-`workspace/*.md` set; this companion is reference-only.
+- `refs/AEGIS_detail.md`
+- `infra/signing_node.yaml`, `infra/network_topology.yaml`, `infra/power_requirements.yaml`

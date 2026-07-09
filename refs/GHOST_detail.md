@@ -1,30 +1,39 @@
-# §GHOST_detail.md
+# §GHOST_detail.md — Evasion / OPSEC
 
-> **Reconstructed companion** for OpenClaw + Hermes deploy.
-> Original `GHOST_detail.md` was referenced by TITAN.md but never present on disk.
->
-> **Purpose:** Ghost / stealth / adversarial narrative sections from TITAN.
->
-> **Runtime source of truth:** live files under `templates/`, `output/`, and
-> `~/.openclaw` / `~/.hermes` after `./deploy.sh` — not this markdown dump.
->
-> Docs: [OpenClaw workspace](https://docs.openclaw.ai/concepts/agent-workspace) ·
-> [Hermes context files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files)
+> Ghost Protocol / structural invisibility. Runtime: TRENCH-OPS intents, edge mesh,
+> adversarial harness under `tests/adversarial/`.
 
----
+## Pillar: Evasion
 
-## Status
+Reduce detection surface and adversarial fingerprinting of TITAN execution.
 
-The original companion body was **not included** in the TITAN.md dump shipped to
-this machine. Narrative / research content remains in `output/TITAN.reconciled.md`
-under related sections.
+### Controls
 
-## See also
+| ID | Control | Mode |
+|----|---------|------|
+| ev-1 | MEV-shielded intent solvers (no public RPC pool for DEX) | active |
+| ev-2 | Edge RTT routing (lowest live p50 to target chain) | active |
+| ev-3 | Nostr NIP-44 Kind 1059 edge dispatch | active |
+| ev-4 | Hot wallet / session fingerprint rotation | scheduled |
+| ev-5 | Traffic pattern obfuscation (jittered heartbeats, decoy probes) | active |
+| ev-6 | Signing ceremony air-gap (Trezor Safe 7 / Mac Mini metadata) | active |
 
-- Search `TITAN.reconciled.md` for `§GHOST` / stealth / adversarial harness
-- Runtime: `tests/adversarial/adversarial_harness.py`
+### Rules
 
-## Operator note
+- Structural invisibility gate: detection probability &lt;1% for stealth pipelines (SOUL)
+- R44 Full-Spectrum Stealth (Ghost Protocol v2) — see TITAN.reconciled §GHOST
+- Quantum dispatch DISABLED — classical-only (no quantum fingerprint channel)
+- Never log raw seeds / session keys to agent memory
 
-Do not block OpenClaw/Hermes startup on this file. Bootstrap context is the
-`workspace/*.md` set; this companion is reference-only.
+### Verification
+
+```bash
+titan-safety security status   # evasion section
+# Edge health via Cockpit /edge or FORGE heartbeat
+```
+
+### See also
+
+- `refs/MEV_detail.md`
+- `tests/adversarial/adversarial_harness.py`
+- TITAN.reconciled.md §GHOST.14–21

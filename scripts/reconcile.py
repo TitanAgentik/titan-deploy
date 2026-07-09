@@ -14,18 +14,25 @@ from common import NORMALIZED_PATH, RECONCILED_PATH, OUTPUT_DIR, read_source, wr
 
 def reconcile_counts(text: str) -> str:
     text = text.replace("27 workflows", "26 workflows")
+    # Catalog size is 47 — never imply all must run. Prefer selective-activation wording.
     text = re.sub(
-        r"Routine trade execution \(all 46 pipelines\)",
-        "Routine trade execution (all 47 pipelines)",
+        r"Routine trade execution \(all 4[67] pipelines\)",
+        "Routine trade execution (funded lanes only — catalog has 47; allocator caps active set)",
         text,
     )
     text = re.sub(
-        r"Active Strategies \(46 pipelines",
-        "Active Strategies (47 pipelines",
+        r"Active Strategies \(4[67] pipelines",
+        "Active Strategies (catalog: 47 pipelines",
         text,
     )
-    # Agent/pipeline totals drift throughout the doc — normalize to 23 agents / 47 pipelines.
-    text = text.replace("all 46 pipelines", "all 47 pipelines")
+    # Longer phrase first — otherwise "all 47 pipelines" swallows "...active".
+    text = text.replace(
+        "all 47 pipelines active",
+        "more capacity available — still fund HEALTHY lanes only (not every pipeline)",
+    )
+    text = text.replace("all 46 pipelines", "funded lanes from the 47-pipeline catalog")
+    text = text.replace("all 47 pipelines", "funded lanes from the 47-pipeline catalog")
+    # Agent/pipeline totals drift throughout the doc — normalize to 23 agents.
     text = re.sub(r"\bALL 24 agents\b", "ALL 23 agents", text)
     text = re.sub(r"\ball 24 agents\b", "all 23 agents", text)
     text = re.sub(r"\b24 agents communicate\b", "23 agents communicate", text)

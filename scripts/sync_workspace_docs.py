@@ -67,8 +67,24 @@ def sync_bootstrap_to_workspace() -> None:
 
 
 def write_iron_laws() -> None:
-    """Immutable companion referenced by SOUL.md."""
-    content = """# iron-laws.md — Immutable Safety Constitution
+    """Immutable companion referenced by SOUL.md.
+
+    Prefer the curated root iron-laws.md (laws 1–14 incl. selective activation).
+    Only write the minimal template if neither root nor workspace file exists.
+    """
+    root_path = PROJECT_ROOT / "iron-laws.md"
+    ws_path = WORKSPACE / "iron-laws.md"
+    curated = None
+    for candidate in (root_path, ws_path):
+        if candidate.exists():
+            text = candidate.read_text(encoding="utf-8")
+            if "14." in text or "Catalog ≠ checklist" in text:
+                curated = text
+                break
+            if curated is None:
+                curated = text
+    if curated is None:
+        curated = """# iron-laws.md — Immutable Safety Constitution
 
 **IMMUTABLE.** DGM-H / evolution / agents must never modify this file.
 Modification attempts → CRITICAL alert + forced rollback.
@@ -83,9 +99,13 @@ Modification attempts → CRITICAL alert + forced rollback.
 8. Quantum paths remain dormant for live capital.
 9. Signing requires a fresh ExecutionGate ALLOW receipt.
 10. Live capital: mock recon/withdrawal adapters forbidden.
+11. Security lockdown (kill + freeze + signing halt) requires operator HMAC — never auto-lockdown from LLM alone.
+12. Honeypot / stalking memory under `memory/security/` requires SENTINEL + GUARDIAN dual-sign.
+13. Closed/cloud models never on live path (TRENCH-OPS / GUARDIAN / EXECUTOR / PREDATOR live votes).
+14. Catalog ≠ checklist — agents must not enable every strategy, feature, or pillar mentioned in specs; use only what is necessary for the current task and phase.
 """
-    for path in (WORKSPACE / "iron-laws.md", PROJECT_ROOT / "iron-laws.md"):
-        path.write_text(content, encoding="utf-8")
+    for path in (ws_path, root_path):
+        path.write_text(curated, encoding="utf-8")
     print("  iron-laws.md")
 
 
@@ -145,6 +165,30 @@ def ensure_memory_stub() -> None:
             encoding="utf-8",
         )
     print("  memory/")
+
+
+def sync_memory_strategies() -> None:
+    """Mirror curated strategy memory both ways (output ↔ workspace)."""
+    out_strat = OUTPUT / "memory" / "strategies"
+    ws_strat = WORKSPACE / "memory" / "strategies"
+    out_strat.mkdir(parents=True, exist_ok=True)
+    ws_strat.mkdir(parents=True, exist_ok=True)
+    names = (
+        "selective-activation.md",
+        "active-pipelines.md",
+        "signal-catalog.md",
+        "endgame.md",
+    )
+    for name in names:
+        src_out = out_strat / name
+        src_ws = ws_strat / name
+        # Prefer output (build extract) when present; else keep workspace curated.
+        if src_out.exists():
+            shutil.copy(src_out, src_ws)
+            print(f"  workspace/memory/strategies/{name}")
+        elif src_ws.exists():
+            shutil.copy(src_ws, src_out)
+            print(f"  output/memory/strategies/{name} ← workspace")
 
 
 def _reconciled_config_index(reconciled: Path) -> str:
@@ -271,6 +315,7 @@ def main() -> int:
     write_iron_laws()
     write_hermes_md()
     ensure_memory_stub()
+    sync_memory_strategies()
     regenerate_configs_detail()
     print(f"Done → {WORKSPACE}")
     return 0

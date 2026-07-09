@@ -117,7 +117,12 @@ def overlay_herald_skill() -> None:
 
 def overlay_infra_skills() -> None:
     """Overlay infra-related skill stubs with advisory content."""
-    for skill_name in ("trench_ops_execution", "forge_infra"):
+    for skill_name in (
+        "trench_ops_execution",
+        "forge_infra",
+        "sentinel_security",
+        "predator_scanner",
+    ):
         src = TEMPLATES / "skills" / skill_name
         if not src.exists():
             continue

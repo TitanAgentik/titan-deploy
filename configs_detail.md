@@ -525,6 +525,8 @@ capital:
   },
   "autonomy": {
     "mode": "bounded_supervised",
+    "selectiveActivation": true,
+    "note": "Specs are a catalog \u2014 enable only pipelines/skills/security modules required for current phase and capital. maxActivePipelines caps concentration.",
     "matrix": {
       "auto_execute": [
         "routine_trades_under_1pct_equity",
@@ -532,7 +534,9 @@ capital:
         "cb_tier_responses_within_policy",
         "shadow_evolution_outputs",
         "paper_trading",
-        "heartbeat_and_health_checks"
+        "heartbeat_and_health_checks",
+        "honeypot_arm_disarm_sentinel",
+        "predatory_poison_fills_under_1pct_equity"
       ],
       "human_required": [
         "strategy_promotion_phase5",
@@ -542,7 +546,8 @@ capital:
         "trades_over_1pct_equity",
         "new_pipeline_activation",
         "model_promotion",
-        "withdrawal_over_20pct_equity"
+        "withdrawal_over_20pct_equity",
+        "security_lockdown"
       ],
       "timeout_policy": "hold_derisk_never_auto_promote"
     },
@@ -552,7 +557,8 @@ capital:
       "leverageChanges": true,
       "flashLoanLive": true,
       "positionOver1PctEquity": true,
-      "phase5GoNoGo": true
+      "phase5GoNoGo": true,
+      "securityLockdown": true
     },
     "criticalAlertsOnly": false,
     "criticalConditions": [
@@ -561,6 +567,10 @@ capital:
       "drawdown_velocity_15m",
       "hardware_failure",
       "security_breach",
+      "pcr_drift",
+      "honeypot_tripwire",
+      "stalk_severity_high",
+      "security_lockdown_activated",
       "soul_modification_attempt",
       "exchange_api_failure_5min",
       "unknown_contract_interaction"
@@ -640,6 +650,34 @@ capital:
     "cliPath": "~/.openclaw/safety/bin/titan-safety",
     "fileFlag": "~/.openclaw/safety/KILL_SWITCH.active"
   },
+  "securityOps": {
+    "enabled": true,
+    "pillars": [
+      "impenetrable",
+      "evasion",
+      "stalking",
+      "predatory"
+    ],
+    "cli": "titan-safety security",
+    "playbook": "~/.openclaw/playbooks/security_lockdown.yaml",
+    "honeypotDir": "~/.openclaw/safety/honeypots",
+    "postureLog": "~/.openclaw/memory/security/posture.jsonl",
+    "skills": [
+      "sentinel_security",
+      "predator_scanner"
+    ],
+    "refs": [
+      "AEGIS",
+      "FORTRESS",
+      "GHOST",
+      "MEV",
+      "REAPER"
+    ],
+    "cockpitPath": "/security",
+    "requireHmacForLockdown": true,
+    "servicePort": 19008,
+    "healthUrl": "http://127.0.0.1:19008/health"
+  },
   "safetyServices": {
     "riskKernel": "http://127.0.0.1:19001/health",
     "reconciliation": "http://127.0.0.1:19002/health",
@@ -648,7 +686,12 @@ capital:
     "deadMansSwitch": "http://127.0.0.1:19005/health",
     "allocator": "http://127.0.0.1:19006/health",
     "tca": "http://127.0.0.1:19007/health",
-    "signingNode": "http://127.0.0.1:19010/health"
+    "securityOps": "http://127.0.0.1:19008/health",
+    "signingNode": "http://127.0.0.1:19010/health",
+    "allocatorPlanUrl": "http://127.0.0.1:19006/v1/plan",
+    "tcaIngestUrl": "http://127.0.0.1:19007/v1/ingest",
+    "tcaScorecardUrl": "http://127.0.0.1:19007/v1/scorecard",
+    "securityOpsUrl": "http://127.0.0.1:19008/v1/status"
   },
   "drawdownTiers": {
     "alert": 2.0,
@@ -836,6 +879,8 @@ capital:
 
 version: "2.1"
 mode: enforce
+# Paper-first default. Live capital: set capital_profile=live, adapter=live, expand allowed_venues.
+capital_profile: paper
 
 trading_limits:
   max_notional_usd_per_trade: 500.0
@@ -846,14 +891,15 @@ trading_limits:
   max_slippage_bps: 50
   equity_usd: 2500.0
 
+# PAPER DEFAULT: paper-only. Uncomment live venues only with reconciliation.adapter=live.
 allowed_venues:
   - paper
-  - binance_spot
-  - uniswap_v3
+  # - binance_spot
+  # - uniswap_v3
 
 allowed_contracts:
   - "0x0000000000000000000000000000000000000000"  # paper sentinel
-  - "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
+  # - "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH (live)
 
 position_limits:
   max_equity_pct_per_trade: 2.0
@@ -927,7 +973,11 @@ allocator:
   max_cluster_pct: 40.0           # per-correlation-cluster cap as % equity
   min_net_bps: 1.0               # lanes below this net-of-cost edge get zero capital
   min_trades: 100                # lanes below this sample size get zero capital
-  max_active_pipelines: 4        # hard concentration cap — fund few HEALTHY lanes
+  max_active_pipelines: 4        # hard concentration — fund few HEALTHY lanes; catalog ≠ all-on
+  # Selective activation: pipelines/skills/security modules in TITAN docs are optional until funded/needed.
+  selective_activation: true
+  advisory_mode: true   # Phase 1: log targets; Phase 2+: set false to enforce
+  note: "Do not enable every strategy or feature mentioned in specs — use only what is necessary"
   regime_multipliers:
     risk_off: 0.5
     neutral: 1.0
@@ -1023,6 +1073,78 @@ evolution:
   freeze_during_live: true
   flag_file: ~/.openclaw/safety/EVOLUTION_FROZEN
 
+# Four-pillar security ops — Impenetrable / Evasion / Stalking / Predatory
+# CLI: titan-safety security status|lockdown|honeypot
+# Refs: AEGIS / FORTRESS / GHOST / MEV / REAPER
+security_ops:
+  enabled: true
+  hunt_mode_default: true
+  honeypot_armed_default: true
+  honeypot_dir: ~/.openclaw/safety/honeypots
+  posture_log: ~/.openclaw/memory/security/posture.jsonl
+  require_hmac_for_lockdown: true
+  pillars:
+    impenetrable:
+      owner: SENTINEL
+      layers: [L1_risk_kernel, L2_signing_node, L3_netns, L4_pcr_codeql, L5_dms, L6_closed_model_ban]
+    evasion:
+      owner: TRENCH-OPS
+      controls: [mev_shield_intents, edge_rtt, nostr_nip44, fingerprint_rotate, traffic_jitter, airgap_vault]
+    stalking:
+      owner: PREDATOR
+      cadence_seconds: 60
+      escalate_severity: high
+    predatory:
+      owner: PREDATOR
+      modules: [honeypot_lattice, red_team, graph_r1, poison_fills, kill_chain]
+      poison_max_equity_pct_auto: 1.0
+  circuit_breakers:
+    - id: CB_TPM_PCR_DRIFT
+      action: halt_new_risk_critical_alert
+    - id: CB_KEYS_SIGNING_ENV_COMPROMISED
+      action: signing_halted
+    - id: CB_NETNS_POLICY_BYPASS
+      action: kill_pipeline
+    - id: CB_RISK_KERNEL_UNREACHABLE
+      action: fail_closed_deny
+    - id: CB_DARKINT_HONEYPOT
+      action: critical_alert_optional_pipeline_halt
+    - id: CB_HYDRA_HONEYPOT
+      action: critical_alert_optional_pipeline_halt
+    - id: CB_STALK_SEVERITY_HIGH
+      action: escalate_archon_herald
+    - id: CB_SECURITY_LOCKDOWN
+      action: kill_freeze_signing_halt_honeypot_arm
+  # ENDGAME CBs — unlock Phase 3+ per openclaw capital.endgame_phase_unlock (documented for memory extract; not all wired yet).
+  endgame_circuit_breakers:
+    - id: CB_FUNDING_FLIP
+      action: halt_funding_lanes
+    - id: CB_RESTAKING_SLASH
+      action: halt_restaking_exposure
+    - id: CB_RESTAKING_DEPEG
+      action: halt_restaking_exposure
+    - id: CB_PRED_MARKET_RESOLVE_RISK
+      action: halt_pred_market_lanes
+    - id: CB_VOL_HARVEST_GAP
+      action: halt_vol_harvest
+    - id: CB_NEW_CHAIN_MEV_HALT
+      action: halt_new_chain_mev
+    - id: CB_AIRDROP_SYBIL
+      action: halt_airdrop_farming
+    - id: CB_RATE_ARB_LIQUIDITY
+      action: halt_rate_arb
+    - id: CB_CLMM_IL_SPIKE
+      action: halt_clmm_lp
+    - id: CB_ENDGAME_PHASE_GATE
+      action: deny_until_phase_unlock
+  lockdown_sequence:
+    - kill_switch_activate
+    - evolution_freeze
+    - signing_halt
+    - honeypot_arm
+    - edge_fail_closed
+    - herald_critical
+
 service:
   risk_kernel_port: 19001
   reconciliation_port: 19002
@@ -1031,6 +1153,7 @@ service:
   dead_mans_switch_port: 19005
   allocator_port: 19006
   tca_port: 19007
+  security_ops_port: 19008
   signing_node_port: 19010
 ```
 
@@ -1101,6 +1224,15 @@ hardware_options:
 macmini_vault:
   role: "Trezor ceremony + cold key metadata; signing requests proxied via NATS"
   not_a_substitute_for: "isolated signing daemon — vault holds metadata, signing_node executes"
+
+# Four-pillar Impenetrable layer L2 — security lockdown sets SIGNING_HALTED
+security_ops:
+  pillar: impenetrable
+  layer: L2
+  pcr_watch: tpm-pcr-watch
+  lockdown_flag: ~/.openclaw/safety/SIGNING_HALTED
+  cli: titan-safety security lockdown
+  ref: refs/AEGIS_detail.md
 ```
 
 ---

@@ -55,10 +55,12 @@ Natural-language scheduling for Hermes cron + OpenClaw heartbeat.
 
 ## Phase-Dependent
 
-- **Phase 1 ($2,500):** P30 bounty hunter, P1/P3/P7/P8/P11 flash-loan strategies
-- **Phase 2 ($10K+):** +P29 MEV, P6 liquidations, P18 funding harvest
-- **Phase 3 ($50K+):** +P34 CLMM, P40 intent solver, P41 yield loops
-- **Phase 4 ($100K+):** all 47 pipelines active
+- **Phase 1 ($2,500):** Few funded lanes only (e.g. P1/P3/P7/P8/P11 as capital allows) — not the full catalog
+- **Phase 2 ($10K+):** Add lanes only when TCA/allocator funds them (e.g. P29/P6/P18 when healthy)
+- **Phase 3 ($50K+):** Optional expansion (P34/P40/P41) — still capped by `max_active_pipelines`
+- **Phase 4 ($100K+):** More capacity available — still **not** "run every pipeline"; fund HEALTHY lanes only
+
+Catalog size ≠ required set. Allocator `max_active_pipelines` (default 4) is the hard concentration cap.
 
 ## CRITICAL Alert Bypass
 

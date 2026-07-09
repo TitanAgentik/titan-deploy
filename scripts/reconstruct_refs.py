@@ -265,6 +265,13 @@ def write_agents_schemas() -> None:
 
 
 def write_narrative_stub(name: str, purpose: str, see_also: str) -> None:
+    dest = REFS / name
+    # Preserve fleshed-out four-pillar security companions
+    if dest.exists():
+        existing = dest.read_text(encoding="utf-8")
+        if "## Pillar:" in existing or "Pillar: Impenetrable" in existing or "Pillar: Evasion" in existing or "Pillar: Predatory" in existing:
+            print(f"  refs/{name} (preserved)")
+            return
     body = _header(name, purpose)
     body += f"""## Status
 
@@ -281,7 +288,7 @@ under related sections.
 Do not block OpenClaw/Hermes startup on this file. Bootstrap context is the
 `workspace/*.md` set; this companion is reference-only.
 """
-    write_text(REFS / name, body)
+    write_text(dest, body)
     print(f"  refs/{name} (stub)")
 
 
@@ -436,8 +443,8 @@ def main() -> int:
     # Narrative-only companions — honest stubs with pointers
     write_narrative_stub(
         "GHOST_detail.md",
-        "Ghost / stealth / adversarial narrative sections from TITAN.",
-        "- Search `TITAN.reconciled.md` for `§GHOST` / stealth / adversarial harness\n"
+        "Ghost / stealth / OPSEC evasion (four-pillar Evasion).",
+        "- `refs/GHOST_detail.md` body (Evasion controls)\n"
         "- Runtime: `tests/adversarial/adversarial_harness.py`",
     )
     write_narrative_stub(
@@ -454,23 +461,26 @@ def main() -> int:
     )
     write_narrative_stub(
         "MEV_detail.md",
-        "MEV pipeline narrative (P29/P30 etc.).",
-        "- Pipeline notes in `output/memory/strategies/`\n"
+        "MEV-shield / intent solver / edge RTT (four-pillar Evasion).",
+        "- `refs/MEV_detail.md` body\n"
         "- TCA scorecards on `:19007`",
     )
     write_narrative_stub(
         "REAPER_detail.md",
-        "Reaper / liquidation narrative.",
-        "- See reconciled liquidation pipelines; risk kernel flatten path",
+        "Predatory countermeasures / lockdown kill-chain.",
+        "- `refs/REAPER_detail.md` body\n"
+        "- `titan-safety security lockdown`",
     )
     write_narrative_stub(
         "AEGIS_detail.md",
-        "Aegis / defense narrative.",
+        "Impenetrable defense layers (four-pillar Impenetrable).",
+        "- `refs/AEGIS_detail.md` body\n"
         "- Kill switch + portfolio risk + dead-man's switch services",
     )
     write_narrative_stub(
         "FORTRESS_detail.md",
-        "Fortress / hardening narrative.",
+        "Perimeter hardening (complements AEGIS).",
+        "- `refs/FORTRESS_detail.md` body\n"
         "- `PRODUCTION_READINESS.md` + safety package under `templates/safety/`",
     )
     write_narrative_stub(

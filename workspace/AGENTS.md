@@ -43,7 +43,7 @@ Same-family voters = correlated consensus. Distinct families (Qwen3-30B ≠ Qwen
 
 ## Security
 
-   - netns. Out-of-process policy engine validates every action. Agent cannot
+Four pillars (Impenetrable baseline; Evasion/Stalking/Predatory on demand). No :19001 bypass. Lockdown=HMAC. Mention≠mandate.
 
 ## Data Handling
 

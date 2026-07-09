@@ -4,15 +4,18 @@ import clsx from "clsx";
 export function PageHeader({
   title,
   subtitle,
+  eyebrow,
   actions,
 }: {
   title: string;
   subtitle: string;
+  eyebrow?: string;
   actions?: ReactNode;
 }) {
   return (
     <div className="page-header">
       <div>
+        {eyebrow ? <span className="page-eyebrow">{eyebrow}</span> : null}
         <h2>{title}</h2>
         <p>{subtitle}</p>
       </div>

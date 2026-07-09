@@ -52,6 +52,8 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 | Mock adapter ban (live) | `assert_adapter_allowed_for_policy` | DENY / refuse live profile startup |
 | Control-plane HMAC auth | `auth.py` `X-Titan-Auth` on mutating POSTs | 401 unauthorized |
 | Pipeline concentration | `allocator.max_active_pipelines` (default 4) | Cap funded lanes |
+| Selective activation | `autonomy.selectiveActivation` + allocator advisory | Catalog ≠ all-on |
+| Security Ops four pillars | `security_ops.py` + HTTP `:19008` | Lockdown / honeypot / posture |
 | Air-gapped staging flag | `openclaw.json` `promotion.airGappedStaging` | Config |
 | Safe mode / wind-down | `wind_down.py` + CLI | De-risk |
 | Tax ledger stub | `capital/tax_ledger.py` FIFO + CSV export | Audit |
@@ -82,6 +84,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 3. **Safety + profit services running:** All systemd units healthy (`curl :19003/health` → `"status":"ok"`), including allocator (`:19006`) and TCA (`:19007`).
 4. **Fail-closed verified:** Stop risk kernel; confirm all trade paths return DENY (not bypass).
 5. **Kill switch drill:** Activate via CLI; deactivate only with signed `RESUME` (`kill sign --command RESUME` then `kill deactivate --signed ...`); confirm kernel denies trades while active.
+5a. **Security Ops four pillars:** `titan-safety security status` shows HARDENED; `security lockdown --dry-run` plans kill+freeze+signing halt+honeypot; skills `sentinel_security` / `predator_scanner` non-stub; refs AEGIS/GHOST/REAPER present; Cockpit `/security` matches CLI posture.
 6. **Reconciliation with real adapter:** Replace `mock` adapter with exchange/on-chain adapter wired to real keys; verify zero divergence over 48h paper.
 7. **Operator heartbeat:** Dead-man's switch tested; heartbeat cron or manual `titan-safety heartbeat` scheduled.
 8. **Live infrastructure:** NATS, inference endpoints, Erigon on EDGE-FRA (Phase 1 single PoP), Solana feeds — production SLOs met.
@@ -133,7 +136,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 
 ### Phase 0 — Infrastructure + Paper (2 Days)
 
-- Deploy bundle; enable all safety systemd units (`19001`–`19007`)
+- Deploy bundle; enable all safety systemd units (`19001`–`19008`, signing `:19010`)
 - Complete BOOTSTRAP.md checklist including UPS drill
 - Run `./deploy.sh --verify` and adversarial harness PASS
 - Paper trade all candidate pipelines; zero live keys

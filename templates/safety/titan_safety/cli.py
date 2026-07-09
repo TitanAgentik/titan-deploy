@@ -17,6 +17,7 @@ from .execution_gate import ExecutionGate
 from .kill_switch import KillSwitch
 from .promotion_gate import PromotionCategory, PromotionGate, PromotionRequest
 from .promotion_stats import StatsGateConfig, StrategyStats, StrategyStatsGate
+from .profit_loop import ProfitLoop
 from .tca import Fill, TCAEngine
 from .telegram_capital import format_telegram_response, handle_capital_command
 from .wind_down import WindDownController
@@ -359,6 +360,132 @@ def cmd_evolution_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_security_status(args: argparse.Namespace) -> int:
+    from .security_ops import SecurityOps
+
+    ops = SecurityOps(Path(args.safety_dir) if args.safety_dir else None)
+    print(json.dumps(ops.status(), indent=2))
+    return 0
+
+
+def cmd_security_layer(args: argparse.Namespace) -> int:
+    from .security_ops import SecurityOps
+
+    ops = SecurityOps(Path(args.safety_dir) if args.safety_dir else None)
+    print(json.dumps(ops.layer_check(args.layer), indent=2))
+    return 0
+
+
+def cmd_security_honeypot(args: argparse.Namespace) -> int:
+    from .security_ops import SecurityOps
+
+    ops = SecurityOps(Path(args.safety_dir) if args.safety_dir else None)
+    if args.hp_cmd == "arm":
+        print(json.dumps(ops.honeypot_arm(args.operator), indent=2))
+    elif args.hp_cmd == "disarm":
+        print(json.dumps(ops.honeypot_disarm(args.operator), indent=2))
+    else:
+        print(json.dumps(ops.honeypot_status(), indent=2))
+    return 0
+
+
+def cmd_security_lockdown(args: argparse.Namespace) -> int:
+    from .security_ops import SecurityOps
+
+    ops = SecurityOps(Path(args.safety_dir) if args.safety_dir else None)
+    result = ops.lockdown(
+        args.operator,
+        args.reason,
+        dry_run=args.dry_run,
+        signed=args.signed,
+    )
+    print(json.dumps(result, indent=2))
+    return 0 if result.get("ok", False) else 1
+
+
+def _load_tca_engine(safety_dir: Path) -> TCAEngine:
+    """Load TCAEngine; optionally hydrate from safety_dir/tca_fills.jsonl if present."""
+    engine = TCAEngine()
+    fills_path = safety_dir / "tca_fills.jsonl"
+    if fills_path.exists():
+        for line in fills_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            raw = json.loads(line)
+            engine.ingest(
+                Fill(
+                    pipeline_id=str(raw.get("pipeline_id", raw.get("strategy_id", ""))),
+                    venue=str(raw.get("venue", "")),
+                    side=str(raw.get("side", "buy")),
+                    notional_usd=float(raw.get("notional_usd", 0.0)),
+                    expected_price=float(raw.get("expected_price", 0.0)),
+                    realized_price=float(raw.get("realized_price", 0.0)),
+                    gross_pnl_usd=float(raw.get("gross_pnl_usd", 0.0)),
+                    gas_usd=float(raw.get("gas_usd", 0.0)),
+                    tip_usd=float(raw.get("tip_usd", 0.0)),
+                    reverted=bool(raw.get("reverted", False)),
+                )
+            )
+    return engine
+
+
+def cmd_tca_scorecard(args: argparse.Namespace) -> int:
+    safety_dir = Path(args.safety_dir) if args.safety_dir else Path.home() / ".openclaw" / "safety"
+    engine = _load_tca_engine(safety_dir)
+    cards = engine.all_scorecards()
+    summary = {
+        "lanes_tracked": len(cards),
+        "scorecards": [c.to_dict() for c in cards],
+        "health": engine.health(),
+        "note": "empty scorecard" if not cards else "loaded from safety dir" if (safety_dir / "tca_fills.jsonl").exists() else "in-memory",
+    }
+    print(json.dumps(summary, indent=2))
+    return 0
+
+
+def cmd_tca_profit_loop(args: argparse.Namespace) -> int:
+    safety_dir = Path(args.safety_dir) if args.safety_dir else Path.home() / ".openclaw" / "safety"
+    engine = _load_tca_engine(safety_dir)
+    loop = ProfitLoop(engine, safety_dir=safety_dir, auto_halt_bleeding=not args.dry_run)
+    if args.dry_run:
+        cards = engine.all_scorecards()
+        bleeding = [c.pipeline_id for c in cards if c.verdict == "BLEEDING"]
+        plan = CapitalAllocator().allocate(
+            args.equity,
+            [
+                LaneEdge(
+                    pipeline_id=c.pipeline_id,
+                    net_bps=c.net_bps,
+                    return_std=max(0.01, abs(c.net_bps) / 1e4 * 2),
+                    trade_count=c.fill_count,
+                    decaying=c.verdict == "BLEEDING" or c.decay_slope_bps < 0,
+                )
+                for c in cards
+                if c.verdict != "INSUFFICIENT_DATA"
+            ],
+            regime=args.regime,
+            drawdown_pct=args.drawdown_pct,
+        )
+        result = {
+            "dry_run": True,
+            "would_defund": bleeding,
+            "already_defunded": sorted(loop.defunded_lanes()),
+            "scorecards": [c.to_dict() for c in cards],
+            "plan": plan.to_dict(),
+            "notes": ["dry-run: no defund ledger writes, no pipeline halts"],
+        }
+        print(json.dumps(result, indent=2))
+        return 0
+    result = loop.run(
+        equity_usd=args.equity,
+        regime=args.regime,
+        drawdown_pct=args.drawdown_pct,
+    )
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="TITAN Safety CLI")
     parser.add_argument("--safety-dir", default=str(Path.home() / ".openclaw" / "safety"))
@@ -551,6 +678,45 @@ def main(argv: list[str] | None = None) -> int:
     euf.set_defaults(func=cmd_evolution_unfreeze)
     est = evo_sub.add_parser("status")
     est.set_defaults(func=cmd_evolution_status)
+
+    p_sec = sub.add_parser("security", help="Four-pillar security ops")
+    sec_sub = p_sec.add_subparsers(dest="sec_cmd", required=True)
+    ss = sec_sub.add_parser("status")
+    ss.set_defaults(func=cmd_security_status)
+    sl = sec_sub.add_parser("layer-check")
+    sl.add_argument("--layer", default=None, help="L1–L6 or omit for all")
+    sl.set_defaults(func=cmd_security_layer)
+    shp = sec_sub.add_parser("honeypot")
+    hp_sub = shp.add_subparsers(dest="hp_cmd", required=True)
+    hpa = hp_sub.add_parser("arm")
+    hpa.add_argument("--operator", default="SENTINEL")
+    hpa.set_defaults(func=cmd_security_honeypot)
+    hpd = hp_sub.add_parser("disarm")
+    hpd.add_argument("--operator", default="SENTINEL")
+    hpd.set_defaults(func=cmd_security_honeypot)
+    hps = hp_sub.add_parser("status")
+    hps.set_defaults(func=cmd_security_honeypot)
+    # honeypot status needs hp_cmd — set on parser
+    hps.set_defaults(hp_cmd="status", func=cmd_security_honeypot)
+    hpa.set_defaults(hp_cmd="arm", func=cmd_security_honeypot)
+    hpd.set_defaults(hp_cmd="disarm", func=cmd_security_honeypot)
+    sld = sec_sub.add_parser("lockdown")
+    sld.add_argument("--operator", required=True)
+    sld.add_argument("--reason", required=True)
+    sld.add_argument("--dry-run", action="store_true")
+    sld.add_argument("--signed", default=None)
+    sld.set_defaults(func=cmd_security_lockdown)
+
+    p_tca = sub.add_parser("tca", help="Transaction-cost analysis / profit loop")
+    tca_sub = p_tca.add_subparsers(dest="tca_cmd", required=True)
+    tsc = tca_sub.add_parser("scorecard", help="Print TCA scorecard summary")
+    tsc.set_defaults(func=cmd_tca_scorecard)
+    tpl = tca_sub.add_parser("profit-loop", help="Run TCA→allocator profit loop")
+    tpl.add_argument("--dry-run", action="store_true", help="Plan only; no defund/halt side effects")
+    tpl.add_argument("--equity", type=float, default=10000.0)
+    tpl.add_argument("--regime", default="neutral")
+    tpl.add_argument("--drawdown-pct", type=float, default=0.0)
+    tpl.set_defaults(func=cmd_tca_profit_loop)
 
     args = parser.parse_args(argv)
     return args.func(args)

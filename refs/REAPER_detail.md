@@ -1,29 +1,55 @@
-# §REAPER_detail.md
+# §REAPER_detail.md — Predatory Countermeasures & Kill-Chain
 
-> **Reconstructed companion** for OpenClaw + Hermes deploy.
-> Original `REAPER_detail.md` was referenced by TITAN.md but never present on disk.
->
-> **Purpose:** Reaper / liquidation narrative.
->
-> **Runtime source of truth:** live files under `templates/`, `output/`, and
-> `~/.openclaw` / `~/.hermes` after `./deploy.sh` — not this markdown dump.
->
-> Docs: [OpenClaw workspace](https://docs.openclaw.ai/concepts/agent-workspace) ·
-> [Hermes context files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files)
+> Offensive security posture: honeypots, Red Team, counter-copy, lockdown sequencing.
 
----
+## Pillar: Predatory
 
-## Status
+| Module | Agent | Posture |
+|--------|-------|---------|
+| PREDATOR sniper / mempool | PREDATOR | hunt |
+| Honeypot wallet lattice | SENTINEL | lure |
+| Red Team gauntlet | ARBITER | simulate |
+| Graph-R1 fraud hypergraph | GUARDIAN | isolate |
+| Counter-copy poison fills | TRENCH-OPS | disrupt (&lt;1% equity auto) |
+| Kill-chain auto-response | ARCHON | contain (HMAC for full lockdown) |
 
-The original companion body was **not included** in the TITAN.md dump shipped to
-this machine. Narrative / research content remains in `output/TITAN.reconciled.md`
-under related sections.
+## Stalking feed (PREDATOR)
 
-## See also
+Track and classify — do not auto-engage capital &gt;1% without YES:
 
-- See reconciled liquidation pipelines; risk kernel flatten path
+- Mempool sandwich / predator clusters
+- RPC fingerprint probes on signing/health endpoints
+- Competitor copy-trade wallets (lag 180–400ms)
+- Telegram phishing lures (HERALD quarantine)
+
+## Lockdown sequence (operator HMAC)
+
+1. Global kill switch ACTIVE  
+2. Evolution FREEZE (shadow-only)  
+3. Signing node SIGNING_HALTED  
+4. Honeypot lattice ARMED  
+5. Edge routing fail-closed to known-good PoPs  
+6. HERALD CRITICAL alert  
+
+```bash
+titan-safety security lockdown --operator YOU --reason "…"
+# or dry-run:
+titan-safety security lockdown --dry-run --operator YOU --reason "drill"
+```
+
+## Circuit breakers
+
+- `CB_DARKINT_HONEYPOT` / `CB_HYDRA_HONEYPOT` — tripwire touch → CRITICAL + optional pipeline halt
+- `CB_STALK_SEVERITY_HIGH` — escalate to ARCHON + operator
+- `CB_SECURITY_LOCKDOWN` — full sequence above
 
 ## Operator note
 
-Do not block OpenClaw/Hermes startup on this file. Bootstrap context is the
-`workspace/*.md` set; this companion is reference-only.
+**Mention ≠ mandate.** Predatory modules (honeypots, poison fills, full lockdown) are optional escalation — not always-on. Prefer observe/stalk before disrupt.
+
+## See also
+
+- Skill: `predator_scanner`, `sentinel_security`
+- Playbook: `security_lockdown.yaml`
+- Cockpit: `/security`
+- P44 AGENT_HUNT (TITAN.reconciled)

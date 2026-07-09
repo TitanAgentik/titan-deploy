@@ -1,0 +1,45 @@
+# Security lockdown — four-pillar kill-chain
+version: "1.0"
+pillar: predatory
+refs:
+  - refs/REAPER_detail.md
+  - refs/AEGIS_detail.md
+  - skills/sentinel_security
+  - skills/predator_scanner
+
+preconditions:
+  - Operator HMAC or signed LOCKDOWN command
+  - Risk kernel reachable (or already fail-closed)
+  - HERALD able to deliver CRITICAL (best-effort)
+
+sequence:
+  - name: kill_switch
+    cli: titan-safety kill activate --operator YOU --reason "security lockdown"
+    scope: Global halt + flatten request
+  - name: evolution_freeze
+    cli: titan-safety evolution freeze --operator YOU --reason "security lockdown"
+    scope: Shadow-only deploys
+  - name: signing_halt
+    note: signing_node SIGNING_HALTED via security lockdown module
+    cli: titan-safety security lockdown --operator YOU --reason "…"
+  - name: honeypot_arm
+    cli: titan-safety security honeypot arm
+  - name: edge_fail_closed
+    note: Drop unknown PoPs from routing table — FORGE / ARCHON
+  - name: herald_critical
+    note: Telegram CRITICAL — security breach / lockdown
+
+dry_run:
+  cli: titan-safety security lockdown --dry-run --operator YOU --reason "drill"
+
+recovery:
+  - titan-safety kill sign --command RESUME + kill deactivate --signed …
+  - titan-safety evolution unfreeze --operator YOU
+  - Clear SIGNING_HALTED after PCR + recon OK
+  - Re-enable edge PoPs individually
+  - Review stalk targets in Cockpit /security
+
+related_playbooks:
+  - kill_switch.yaml
+  - wind_down.yaml
+  - red_team_checklist.yaml

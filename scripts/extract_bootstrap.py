@@ -68,6 +68,7 @@ def build_soul(text: str) -> str:
 - Direct, capital-preservation-first, no hype.
 - Prefer fail-closed over clever autonomy.
 - Admit uncertainty; never invent fills, balances, or gate ALLOW.
+- Keep it simple: catalog ≠ checklist — enable only what capital/phase need.
 
 ## Immutable Boundaries
 
@@ -80,6 +81,7 @@ def build_soul(text: str) -> str:
 ## Operational Doctrine
 
 - Lead with safety, then profit
+- **Selective activation:** do not run every pipeline/skill/pillar named in specs; fund ≤`max_active_pipelines` HEALTHY lanes
 - All trades: hard stop-loss mandatory (R16)
 - Drawdown tiers: 2% alert / 5% soft pause / 8% reduce / 10% CRITICAL / 12% full halt
 - Drawdown velocity: 60s and 15m loss caps enforced by risk kernel
@@ -249,6 +251,21 @@ Same-family voters = correlated consensus. Distinct families (Qwen3-30B ≠ Qwen
             count=1,
             flags=re.DOTALL,
         )
+    # Ensure Security section: Four pillars phrase (verify.sh) + selective activation (≤20KB)
+    if "## Security" in content:
+        security_block = """## Security
+
+Four pillars (Impenetrable baseline; Evasion/Stalking/Predatory on demand). No :19001 bypass. Lockdown=HMAC. Mention≠mandate.
+
+"""
+        if "Four pillars" not in content or "Mention≠mandate" not in content:
+            content = re.sub(
+                r"## Security\n.*?(?=\n## )",
+                security_block,
+                content,
+                count=1,
+                flags=re.S,
+            )
     content = re.sub(
         r"\| Research gate \| 72h \(3-day\) paper-trading.*?\|",
         "| Research gate | 3-day paper-trading minimum + backtest before live (R14-R15) |",
@@ -666,6 +683,21 @@ def build_user(text: str) -> str:
             "## Preferences\n\n",
             "## Preferences\n\n" + trade_notify,
         )
+    if "Selective activation" not in content and "## Preferences" in content:
+        content = content.replace(
+            "## Preferences\n\n",
+            "## Preferences\n\n"
+            "- **Selective activation:** catalog ≠ required set — fund few HEALTHY lanes "
+            "(allocator `max_active_pipelines` default 4); do not enable every strategy/feature named in specs\n",
+        )
+    content = content.replace(
+        "5 active strategies",
+        "few funded lanes (allocator cap)",
+    )
+    content = content.replace(
+        "all active pipelines + classical optimization only",
+        "more capacity available — still fund HEALTHY lanes only + classical optimization",
+    )
     return patch_quantum_classical_only(
         patch_user_capital(patch_user_survivability(content))
     )
@@ -763,7 +795,8 @@ def build_identity(text: str) -> str:
 
 ## Scale
 
-- 23 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 26 workflows | 47 pipelines
+- 23 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 26 workflows | **47-pipeline catalog**
+- **Selective activation:** catalog size ≠ required set — fund ≤`max_active_pipelines` (default 4) HEALTHY lanes
 - Quantum agents: DORMANT (100% classical execution)
 
 ## Bootstrap Limits
@@ -834,10 +867,12 @@ Natural-language scheduling for Hermes cron + OpenClaw heartbeat.
 
 ## Phase-Dependent
 
-- **Phase 1 ($2,500):** P30 bounty hunter, P1/P3/P7/P8/P11 flash-loan strategies
-- **Phase 2 ($10K+):** +P29 MEV, P6 liquidations, P18 funding harvest
-- **Phase 3 ($50K+):** +P34 CLMM, P40 intent solver, P41 yield loops
-- **Phase 4 ($100K+):** all 47 pipelines active
+- **Phase 1 ($2,500):** Few funded lanes only (e.g. P1/P3/P7/P8/P11 as capital allows) — not the full catalog
+- **Phase 2 ($10K+):** Add lanes only when TCA/allocator funds them (e.g. P29/P6/P18 when healthy)
+- **Phase 3 ($50K+):** Optional expansion (P34/P40/P41) — still capped by `max_active_pipelines`
+- **Phase 4 ($100K+):** More capacity available — still **not** "run every pipeline"; fund HEALTHY lanes only
+
+Catalog size ≠ required set. Allocator `max_active_pipelines` (default 4) is the hard concentration cap.
 
 ## CRITICAL Alert Bypass
 
@@ -999,7 +1034,7 @@ def build_bootstrap() -> str:
 ## Completion
 
 - [ ] All checks pass → delete this BOOTSTRAP.md file
-- [ ] Enable systemd: `systemctl --user enable --now llama-server-tier1 llama-server-tier2 titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-signing-node openclaw-gateway hermes-gateway`
+- [ ] Enable systemd: `systemctl --user enable --now llama-server-tier1 llama-server-tier2 titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-portfolio-risk titan-status-aggregator titan-allocator titan-tca titan-security-ops titan-signing-node openclaw-gateway hermes-gateway`
 """
 
 

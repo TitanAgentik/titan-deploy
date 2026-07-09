@@ -57,6 +57,8 @@
   },
   "autonomy": {
     "mode": "bounded_supervised",
+    "selectiveActivation": true,
+    "note": "Specs are a catalog — enable only pipelines/skills/security modules required for current phase and capital. maxActivePipelines caps concentration.",
     "matrix": {
       "auto_execute": [
         "routine_trades_under_1pct_equity",
@@ -64,7 +66,9 @@
         "cb_tier_responses_within_policy",
         "shadow_evolution_outputs",
         "paper_trading",
-        "heartbeat_and_health_checks"
+        "heartbeat_and_health_checks",
+        "honeypot_arm_disarm_sentinel",
+        "predatory_poison_fills_under_1pct_equity"
       ],
       "human_required": [
         "strategy_promotion_phase5",
@@ -74,7 +78,8 @@
         "trades_over_1pct_equity",
         "new_pipeline_activation",
         "model_promotion",
-        "withdrawal_over_20pct_equity"
+        "withdrawal_over_20pct_equity",
+        "security_lockdown"
       ],
       "timeout_policy": "hold_derisk_never_auto_promote"
     },
@@ -84,7 +89,8 @@
       "leverageChanges": true,
       "flashLoanLive": true,
       "positionOver1PctEquity": true,
-      "phase5GoNoGo": true
+      "phase5GoNoGo": true,
+      "securityLockdown": true
     },
     "criticalAlertsOnly": false,
     "criticalConditions": [
@@ -93,6 +99,10 @@
       "drawdown_velocity_15m",
       "hardware_failure",
       "security_breach",
+      "pcr_drift",
+      "honeypot_tripwire",
+      "stalk_severity_high",
+      "security_lockdown_activated",
       "soul_modification_attempt",
       "exchange_api_failure_5min",
       "unknown_contract_interaction"
@@ -149,6 +159,20 @@
     "cliPath": "~/.openclaw/safety/bin/titan-safety",
     "fileFlag": "~/.openclaw/safety/KILL_SWITCH.active"
   },
+  "securityOps": {
+    "enabled": true,
+    "pillars": ["impenetrable", "evasion", "stalking", "predatory"],
+    "cli": "titan-safety security",
+    "playbook": "~/.openclaw/playbooks/security_lockdown.yaml",
+    "honeypotDir": "~/.openclaw/safety/honeypots",
+    "postureLog": "~/.openclaw/memory/security/posture.jsonl",
+    "skills": ["sentinel_security", "predator_scanner"],
+    "refs": ["AEGIS", "FORTRESS", "GHOST", "MEV", "REAPER"],
+    "cockpitPath": "/security",
+    "requireHmacForLockdown": true,
+    "servicePort": 19008,
+    "healthUrl": "http://127.0.0.1:19008/health"
+  },
   "safetyServices": {
     "riskKernel": "http://127.0.0.1:19001/health",
     "reconciliation": "http://127.0.0.1:19002/health",
@@ -157,7 +181,12 @@
     "deadMansSwitch": "http://127.0.0.1:19005/health",
     "allocator": "http://127.0.0.1:19006/health",
     "tca": "http://127.0.0.1:19007/health",
-    "signingNode": "http://127.0.0.1:19010/health"
+    "securityOps": "http://127.0.0.1:19008/health",
+    "signingNode": "http://127.0.0.1:19010/health",
+    "allocatorPlanUrl": "http://127.0.0.1:19006/v1/plan",
+    "tcaIngestUrl": "http://127.0.0.1:19007/v1/ingest",
+    "tcaScorecardUrl": "http://127.0.0.1:19007/v1/scorecard",
+    "securityOpsUrl": "http://127.0.0.1:19008/v1/status"
   },
   "drawdownTiers": {
     "alert": 2.0,

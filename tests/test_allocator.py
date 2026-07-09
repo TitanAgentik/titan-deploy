@@ -119,3 +119,25 @@ def test_from_policy_raw() -> None:
     assert cfg.kelly_fraction == 0.5
     assert cfg.base_gross_pct == 80.0
     assert cfg.correlation_groups == {"g": ["P1"]}
+    assert cfg.advisory_mode is True  # default
+
+
+def test_advisory_mode_defaults_true_on_plan() -> None:
+    alloc = CapitalAllocator()
+    assert alloc.config.advisory_mode is True
+    assert alloc.is_enforced() is False
+    plan = alloc.allocate(10000.0, _lanes())
+    assert plan.advisory is True
+    assert any("ADVISORY" in n for n in plan.notes)
+    d = plan.to_dict()
+    assert d["advisory"] is True
+
+
+def test_advisory_mode_from_raw_and_enforced() -> None:
+    cfg = AllocatorConfig.from_raw({"allocator": {"advisory_mode": False}})
+    assert cfg.advisory_mode is False
+    alloc = CapitalAllocator(cfg)
+    assert alloc.is_enforced() is True
+    plan = alloc.allocate(10000.0, _lanes())
+    assert plan.advisory is False
+    assert not any("ADVISORY" in n for n in plan.notes)

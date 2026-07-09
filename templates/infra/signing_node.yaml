@@ -60,3 +60,12 @@ hardware_options:
 macmini_vault:
   role: "Trezor ceremony + cold key metadata; signing requests proxied via NATS"
   not_a_substitute_for: "isolated signing daemon — vault holds metadata, signing_node executes"
+
+# Four-pillar Impenetrable layer L2 — security lockdown sets SIGNING_HALTED
+security_ops:
+  pillar: impenetrable
+  layer: L2
+  pcr_watch: tpm-pcr-watch
+  lockdown_flag: ~/.openclaw/safety/SIGNING_HALTED
+  cli: titan-safety security lockdown
+  ref: refs/AEGIS_detail.md

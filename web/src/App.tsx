@@ -2,11 +2,18 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/components/AppShell";
 import { Dashboard } from "@/pages/Dashboard";
 import { CommandCenter } from "@/pages/CommandCenter";
+import { Capital } from "@/pages/Capital";
+import { Risk } from "@/pages/Risk";
 import { Forge } from "@/pages/Forge";
 import { OpsCenter } from "@/pages/OpsCenter";
+import { Pipelines } from "@/pages/Pipelines";
+import { Promotions } from "@/pages/Promotions";
+import { EdgeMesh } from "@/pages/EdgeMesh";
+import { Signing } from "@/pages/Signing";
 import { Automations } from "@/pages/Automations";
 import { GoalsLab } from "@/pages/GoalsLab";
 import { Identity } from "@/pages/Identity";
+import { Models } from "@/pages/Models";
 import { AiLog } from "@/pages/AiLog";
 import { Questions } from "@/pages/Questions";
 import { SkillFactory } from "@/pages/SkillFactory";
@@ -14,6 +21,7 @@ import { AgentTeams } from "@/pages/AgentTeams";
 import { Workspace } from "@/pages/Workspace";
 import { Reports } from "@/pages/Reports";
 import { Settings } from "@/pages/Settings";
+import { Security } from "@/pages/Security";
 
 export default function App() {
   return (
@@ -22,11 +30,19 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route index element={<Dashboard />} />
           <Route path="command" element={<CommandCenter />} />
+          <Route path="capital" element={<Capital />} />
+          <Route path="risk" element={<Risk />} />
+          <Route path="security" element={<Security />} />
           <Route path="forge" element={<Forge />} />
           <Route path="ops" element={<OpsCenter />} />
+          <Route path="pipelines" element={<Pipelines />} />
+          <Route path="promotions" element={<Promotions />} />
+          <Route path="edge" element={<EdgeMesh />} />
+          <Route path="signing" element={<Signing />} />
           <Route path="automations" element={<Automations />} />
           <Route path="goals" element={<GoalsLab />} />
           <Route path="identity" element={<Identity />} />
+          <Route path="models" element={<Models />} />
           <Route path="ai-log" element={<AiLog />} />
           <Route path="questions" element={<Questions />} />
           <Route path="skills" element={<SkillFactory />} />

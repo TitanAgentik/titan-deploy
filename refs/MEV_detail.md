@@ -1,30 +1,27 @@
-# §MEV_detail.md
+# §MEV_detail.md — MEV Shield & Intent Path
 
-> **Reconstructed companion** for OpenClaw + Hermes deploy.
-> Original `MEV_detail.md` was referenced by TITAN.md but never present on disk.
->
-> **Purpose:** MEV pipeline narrative (P29/P30 etc.).
->
-> **Runtime source of truth:** live files under `templates/`, `output/`, and
-> `~/.openclaw` / `~/.hermes` after `./deploy.sh` — not this markdown dump.
->
-> Docs: [OpenClaw workspace](https://docs.openclaw.ai/concepts/agent-workspace) ·
-> [Hermes context files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files)
+> Complements GHOST evasion. Live path: TRENCH-OPS → intent_solver_submit → edge PoP.
 
----
+## Pillar: Evasion (MEV-shield)
 
-## Status
+## Mandate
 
-The original companion body was **not included** in the TITAN.md dump shipped to
-this machine. Narrative / research content remains in `output/TITAN.reconciled.md`
-under related sections.
+- Bypass public RPC pools for DEX swaps
+- Compile declarative intents signed via local TPM-SPI PCR keys
+- Submit to MEV-shielded solver networks
+- P29 MEV Bundle: fund only when TCA net_bps healthy; else profit_loop defund
+
+## Edge placement
+
+Same-AZ as exchange matching engines (TKY/SIN/FRA/USE/AMS) for &lt;1ms RTT.
+Erigon archive + CRUSH batch on EDGE-FRA / TITANHOME off-peak.
+
+## Circuit breakers
+
+- `CB_MEV_TIP_BLEED` — tips &gt;40% of gross MEV → lane BLEEDING
+- `CB_INTENT_SOLVER_TIMEOUT` — fail-closed, no public-mempool fallback for shielded lanes
 
 ## See also
 
-- Pipeline notes in `output/memory/strategies/`
-- TCA scorecards on `:19007`
-
-## Operator note
-
-Do not block OpenClaw/Hermes startup on this file. Bootstrap context is the
-`workspace/*.md` set; this companion is reference-only.
+- `refs/GHOST_detail.md`, AGENTS Intent Solver Routing
+- Skill: `trench_ops_execution`

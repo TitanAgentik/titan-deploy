@@ -58,6 +58,7 @@ class AllocationPlan:
     allocations: list[Allocation] = field(default_factory=list)
     excluded: dict[str, str] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+    advisory: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -74,6 +75,8 @@ class AllocatorConfig:
     min_net_bps: float = 1.0  # lanes below this net edge get no capital
     min_trades: int = 100  # lanes below this sample size get no capital
     max_active_pipelines: int = 4  # hard cap on funded lanes (concentration)
+    selective_activation: bool = True  # catalog ≠ all-on
+    advisory_mode: bool = True  # Phase 1: log targets only; Phase 2+: enforce
     regime_multipliers: dict[str, float] = field(
         default_factory=lambda: {"risk_off": 0.5, "neutral": 1.0, "risk_on": 1.2}
     )
@@ -97,6 +100,8 @@ class AllocatorConfig:
             min_net_bps=float(a.get("min_net_bps", d.min_net_bps)),
             min_trades=int(a.get("min_trades", d.min_trades)),
             max_active_pipelines=int(a.get("max_active_pipelines", d.max_active_pipelines)),
+            selective_activation=bool(a.get("selective_activation", d.selective_activation)),
+            advisory_mode=bool(a.get("advisory_mode", d.advisory_mode)),
             regime_multipliers=a.get("regime_multipliers", d.regime_multipliers),
             degross_ladder=a.get("degross_ladder", d.degross_ladder),
             correlation_groups=groups,
@@ -106,6 +111,9 @@ class AllocatorConfig:
 class CapitalAllocator:
     def __init__(self, config: AllocatorConfig | None = None) -> None:
         self.config = config or AllocatorConfig()
+
+    def is_enforced(self) -> bool:
+        return not self.config.advisory_mode
 
     def _cluster_for(self, pipeline_id: str, declared: str) -> str:
         if declared:
@@ -150,7 +158,10 @@ class CapitalAllocator:
             utilization=0.0,
             excluded=excluded,
             notes=notes,
+            advisory=self.config.advisory_mode,
         )
+        if self.config.advisory_mode:
+            notes.append("ADVISORY — targets logged only; not enforced on execution")
         if equity_usd <= 0:
             notes.append("invalid equity")
             return plan
@@ -256,4 +267,6 @@ class CapitalAllocator:
             "status": "ok",
             "kelly_fraction": self.config.kelly_fraction,
             "base_gross_pct": self.config.base_gross_pct,
+            "advisory_mode": self.config.advisory_mode,
+            "enforced": self.is_enforced(),
         }

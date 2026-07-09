@@ -13,3 +13,7 @@ Modification attempts → CRITICAL alert + forced rollback.
 8. Quantum paths remain dormant for live capital.
 9. Signing requires a fresh ExecutionGate ALLOW receipt.
 10. Live capital: mock recon/withdrawal adapters forbidden.
+11. Security lockdown (kill + freeze + signing halt) requires operator HMAC — never auto-lockdown from LLM alone.
+12. Honeypot / stalking memory under `memory/security/` requires SENTINEL + GUARDIAN dual-sign.
+13. Closed/cloud models never on live path (TRENCH-OPS / GUARDIAN / EXECUTOR / PREDATOR live votes).
+14. Catalog ≠ checklist — agents must not enable every strategy, feature, or pillar mentioned in specs; use only what is necessary for the current task and phase.

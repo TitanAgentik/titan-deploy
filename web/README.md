@@ -2,7 +2,17 @@
 
 Institutional-grade operator Web UI for the TITAN / OpenClaw / Hermes control plane.
 
-Inspired by [ClawBuddy](https://clawbuddy.help) (dashboard + human-in-the-loop Q&A) and the [OpenClaw Control UI](https://docs.openclaw.ai/web/control-ui) (gateway admin surface), adapted to TITAN’s bounded-autonomy trading stack.
+**Design:** [Signal theme](DESIGN.md) — original TITAN palette (cool slate, cyan accent, Sora display). Night dark mode in Settings.
+
+Inspired by [ClawBuddy](https://clawbuddy.help) and the [OpenClaw Control UI](https://docs.openclaw.ai/web/control-ui), adapted to TITAN’s bounded-autonomy trading stack.
+
+## Features
+
+- **Command palette** — `Ctrl+K` / `⌘K` to jump anywhere or run operator actions
+- **Activity rail** — bell icon in topbar for recent agent + operator events
+- **Status strip** — navy mesh-grid KPI band on Dashboard
+- **Interactive UX** — clickable metrics, modals, drawers, confirmation flows, toasts
+- **21 sections** — capital, risk, pipelines, promotions, edge mesh, signing, model tiers, and more
 
 ## Quick start
 
@@ -35,10 +45,38 @@ Vite proxies safety services:
 | `/api/dms` | `:19005` |
 | `/api/allocator` | `:19006` |
 | `/api/tca` | `:19007` |
+| `/api/security` | `:19008` Security Ops |
 | `/api/sign` | `:19010` |
 
 ## Sidebar sections
 
-Dashboard · Command Center · Forge · Ops Center · Automations · Goals Lab · Identity · AI Log · Questions · Skill Factory · Agent Teams · Workspace · Reports · Settings
+**Control:** Dashboard · Command Center · Capital & Wallets · Risk & CBs · **Security Ops** · Ops Center · Forge
+
+**Trading:** Pipelines · Promotions · Edge Mesh · Signing Node
+
+**Intelligence:** Automations · Goals Lab · Identity · Model Tiers · AI Log · Questions
+
+**Build:** Skill Factory · Agent Teams · Workspace
+
+**Governance:** Reports · Settings
+
+### Security Ops
+
+Four-pillar defensive/offensive posture UI:
+
+| Pillar | Role |
+|--------|------|
+| **Impenetrable** | Risk kernel, signing isolation, netns, PCR, DMS, closed-model ban |
+| **Evasion** | MEV-shielded intents, edge RTT, Nostr dispatch, fingerprint rotation |
+| **Stalking** | PREDATOR/SENTINEL threat hunt — mempool clusters, probes, copy-traders |
+| **Predatory** | Honeypots, Red Team gauntlet, counter-copy poison, kill-chain response |
+
+Demo actions only until HMAC-wired to live safety units.
+
+### Capital & Wallets
+
+Dedicated deposit / withdraw / wallet inventory / **Trezor Safe 7 weekly profit sweeps**.
+Deposits credit the operator ledger (≠ trading PnL). Sweeps unlock at $35K equity (20% of
+weekly profit every Sunday UTC; 100% reinvest below threshold).
 
 Demo data is used until safety systemd units are up; Command Center actions are local session demos (HMAC wiring lives in Settings).

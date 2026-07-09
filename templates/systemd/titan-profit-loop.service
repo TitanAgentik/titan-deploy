@@ -1,0 +1,18 @@
+# Profit-loop timer — optional TCA→allocator auto-defund schedule
+# Install: copy to ~/.config/systemd/user/ and systemctl --user enable --now titan-profit-loop.timer
+# Requires titan-tca.service healthy and control-plane HMAC for mutating POST.
+
+[Unit]
+Description=TITAN TCA→allocator profit loop (BLEEDING auto-defund)
+After=titan-tca.service titan-allocator.service network-online.target
+Requires=titan-tca.service
+
+[Service]
+Type=oneshot
+Environment=PYTHONPATH=%h/.openclaw/safety
+# Dry-run by default — remove --dry-run only after Phase 2 advisory→enforced
+ExecStart=%h/.openclaw/safety/bin/titan-safety tca profit-loop --dry-run
+Nice=10
+
+[Install]
+WantedBy=default.target

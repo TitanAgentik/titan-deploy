@@ -14,9 +14,79 @@ from common import OUTPUT_DIR, RECONCILED_PATH, read_source, unescape_markdown, 
 PIPELINE_RE = re.compile(r"^- \*\*P(\d+)\s+([^*]+)\*\*", re.MULTILINE)
 
 
+def selective_activation_doc() -> str:
+    return """# Selective activation — keep it simple
+
+TITAN source and companions list many pipelines, skills, agents, and security modules.
+That is a **catalog**, not a requirement to run everything.
+
+## Rules
+
+1. Enable only what current capital, phase, and operator intent need.
+2. Allocator `max_active_pipelines` (default **4**) is the hard concentration cap.
+3. Security: Impenetrable baseline always; other pillars on demand.
+4. New pipeline / skill / PoP = human YES (or promotion gate) — never auto-expand the set.
+5. Prefer fewer HEALTHY lanes over many marginal ones.
+
+## See
+
+- SOUL.md — Voice + Operational Doctrine
+- iron-laws.md §14
+- USER.md Preferences
+- `risk_kernel/policy.yaml` allocator.selective_activation
+- `openclaw.json` autonomy.selectiveActivation
+"""
+
+
+def signal_catalog_doc() -> str:
+    return """# Signal Catalog — Index (classical-only)
+
+> Catalog of available signal families for ORACLE / PREDATOR / AUGUR / NARRATIVE.
+> **Mention ≠ mandate** — subscribe only to feeds needed for funded lanes.
+
+## Families (enable as needed)
+
+- **Price / microstructure** — CEX/DEX mid, spread, depth, trade prints
+- **Funding / OI** — perpetual funding rates, open interest, basis
+- **On-chain flow** — whale wallets, exchange inflow/outflow, bridge volume
+- **Mempool / MEV** — pending txs, bundle competition (PREDATOR; edge PoP)
+- **Macro / regime** — AUGUR risk_on / neutral / risk_off (file or HTTP feed)
+- **Catalyst / news** — NARRATIVE listings, governance, regulatory events
+- **Sentiment (grounded)** — cited social posts with timestamps only
+
+## Rules
+
+1. Min 3 independent sources before trade entry (R17).
+2. No quantum signal paths (QSA dormant).
+3. Full 108-signal list lives in TITAN source §ORACLE — do not enable all by default.
+
+See: `memory/strategies/selective-activation.md`, `memory/strategies/active-pipelines.md`
+"""
+
+
 def extract_pipelines(text: str) -> str:
     text = unescape_markdown(text)
-    lines = ["# Active Pipelines — Index (P1–P48)", ""]
+    lines = [
+        "# Pipeline Catalog Index (P1–P48)",
+        "",
+        "> **Mention ≠ mandate.** This is a catalog of *available* strategies, not a list of",
+        "> required live lanes. Allocator `max_active_pipelines` (default **4**) caps what",
+        "> may be funded. Prefer few HEALTHY lanes over many marginal ones.",
+        ">",
+        "> See also: `memory/strategies/selective-activation.md`",
+        "",
+        "## Currently relevant (Phase 1 paper / small capital)",
+        "",
+        "Typical starters when capital allows — still subject to promotion gates:",
+        "",
+        "- **P1** CEX Spot Arb (when funded)",
+        "- **P5** Funding Carry (when funded)",
+        "- **P11** Prediction Market Arbitrage (micro-live path)",
+        "- **P12** Intent Solver Network (when funded)",
+        "",
+        "## Catalog (not all active)",
+        "",
+    ]
     seen = set()
     for m in PIPELINE_RE.finditer(text):
         pid, name = m.group(1), m.group(2).strip()
@@ -24,20 +94,37 @@ def extract_pipelines(text: str) -> str:
             continue
         seen.add(pid)
         lines.append(f"- **P{pid}** {name}")
-    if len(lines) <= 2:
+    if len(seen) == 0:
         lines += [
-            "- **P1** Momentum Scalping",
-            "- **P3** Cross-Chain Arbitrage",
-            "- **P6** Liquidation Hunting",
-            "- **P29** Unified MEV Engine",
-            "- **P30** Vulnerability Scanner & Bounty Hunter",
-            "- **P32** Bridge Security Engine",
-            "- **P34** CLMM 2.0",
+            "- **P9** NFT / RWA Market Making",
+            "- **P10** Restaking / AVS Optimization",
+            "- **P18** Perpetual Funding Rate Harvest",
+            "- **P29** Unified MEV Arbitrage Engine",
+            "- **P30** Automated Vulnerability Scanner & Bounty Hunter",
+            "- **P34** Concentrated Liquidity Provision (CLMM) 2.0",
             "- **P37-P48** See full TITAN source",
         ]
     lines.append("")
-    lines.append("Full pipeline specs: TITAN source §MEMORY / §L")
+    lines.append(
+        "Full pipeline specs: TITAN source §MEMORY / §L — read for research; "
+        "activate only via promotion + allocator."
+    )
+    lines.append("")
     return "\n".join(lines) + "\n"
+
+
+ENDGAME_CBS = [
+    "CB_FUNDING_FLIP",
+    "CB_RESTAKING_SLASH",
+    "CB_RESTAKING_DEPEG",
+    "CB_PRED_MARKET_RESOLVE_RISK",
+    "CB_VOL_HARVEST_GAP",
+    "CB_NEW_CHAIN_MEV_HALT",
+    "CB_AIRDROP_SYBIL",
+    "CB_RATE_ARB_LIQUIDITY",
+    "CB_CLMM_IL_SPIKE",
+    "CB_ENDGAME_PHASE_GATE",
+]
 
 
 def extract_critical_cbs(text: str) -> str:
@@ -54,10 +141,41 @@ def extract_critical_cbs(text: str) -> str:
         "",
         "Full catalog: 775+ CBs in TITAN source.",
         "",
+        "## ENDGAME (Phase 3+ unlock — documented in policy.yaml)",
+        "",
     ]
-    for cb in unique[:50]:
+    for cb in ENDGAME_CBS:
         lines.append(f"- `{cb}`")
+        seen.add(cb)
+    lines.append("")
+    lines.append("## From source (sample)")
+    lines.append("")
+    for cb in unique[:40]:
+        if cb not in ENDGAME_CBS:
+            lines.append(f"- `{cb}`")
     return "\n".join(lines) + "\n"
+
+
+def endgame_strategies_doc() -> str:
+    return """# ENDGAME Strategies — Phase 3+ Catalog
+
+> From TITAN §ENDGAME. **Not auto-funded.** Requires `capital.endgame_phase_unlock` (≥3),
+> statistical promotion, human YES, and allocator headroom (`max_active_pipelines`).
+
+| Strategy | Overlaps | Circuit breaker |
+|----------|----------|-----------------|
+| Funding rate harvest | P18 | `CB_FUNDING_FLIP` |
+| Restaking engine | P10 / P15 | `CB_RESTAKING_SLASH`, `CB_RESTAKING_DEPEG` |
+| Prediction market arb | P11 | `CB_PRED_MARKET_RESOLVE_RISK` |
+| Vol harvest | — | `CB_VOL_HARVEST_GAP` |
+| New-chain MEV | — | `CB_NEW_CHAIN_MEV_HALT` |
+| Airdrop positioning | — | `CB_AIRDROP_SYBIL` |
+| Rate arb / yield | — | `CB_RATE_ARB_LIQUIDITY` |
+| Concentrated LP | P34 | `CB_CLMM_IL_SPIKE` |
+
+Playbook: `playbooks/endgame_phase_gate.yaml`
+Gate: `CB_ENDGAME_PHASE_GATE`
+"""
 
 
 def agent_routing_table() -> str:
@@ -199,6 +317,9 @@ def main() -> int:
 
     files = {
         "strategies/active-pipelines.md": extract_pipelines(text),
+        "strategies/selective-activation.md": selective_activation_doc(),
+        "strategies/signal-catalog.md": signal_catalog_doc(),
+        "strategies/endgame.md": endgame_strategies_doc(),
         "risk/circuit-breakers.md": extract_critical_cbs(text),
         "agents/routing-table.md": agent_routing_table(),
         "hardware/workstation.md": workstation_doc(),

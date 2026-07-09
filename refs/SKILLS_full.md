@@ -48,13 +48,13 @@
 - `online_learning/` — Online Learning
 - `oracle_signals/` — Oracle Signals — stub skill (full definition pending §SKILLS_full.md)
 - `portfolio_management/` — Portfolio Management
-- `predator_scanner/` — Predator Scanner — stub skill (full definition pending §SKILLS_full.md)
+- `predator_scanner/` — PREDATOR stalking + predatory modules — mempool hunt, copy-trade detect, honeypot feed, poison fills
 - `quant_analysis/` — Quant Analysis — stub skill (full definition pending §SKILLS_full.md)
 - `rd_metrology/` — Rd Metrology
 - `research_scout/` — see SKILL.md
 - `risk_validation/` — Risk Validation
 - `security_audit/` — Security Audit
-- `sentinel_security/` — Sentinel Security — stub skill (full definition pending §SKILLS_full.md)
+- `sentinel_security/` — SENTINEL four-pillar security — Impenetrable layers, PCR/CodeQL, honeypot arm, lockdown sequencing
 - `signal_analysis/` — Signal Analysis
 - `skill_evolution/` — see SKILL.md
 - `stat_pairs_trading/` — Stat Pairs Trading

@@ -209,6 +209,57 @@ def scenario_flash_crash_stub() -> None:
         check("flash_crash_60s_velocity", r.decision == "DENY", r.code)
 
 
+def scenario_security_lockdown_halts_signing() -> None:
+    """Predatory lockdown must set SIGNING_HALTED so signing_node DENYs."""
+    from titan_safety.security_ops import SecurityOps
+    from titan_safety.signing_service import SigningNode
+
+    with tempfile.TemporaryDirectory() as td:
+        safety = Path(td)
+        ops = SecurityOps(safety)
+        result = ops.lockdown("redteam", "adversarial lockdown drill")
+        check("security_lockdown_ok", result.get("ok") is True, str(result))
+        check("security_lockdown_signing_flag", ops.signing_halted(), "flag missing")
+        node = SigningNode(safety_dir=safety)
+        code, body = node.sign(
+            {"request_id": "adv-1", "trade_id": "t1", "venue": "paper"},
+            {},
+        )
+        check(
+            "security_lockdown_signing_deny",
+            code == 403 and body.get("code") == "SIGNING_HALTED",
+            str(body),
+        )
+
+
+def scenario_honeypot_default_armed() -> None:
+    """Impenetrable/predatory: honeypots default armed until explicit disarm."""
+    from titan_safety.security_ops import SecurityOps
+
+    with tempfile.TemporaryDirectory() as td:
+        ops = SecurityOps(Path(td))
+        check("honeypot_default_armed", ops.honeypot_armed() is True)
+        ops.honeypot_disarm("redteam")
+        check("honeypot_disarm", ops.honeypot_armed() is False)
+        ops.honeypot_arm("SENTINEL")
+        check("honeypot_rearm", ops.honeypot_armed() is True)
+
+
+def scenario_stalk_posture_pillars() -> None:
+    """Status exposes all four pillars for Cockpit / SENTINEL heartbeat."""
+    from titan_safety.security_ops import SecurityOps
+
+    with tempfile.TemporaryDirectory() as td:
+        st = SecurityOps(Path(td)).status()
+        pillars = st.get("pillars") or {}
+        check(
+            "four_pillars_present",
+            set(pillars) >= {"impenetrable", "evasion", "stalking", "predatory"},
+            str(pillars),
+        )
+        check("six_impenetrable_layers", len(st.get("layers") or []) == 6)
+
+
 def main() -> int:
     print("[adversarial] Running red-team scenarios...")
     scenario_data_poisoning()
@@ -217,6 +268,9 @@ def main() -> int:
     scenario_self_mod_promotion()
     scenario_black_swan_replay_stub()
     scenario_flash_crash_stub()
+    scenario_security_lockdown_halts_signing()
+    scenario_honeypot_default_armed()
+    scenario_stalk_posture_pillars()
     print(f"[adversarial] {PASS} passed, {FAIL} failed")
     return 1 if FAIL else 0
 
