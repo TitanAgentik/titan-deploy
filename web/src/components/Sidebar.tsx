@@ -33,6 +33,11 @@ import {
   SlidersHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
+  HeartPulse,
+  ClipboardCheck,
+  Gauge,
+  BatteryCharging,
+  BookMarked,
 } from "lucide-react";
 import { portfolio, pnl, formatPnl } from "@/lib/data";
 
@@ -47,8 +52,11 @@ export const NAV = [
       { to: "/wallets", icon: ScanLine, label: "Wallet Tracker" },
       { to: "/pnl", icon: TrendingUp, label: "PnL" },
       { to: "/risk", icon: ShieldAlert, label: "Risk & CBs" },
+      { to: "/dms", icon: HeartPulse, label: "Dead Man's Switch" },
       { to: "/security", icon: Shield, label: "Security Ops", badge: 2 },
       { to: "/ops", icon: Radar, label: "Ops Center" },
+      { to: "/health", icon: ClipboardCheck, label: "Health & Verify" },
+      { to: "/power", icon: BatteryCharging, label: "Power & UPS" },
       { to: "/forge", icon: Hammer, label: "Forge" },
     ],
   },
@@ -57,6 +65,7 @@ export const NAV = [
     items: [
       { to: "/pipelines", icon: GitBranch, label: "Pipelines" },
       { to: "/qi-optimizer", icon: Atom, label: "QI Optimizer" },
+      { to: "/tca", icon: Gauge, label: "TCA & Allocator" },
       { to: "/promotions", icon: Rocket, label: "Promotions", badge: 3 },
       { to: "/memecoin", icon: Flame, label: "Memecoin Trench" },
       { to: "/edge", icon: Globe2, label: "Edge Mesh" },
@@ -75,6 +84,7 @@ export const NAV = [
       { to: "/identity", icon: Fingerprint, label: "Identity" },
       { to: "/models", icon: Cpu, label: "Model Tiers" },
       { to: "/ai-log", icon: ScrollText, label: "AI Log" },
+      { to: "/decisions", icon: BookMarked, label: "Decision Log" },
       { to: "/questions", icon: MessageCircleQuestion, label: "Questions", badge: 3 },
     ],
   },

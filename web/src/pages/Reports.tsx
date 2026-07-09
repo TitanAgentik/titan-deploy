@@ -38,6 +38,12 @@ export function Reports() {
             <Link className="btn" to="/pnl">
               PnL detail
             </Link>
+            <Link className="btn" to="/tca">
+              TCA scorecard
+            </Link>
+            <Link className="btn" to="/decisions">
+              Decision log
+            </Link>
             <Btn variant="ghost">PDF</Btn>
             <Btn variant="primary">Generate pack</Btn>
           </>

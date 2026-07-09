@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { PageHeader, Card, Tag, Metric, Btn } from "@/components/ui";
 import { SaveBar } from "@/components/SaveBar";
 import { ToastStack, useToasts } from "@/components/interactive";
@@ -24,6 +25,19 @@ export function OpsCenter() {
       <PageHeader
         title="Ops Center"
         subtitle="Live execution ops: reconciliation, TCA lanes, allocator concentration, and signing gate."
+        actions={
+          <>
+            <Link className="btn" to="/tca">
+              TCA & Allocator
+            </Link>
+            <Link className="btn" to="/signing">
+              Signing
+            </Link>
+            <Link className="btn" to="/health">
+              Health
+            </Link>
+          </>
+        }
       />
 
       <SaveBar

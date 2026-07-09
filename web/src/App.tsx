@@ -31,6 +31,11 @@ import { CryptoNews } from "@/pages/CryptoNews";
 import { Latency } from "@/pages/Latency";
 import { QuantumInspired } from "@/pages/QuantumInspired";
 import { ManualControl } from "@/pages/ManualControl";
+import { DeadMansSwitch } from "@/pages/DeadMansSwitch";
+import { HealthVerify } from "@/pages/HealthVerify";
+import { TcaScorecard } from "@/pages/TcaScorecard";
+import { PowerStatus } from "@/pages/PowerStatus";
+import { DecisionLog } from "@/pages/DecisionLog";
 
 export default function App() {
   return (
@@ -44,9 +49,13 @@ export default function App() {
           <Route path="wallets" element={<WalletTracker />} />
           <Route path="pnl" element={<Pnl />} />
           <Route path="risk" element={<Risk />} />
+          <Route path="dms" element={<DeadMansSwitch />} />
           <Route path="security" element={<Security />} />
           <Route path="forge" element={<Forge />} />
+          <Route path="health" element={<HealthVerify />} />
+          <Route path="power" element={<PowerStatus />} />
           <Route path="ops" element={<OpsCenter />} />
+          <Route path="tca" element={<TcaScorecard />} />
           <Route path="pipelines" element={<Pipelines />} />
           <Route path="promotions" element={<Promotions />} />
           <Route path="edge" element={<EdgeMesh />} />
@@ -62,6 +71,7 @@ export default function App() {
           <Route path="identity" element={<Identity />} />
           <Route path="models" element={<Models />} />
           <Route path="ai-log" element={<AiLog />} />
+          <Route path="decisions" element={<DecisionLog />} />
           <Route path="questions" element={<Questions />} />
           <Route path="skills" element={<SkillFactory />} />
           <Route path="agents" element={<AgentTeams />} />

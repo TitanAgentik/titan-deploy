@@ -202,6 +202,9 @@ export function CommandCenter() {
             <Btn variant="primary" onClick={() => push("HEARTBEAT signed — DMS timer reset")}>
               Send heartbeat
             </Btn>
+            <Link className="btn" to="/dms">
+              Open DMS
+            </Link>
             <ActionMenu
               label="Options"
               items={[
@@ -210,6 +213,33 @@ export function CommandCenter() {
               ]}
             />
           </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-3" style={{ marginTop: 14, marginBottom: 0 }}>
+        <Card title="Health & verify">
+          <p className="muted small" style={{ marginTop: 0 }}>
+            verify.sh checklist + safety ports.
+          </p>
+          <Link className="btn" to="/health" style={{ marginTop: 8 }}>
+            Open Health
+          </Link>
+        </Card>
+        <Card title="TCA & allocator">
+          <p className="muted small" style={{ marginTop: 0 }}>
+            Scorecards · profit loop · plan.
+          </p>
+          <Link className="btn" to="/tca" style={{ marginTop: 8 }}>
+            Open TCA
+          </Link>
+        </Card>
+        <Card title="Power / UPS">
+          <p className="muted small" style={{ marginTop: 0 }}>
+            Live capital requires UPS ack.
+          </p>
+          <Link className="btn" to="/power" style={{ marginTop: 8 }}>
+            Open Power
+          </Link>
         </Card>
       </div>
 

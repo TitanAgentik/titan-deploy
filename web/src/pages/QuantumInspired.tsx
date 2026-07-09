@@ -53,6 +53,9 @@ export function QuantumInspired() {
             <Link className="btn" to="/pipelines">
               Pipelines
             </Link>
+            <Link className="btn" to="/tca">
+              TCA & Allocator
+            </Link>
             <Link className="btn" to="/risk">
               Risk & CBs
             </Link>

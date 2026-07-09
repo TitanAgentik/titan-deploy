@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { PageHeader, Card, Tag, Btn } from "@/components/ui";
 import { SaveBar } from "@/components/SaveBar";
 import { ToastStack, useToasts } from "@/components/interactive";
@@ -33,6 +34,9 @@ export function AiLog() {
         subtitle="Structured decision / agent event stream — mirrors decision_log.jsonl style audit trail."
         actions={
           <>
+            <Link className="btn" to="/decisions">
+              Decision Log
+            </Link>
             <Btn variant="ghost">Tail live</Btn>
           </>
         }

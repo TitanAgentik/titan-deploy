@@ -42,6 +42,12 @@ export function Forge() {
             <Link className="btn" to="/latency">
               Latency
             </Link>
+            <Link className="btn" to="/health">
+              Health & Verify
+            </Link>
+            <Link className="btn" to="/power">
+              Power / UPS
+            </Link>
             <Btn variant="primary">Run health sweep</Btn>
           </>
         }

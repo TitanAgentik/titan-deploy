@@ -603,6 +603,9 @@ export function ManualControl() {
               <Link className="btn" to="/risk">
                 Risk detail
               </Link>
+              <Link className="btn" to="/dms">
+                Dead Man&apos;s Switch
+              </Link>
               <Link className="btn" to="/promotions">
                 Promotions
               </Link>
@@ -810,6 +813,12 @@ export function ManualControl() {
               </Btn>
               <Link className="btn" to="/forge">
                 Forge
+              </Link>
+              <Link className="btn" to="/health">
+                Health & Verify
+              </Link>
+              <Link className="btn" to="/power">
+                Power / UPS
               </Link>
               <Link className="btn" to="/edge">
                 Edge Mesh
@@ -1050,6 +1059,9 @@ export function ManualControl() {
           </Btn>
           <Link className="btn" to="/qi-optimizer">
             Open QI Optimizer
+          </Link>
+          <Link className="btn" to="/tca">
+            TCA & Allocator
           </Link>
           <Link className="btn" to="/pipelines">
             Pipelines catalog
