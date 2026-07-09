@@ -1,0 +1,22 @@
+# refs/ manifest
+
+- `AEGIS_detail.md`
+- `AU_audit.md`
+- `COCKPIT_detail.md`
+- `COMM_detail.md`
+- `CONDUIT_detail.md`
+- `CONFIGS_detail.md`
+- `DEPLOY_scripts.md`
+- `EVERGREEN_detail.md`
+- `FORTRESS_detail.md`
+- `GHOST_detail.md`
+- `KEYS_detail.md`
+- `MAINT_detail.md`
+- `MEMORY_detail.md`
+- `MEV_detail.md`
+- `MODELS_detail.md`
+- `PERF_detail.md`
+- `REAPER_detail.md`
+- `RESEARCH_detail.md`
+- `SKILLS_full.md`
+- `XB_detail.md`

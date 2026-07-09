@@ -1,3 +1,30 @@
+# §DEPLOY_scripts.md
+
+> **Reconstructed companion** for OpenClaw + Hermes deploy.
+> Original `DEPLOY_scripts.md` was referenced by TITAN.md but never present on disk.
+>
+> **Purpose:** Deploy / verify / build entrypoints that TITAN referenced as §DEPLOY_scripts.md.
+>
+> **Runtime source of truth:** live files under `templates/`, `output/`, and
+> `~/.openclaw` / `~/.hermes` after `./deploy.sh` — not this markdown dump.
+>
+> Docs: [OpenClaw workspace](https://docs.openclaw.ai/concepts/agent-workspace) ·
+> [Hermes context files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files)
+
+---
+
+## Commands
+
+```bash
+python3 scripts/build.py          # normalize → reconcile → extract → sync workspace
+./deploy.sh                       # build + install to ~/.openclaw and ~/.hermes
+./deploy.sh --start-services      # also enable/start titan-* systemd units
+./deploy.sh --verify              # bootstrap limits + pytest + chaos harness
+```
+
+## deploy.sh
+
+```bash
 #!/usr/bin/env bash
 # TITAN OpenClaw + Hermes one-command deploy
 set -euo pipefail
@@ -285,3 +312,251 @@ fi
 if [[ $DO_VERIFY -eq 1 ]]; then
   exec "$PROJECT_ROOT/verify.sh" "$OPENCLAW_HOME" "$HERMES_HOME"
 fi
+```
+
+## verify.sh (excerpt — full file in repo)
+
+```bash
+#!/usr/bin/env bash
+# Verify TITAN bootstrap limits and deploy integrity
+set -euo pipefail
+
+OPENCLAW_HOME="${1:-$HOME/.openclaw}"
+HERMES_HOME="${2:-$HOME/.hermes}"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BOOTSTRAP_MAX=20000
+BOOTSTRAP_TOTAL_MAX=150000
+MEMORY_MAX_LINES=100
+ERRORS=0
+
+log() { echo "[verify] $*"; }
+fail() { log "FAIL: $*"; ERRORS=$((ERRORS + 1)); }
+pass() { log "OK: $*"; }
+
+BOOTSTRAP_FILES=(
+  SOUL.md AGENTS.md MEMORY.md USER.md TOOLS.md
+  IDENTITY.md HEARTBEAT.md BOOTSTRAP.md
+)
+
+log "Verifying OpenClaw home: $OPENCLAW_HOME"
+log "Verifying Hermes home: $HERMES_HOME"
+
+TOTAL=0
+for f in "${BOOTSTRAP_FILES[@]}"; do
+  path="$OPENCLAW_HOME/$f"
+  if [[ ! -f "$path" ]]; then
+    fail "Missing bootstrap file: $path"
+    continue
+  fi
+  bytes=$(wc -c < "$path" | tr -d ' ')
+  lines=$(wc -l < "$path" | tr -d ' ')
+  TOTAL=$((TOTAL + bytes))
+  if [[ $bytes -gt $BOOTSTRAP_MAX ]]; then
+    fail "$f exceeds per-file limit: $bytes > $BOOTSTRAP_MAX bytes"
+  else
+    pass "$f: $bytes bytes"
+  fi
+  if [[ "$f" == "MEMORY.md" && $lines -gt $MEMORY_MAX_LINES ]]; then
+    fail "MEMORY.md exceeds line limit: $lines > $MEMORY_MAX_LINES"
+  fi
+done
+
+if [[ $TOTAL -gt $BOOTSTRAP_TOTAL_MAX ]]; then
+  fail "Total bootstrap chars $TOTAL > $BOOTSTRAP_TOTAL_MAX"
+else
+  pass "Total bootstrap: $TOTAL / $BOOTSTRAP_TOTAL_MAX bytes"
+fi
+
+# Config files
+for cfg in "$OPENCLAW_HOME/openclaw.json" "$HERMES_HOME/config.yaml"; do
+  if [[ -f "$cfg" ]]; then
+    pass "Config present: $cfg"
+  else
+    fail "Missing config: $cfg"
+  fi
+done
+
+# JSON validity
+if command -v python3 &>/dev/null && [[ -f "$OPENCLAW_HOME/openclaw.json" ]]; then
+  python3 -c "import json; json.load(open('$OPENCLAW_HOME/openclaw.json'))" 2>/dev/null \
+    && pass "openclaw.json valid JSON" \
+    || fail "openclaw.json invalid JSON"
+fi
+
+# Skills symlink
+if [[ -L "$HERMES_HOME/skills" ]]; then
+  target=$(readlink -f "$HERMES_HOME/skills" 2>/dev/null || readlink "$HERMES_HOME/skills")
+  pass "Hermes skills symlink -> $target"
+elif [[ -d "$HERMES_HOME/skills" ]]; then
+  pass "Hermes skills directory exists"
+else
+  fail "Hermes skills symlink missing: $HERMES_HOME/skills"
+fi
+
+# Skills count
+skill_count=$(find "$OPENCLAW_HOME/workspace/skills" -name 'SKILL.md' 2>/dev/null | wc -l | tr -d ' ')
+if [[ $skill_count -gt 0 ]]; then
+  pass "Skills extracted: $skill_count"
+else
+  fail "No skills found in $OPENCLAW_HOME/workspace/skills"
+fi
+
+# Herald notify skill
+if [[ -f "$OPENCLAW_HOME/workspace/skills/herald_notify/notify.py" ]]; then
+  pass "herald_notify formatter present"
+else
+  fail "Missing herald_notify/notify.py"
+fi
+
+# Telegram institutional templates
+if [[ -f "$OPENCLAW_HOME/workspace/telegram/schema/trade_notification.v1.json" ]]; then
+  pass "Telegram schema present"
+else
+  fail "Missing telegram/schema/trade_notification.v1.json"
+fi
+if [[ -d "$OPENCLAW_HOME/workspace/telegram/templates" ]]; then
+  tpl_count=$(find "$OPENCLAW_HOME/workspace/telegram/templates" -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+  if [[ $tpl_count -ge 4 ]]; then
+    pass "Telegram templates: $tpl_count"
+  else
+    fail "Insufficient telegram templates: $tpl_count"
+  fi
+else
+  fail "Missing telegram/templates directory"
+fi
+
+# Memory sidecars
+for mf in strategies/active-pipelines.md risk/circuit-breakers.md agents/routing-table.md; do
+  if [[ -f "$OPENCLAW_HOME/memory/$mf" ]]; then
+    pass "Memory: $mf"
+  else
+    fail "Missing memory file: $mf"
+  fi
+done
+
+# Autonomy / survivability checks
+if [[ -f "$OPENCLAW_HOME/USER.md" ]]; then
+  if grep -q "## Approval Gates" "$OPENCLAW_HOME/USER.md" 2>/dev/null; then
+    pass "USER.md: promotion approval gates present"
+  else
+    fail "USER.md missing promotion approval gates section"
+  fi
+  if grep -qi "implicit approval\|Auto-promote.*default\|operator absence = implicit" "$OPENCLAW_HOME/USER.md" 2>/dev/null; then
+    fail "USER.md contains auto-promote-on-TIMEOUT policy"
+  elif grep -qi "never auto-promote\|HOLD/de-risk" "$OPENCLAW_HOME/USER.md" 2>/dev/null; then
+    pass "USER.md: TIMEOUT hold/de-risk policy"
+  else
+    fail "USER.md missing TIMEOUT hold/de-risk policy"
+  fi
+  if grep -q "PENDING_HUMAN_APPROVAL" "$OPENCLAW_HOME/USER.md" 2>/dev/null; then
+    fail "USER.md contains PENDING_HUMAN_APPROVAL (use PENDING_PROMOTION_APPROVAL)"
+  else
+    pass "USER.md: no routine PENDING_HUMAN_APPROVAL"
+  fi
+fi
+
+if [[ -f "$OPENCLAW_HOME/SOUL.md" ]]; then
+  if grep -qi "never auto-promote on TIMEOUT\|HOLD/de-risk" "$OPENCLAW_HOME/SOUL.md" 2>/dev/null; then
+    pass "SOUL.md: TIMEOUT hold/de-risk policy"
+  else
+    fail "SOUL.md missing TIMEOUT hold/de-risk policy"
+  fi
+fi
+
+if [[ -f "$OPENCLAW_HOME/AGENTS.md" ]]; then
+  if grep -qi "BFT.*Honesty\|Trade Voting Honesty\|same-model\|correlated consensus\|risk_kernel" "$OPENCLAW_HOME/AGENTS.md" 2>/dev/null; then
+    pass "AGENTS.md: trade voting honesty documented"
+  else
+    fail "AGENTS.md missing trade voting honesty note"
+  fi
+  if grep -qi "Model Tier Architecture\|Tier 1\|:30000" "$OPENCLAW_HOME/AGENTS.md" 2>/dev/null; then
+    pass "AGENTS.md: 3-tier model architecture documented"
+  else
+    fail "AGENTS.md missing 3-tier model architecture"
+  fi
+fi
+
+if [[ -f "$OPENCLAW_HOME/infra/hardware_bom.yaml" ]]; then
+  pass "hardware_bom.yaml present"
+  if grep -q "9995WX" "$OPENCLAW_HOME/infra/hardware_bom.yaml" 2>/dev/null; then
+    pass "hardware_bom: Threadripper 9995WX"
+  else
+    fail "hardware_bom missing 9995WX"
+  fi
+  if grep -q "RTX PRO 6000" "$OPENCLAW_HOME/infra/hardware_bom.yaml" 2>/dev/null; then
+    pass "hardware_bom: RTX PRO 6000"
+  else
+    fail "hardware_bom missing RTX PRO 6000"
+  fi
+else
+  fail "Missing infra/hardware_bom.yaml"
+fi
+
+if [[ -f "$OPENCLAW_HOME/openclaw.json" ]]; then
+  if python3 -c "import json; d=json.load(open('$OPENCLAW_HOME/openclaw.json')); assert d.get('inference',{}).get('tier1_critical',{}).get('port')==30000" 2>/dev/null; then
+    pass "openclaw.json: 3-tier inference config"
+  else
+    fail "openclaw.json missing tier1_critical inference block"
+  fi
+  if grep -q "implicit approval" "$OPENCLAW_HOME/openclaw.json" 2>/dev/null; then
+    fail "openclaw.json contains implicit approval"
+  else
+    pass "openclaw.json: no implicit approval"
+  fi
+fi
+
+# Risk kernel policy + safety services
+if [[ -f "$OPENCLAW_HOME/risk_kernel/policy.yaml" ]]; then
+  pass "Risk kernel policy present"
+else
+  fail "Missing risk_kernel/policy.yaml"
+fi
+
+if [[ -d "$OPENCLAW_HOME/safety/titan_safety" ]]; then
+  pass "Safety package installed"
+else
+  fail "Missing safety/titan_safety package"
+fi
+
+if [[ -x "$OPENCLAW_HOME/safety/bin/titan-safety" ]]; then
+  pass "titan-safety CLI present"
+else
+  fail "Missing titan-safety CLI"
+fi
+
+if [[ -f "$OPENCLAW_HOME/safety/titan_safety/capital.py" ]]; then
+  pass "Capital management module present"
+else
+  fail "Missing titan_safety/capital.py"
+fi
+
+if [[ -f "$OPENCLAW_HOME/workspace/telegram/templates/capital_event.md" ]]; then
+  pass "Capital Telegram template present"
+else
+  fail "Missing telegram/templates/capital_event.md"
+fi
+
+if [[ -f "$OPENCLAW_HOME/openclaw.json" ]] && command -v python3 &>/dev/null; then
+  python3 -c "
+import json, sys
+cfg = json.load(open('$OPENCLAW_HOME/openclaw.json'))
+cap = cfg.get('capital') or {}
+if cap.get('min_operating_capital_usd') is None:
+    sys.exit(1)
+# Paper default: mock withdrawal is OK. Live profile must not use mock.
+profile = str(cap.get('capital_profile') or cfg.get('capital_profile') or 'paper').lower()
+adapter = cap.get('withdrawal_adapter', 'mock')
+if profile == 'live' and adapter == 'mock':
+    sys.exit(2)
+if profile != 'live' and adapter != 'mock':
+    # unexpected but not fatal for paper verify — still require capital section
+    pass
+" 2>/dev/null && pass "openclaw.json capital section OK" \
+    || fail "openclaw.json capital config invalid (live+mock withdrawal forbidden)"
+fi
+
+# Live-profile mock ban: policy must not allow mock recon with live venues under enforce
+POLICY="$OPENCLAW_HOME/risk_kernel/policy.yaml"
+if [[ -f "$POLICY" ]] && co
+# … truncated; see verify.sh in repo root …
+```

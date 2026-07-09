@@ -825,6 +825,96 @@ def reconcile_dead_mans_switch(text: str) -> str:
     return text
 
 
+def reconcile_openclaw_hermes_contract(text: str) -> str:
+    """Inject current OpenClaw + Hermes workspace/config contract (docs Jul 2026)."""
+    if "OPENCLAW / HERMES DEPLOY CONTRACT (reconciled)" in text:
+        return text
+    block = """
+> **OPENCLAW / HERMES DEPLOY CONTRACT (reconciled):**
+>
+> **OpenClaw** ([agent workspace](https://docs.openclaw.ai/concepts/agent-workspace)):
+> - Workspace home: `~/.openclaw/workspace` (NOT the same as `~/.openclaw/` config root).
+> - Bootstrap files in workspace: `AGENTS.md`, `SOUL.md`, `USER.md`, `IDENTITY.md`,
+>   `TOOLS.md`, `HEARTBEAT.md`, `BOOT.md`, `BOOTSTRAP.md`, `MEMORY.md`, `memory/`, `skills/`.
+> - Config/credentials stay under `~/.openclaw/` (`openclaw.json`, sessions, auth) — never in workspace git.
+> - Defaults: `bootstrapMaxChars: 20000`, `bootstrapTotalMaxChars: 60000` (override in
+>   `agents.defaults` if needed; TITAN sets 150000 explicitly for large AGENTS.md).
+> - Missing bootstrap files → injected "missing file" marker; large files truncated.
+>
+> **Hermes** ([context files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files),
+> [personality](https://hermes-agent.nousresearch.com/docs/user-guide/features/personality)):
+> - `SOUL.md` = global identity from `~/.hermes/SOUL.md` only (slot #1) — persona/tone, not project paths.
+> - Project context: `.hermes.md` → `AGENTS.md` → `CLAUDE.md` → `.cursorrules` (first match wins).
+> - Config: `~/.hermes/config.yaml` ← `templates/config.yaml`.
+> - Context files scanned for prompt injection; default max ~20k chars/file.
+>
+> **TITAN mapping:** `scripts/extract_bootstrap.py` → `output/bootstrap/` →
+> `workspace/` + `./deploy.sh` installs to `~/.openclaw/workspace/` and `~/.hermes/SOUL.md`.
+> Companion §REF bodies: `refs/*.md` (reconstructed; originals never shipped).
+> Do **not** paste `TITAN.reconciled.md` as a chat prompt — it exceeds bootstrap limits.
+
+"""
+    # Prefer after System Overview / before AUTONOMY
+    anchor = "## AUTONOMY PRINCIPLE"
+    if anchor in text:
+        return text.replace(anchor, block + anchor, 1)
+    return block + text
+
+
+def reconcile_ref_pointers(text: str) -> str:
+    """Point §REF stubs at reconstructed refs/ companions + configs_detail.md."""
+    # CONFIGS stubs → live configs_detail / refs
+    text = re.sub(
+        r"# → see §CONFIGS_detail\.md[^\n]*",
+        "# → see configs_detail.md / refs/CONFIGS_detail.md (live templates)",
+        text,
+    )
+    text = re.sub(
+        r"# \.\.\. \d+ more lines → §CONFIGS_detail\.md\s*",
+        "# … truncated in source dump → see configs_detail.md / refs/CONFIGS_detail.md\n",
+        text,
+    )
+    # Generic §REF see lines
+    replacements = {
+        "§KEYS_detail.md": "`refs/KEYS_detail.md`",
+        "§MEMORY_detail.md": "`refs/MEMORY_detail.md`",
+        "§SKILLS_full.md": "`refs/SKILLS_full.md`",
+        "§DEPLOY_scripts.md": "`refs/DEPLOY_scripts.md`",
+        "§AU_audit.md": "`refs/AU_audit.md`",
+        "§PERF_detail.md": "`refs/PERF_detail.md`",
+        "§COMM_detail.md": "`refs/COMM_detail.md`",
+        "§COCKPIT_detail.md": "`refs/COCKPIT_detail.md`",
+        "§MODELS_detail.md": "`refs/MODELS_detail.md`",
+        "§GHOST_detail.md": "`refs/GHOST_detail.md`",
+        "§RESEARCH_detail.md": "`refs/RESEARCH_detail.md`",
+        "§MAINT_detail.md": "`refs/MAINT_detail.md`",
+        "§MEV_detail.md": "`refs/MEV_detail.md`",
+        "§REAPER_detail.md": "`refs/REAPER_detail.md`",
+        "§AEGIS_detail.md": "`refs/AEGIS_detail.md`",
+        "§FORTRESS_detail.md": "`refs/FORTRESS_detail.md`",
+        "§EVERGREEN_detail.md": "`refs/EVERGREEN_detail.md`",
+        "§CONDUIT_detail.md": "`refs/CONDUIT_detail.md`",
+        "§XB_detail.md": "`refs/XB_detail.md`",
+        "§CONFIGS_detail.md": "`configs_detail.md` / `refs/CONFIGS_detail.md`",
+    }
+    for old, new in replacements.items():
+        text = text.replace(f"See `{old}`", f"See {new}")
+        text = text.replace(f"see `{old}`", f"see {new}")
+        text = text.replace(f"See {old}", f"See {new}")
+        text = text.replace(f"see {old}", f"see {new}")
+
+    # System Overview §REF list
+    text = re.sub(
+        r"\*\*§REF files\*\*:[^\n]+",
+        "**§REF files (reconstructed under `refs/`):** CONFIGS, SKILLS_full, DEPLOY_scripts, "
+        "KEYS, MEMORY, AU_audit, PERF, COMM, COCKPIT, MODELS + narrative stubs "
+        "(GHOST/RESEARCH/MAINT/…). Originals were never on disk.",
+        text,
+        count=1,
+    )
+    return text
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Reconcile TITAN policy for survivability")
     parser.add_argument(
@@ -858,6 +948,8 @@ def main() -> int:
     text = reconcile_endgame_phasing(text)
     text = reconcile_power_ups(text)
     text = reconcile_dead_mans_switch(text)
+    text = reconcile_openclaw_hermes_contract(text)
+    text = reconcile_ref_pointers(text)
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     write_text(args.output, text)

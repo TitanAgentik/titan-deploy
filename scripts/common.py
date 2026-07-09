@@ -18,11 +18,14 @@ BOOTSTRAP_FILES = [
 ]
 
 BOOTSTRAP_MAX_CHARS = 20_000
+# OpenClaw docs default is 60_000; TITAN AGENTS.md needs a higher ceiling.
+# Set agents.defaults.bootstrapTotalMaxChars accordingly in openclaw.json.
 BOOTSTRAP_TOTAL_MAX_CHARS = 150_000
 MEMORY_MAX_LINES = 100
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = PROJECT_ROOT / "output"
+REFS_DIR = PROJECT_ROOT / "refs"
 NORMALIZED_PATH = OUTPUT_DIR / "TITAN.normalized.md"
 RECONCILED_PATH = OUTPUT_DIR / "TITAN.reconciled.md"
 

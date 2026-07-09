@@ -56,7 +56,7 @@
 - **Edge**: Phase 1 single-PoP (EDGE-FRA default); full 5-PoP mesh Phase 3+ — EDGE-TKY (AWS `ap-northeast-1` c7i.metal-24xl) + EDGE-SIN (AWS `ap-southeast-1` c7i.4xlarge) + EDGE-FRA (Vultr BM Frankfurt, DE-CIX peered) + EDGE-USE (AWS `us-east-1` c7i.2xlarge) + EDGE-AMS (Vultr BM Amsterdam) — same-AZ as exchange matching engines, sub-1ms RTT  
 - **OS**: Ubuntu 24.04 LTS HWE (kernel 7.0) + AF_XDP Kernel-Bypass Networking (sub-10µs packet processing) | Python 3.12 | systemd 255  
 - **Learning**: SAGE + MGPO + Hermes-RL/DRPO + HyEvo + GEPA + DGM-H + SIA + SkillOpt + InterleaveThinker + ALE + Robust  
-- **§REF files**: §AU_audit.md, §GHOST_detail.md, §PERF_detail.md, §SKILLS_full.md, §DEPLOY_scripts.md, §RESEARCH_detail.md  
+- **§REF files (reconstructed under `refs/`):** CONFIGS, SKILLS_full, DEPLOY_scripts, KEYS, MEMORY, AU_audit, PERF, COMM, COCKPIT, MODELS + narrative stubs (GHOST/RESEARCH/MAINT/…). Originals were never on disk.
 - **Autonomy**: FULLY AUTONOMOUS — zero human gates for standard operations; operator receives informational notifications only; CRITICAL alerts for 6 emergency conditions only  
 - **Global Intelligence**: §GRIS — 35+ sources (10 academic, 6 international, 7 code, 8 intelligence, 4 model), 4-stage NLP triage (800+/day → 5-15 candidates), P48 safe implementation pipeline (sandbox → benchmark → hot-swap), top-20 AI model watchlist with auto-evaluate-swap, Global Research Digest in daily Telegram briefing
 
@@ -80,3 +80,26 @@
 > **POWER HARDENING (reconciled):** UPS is **mandatory** before live capital deployment.
 > Power-loss triggers HALT: flatten exposure, revoke session keys, CRITICAL alert.
 > Spec: `~/.openclaw/infra/power_requirements.yaml`. Prior "no UPS" language superseded.
+
+> **OPENCLAW / HERMES DEPLOY CONTRACT (reconciled):**
+>
+> **OpenClaw** ([agent workspace](https://docs.openclaw.ai/concepts/agent-workspace)):
+> - Workspace home: `~/.openclaw/workspace` (NOT the same as `~/.openclaw/` config root).
+> - Bootstrap files in workspace: `AGENTS.md`, `SOUL.md`, `USER.md`, `IDENTITY.md`,
+>   `TOOLS.md`, `HEARTBEAT.md`, `BOOT.md`, `BOOTSTRAP.md`, `MEMORY.md`, `memory/`, `skills/`.
+> - Config/credentials stay under `~/.openclaw/` (`openclaw.json`, sessions, auth) — never in workspace git.
+> - Defaults: `bootstrapMaxChars: 20000`, `bootstrapTotalMaxChars: 60000` (override in
+>   `agents.defaults` if needed; TITAN sets 150000 explicitly for large AGENTS.md).
+> - Missing bootstrap files → injected "missing file" marker; large files truncated.
+>
+> **Hermes** ([context files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files),
+> [personality](https://hermes-agent.nousresearch.com/docs/user-guide/features/personality)):
+> - `SOUL.md` = global identity from `~/.hermes/SOUL.md` only (slot #1) — persona/tone, not project paths.
+> - Project context: `.hermes.md` → `AGENTS.md` → `CLAUDE.md` → `.cursorrules` (first match wins).
+> - Config: `~/.hermes/config.yaml` ← `templates/config.yaml`.
+> - Context files scanned for prompt injection; default max ~20k chars/file.
+>
+> **TITAN mapping:** `scripts/extract_bootstrap.py` → `output/bootstrap/` →
+> `workspace/` + `./deploy.sh` installs to `~/.openclaw/workspace/` and `~/.hermes/SOUL.md`.
+> Companion §REF bodies: `refs/*.md` (reconstructed; originals never shipped).
+> Do **not** paste `TITAN.reconciled.md` as a chat prompt — it exceeds bootstrap limits.

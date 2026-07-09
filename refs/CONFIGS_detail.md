@@ -1,43 +1,19 @@
-# §CONFIGS_detail.md — TITAN Configuration Reference
+# §CONFIGS_detail.md
 
-> **Auto-generated** by `scripts/sync_workspace_docs.py` on every `build.py` run.
-> Do not hand-edit — change `templates/*` then rebuild.
+> **Reconstructed companion** for OpenClaw + Hermes deploy.
+> Original `CONFIGS_detail.md` was referenced by TITAN.md but never present on disk.
 >
-> Aligns stubs in `output/TITAN.reconciled.md` (`# → see §CONFIGS_detail.md`)
-> with the live OpenClaw + Hermes configs.
+> **Purpose:** Full Hermes config.yaml + OpenClaw openclaw.json + risk policy bodies that TITAN stubs as `# → see §CONFIGS_detail.md`.
 >
-> Docs: [OpenClaw agent workspace](https://docs.openclaw.ai/concepts/agent-workspace) ·
-> [Hermes configuration](https://hermes-agent.nousresearch.com/docs/user-guide/configuration) ·
+> **Runtime source of truth:** live files under `templates/`, `output/`, and
+> `~/.openclaw` / `~/.hermes` after `./deploy.sh` — not this markdown dump.
+>
+> Docs: [OpenClaw workspace](https://docs.openclaw.ai/concepts/agent-workspace) ·
 > [Hermes context files](https://hermes-agent.nousresearch.com/docs/user-guide/features/context-files)
 
 ---
 
-## Index from TITAN.reconciled.md
-
-### Config sections
-- `# §M  — openclaw.json Configuration (OpenClaw gateway + agents + providers)`
-- `# §MA — config.yaml Configuration (Hermes cognitive engine + MCP + cron + Telegram)`
-- `# §MA — config.yaml Configuration (Hermes)`
-
-### Stub references (0 unique)
-Source TITAN offloads full YAML/JSON bodies to this companion file. Bodies below are the **live templates** (source of truth), not the missing original §REF dump.
-
-
-
-## File map
-
-| Deploy path | Template | Role |
-|-------------|----------|------|
-| `~/.openclaw/workspace/*.md` | `workspace/` ← `output/bootstrap/` | OpenClaw bootstrap context |
-| `~/.hermes/SOUL.md` | `workspace/SOUL.md` | Hermes identity (slot #1) |
-| `~/.hermes/config.yaml` | `templates/config.yaml` | Hermes agent config |
-| `~/.openclaw/openclaw.json` | `templates/openclaw.json` | OpenClaw gateway + agents |
-| `~/.openclaw/risk_kernel/policy.yaml` | `templates/risk_kernel/policy.yaml` | Risk / safety policy |
-| `~/.openclaw/infra/signing_node.yaml` | `templates/infra/signing_node.yaml` | Signing isolation |
-
----
-
-## §MA — config.yaml (Hermes)
+## Hermes `~/.hermes/config.yaml`
 
 ```yaml
 # TITAN Hermes Agent Configuration
@@ -347,9 +323,7 @@ capital:
     alt_prefix: "/capital deposit|withdraw|balance|sweep"
 ```
 
----
-
-## §M — openclaw.json (OpenClaw)
+## OpenClaw `~/.openclaw/openclaw.json`
 
 ```json
 {
@@ -825,9 +799,7 @@ capital:
 }
 ```
 
----
-
-## risk_kernel/policy.yaml
+## Risk kernel `~/.openclaw/risk_kernel/policy.yaml`
 
 ```yaml
 # TITAN Independent Risk Kernel — deterministic out-of-process guard
@@ -1026,9 +998,7 @@ service:
   signing_node_port: 19010
 ```
 
----
-
-## infra/signing_node.yaml
+## Signing node `~/.openclaw/infra/signing_node.yaml`
 
 ```yaml
 # TITAN Signing Node — logically isolated transaction signing
@@ -1094,12 +1064,3 @@ macmini_vault:
   role: "Trezor ceremony + cold key metadata; signing requests proxied via NATS"
   not_a_substitute_for: "isolated signing daemon — vault holds metadata, signing_node executes"
 ```
-
----
-
-## Notes
-
-- Paper default: `reconciliation.adapter: mock`, `capital.withdrawal_adapter: mock`.
-- Live: `adapter: live` + fetcher; `withdrawal_adapter: trezor_signing`; gate receipts on `:19010`.
-- Mutating safety POSTs need `X-Titan-Auth` (`titan-safety auth sign`).
-- Edit `templates/*` or regenerate bootstrap via `python3 scripts/build.py` — this file refreshes automatically.
