@@ -830,7 +830,8 @@ table.data tr:hover td {
   flex-wrap: wrap;
 }
 
-/* Sticky cockpit save bar (Manual Control local prefs) */
+/* Sticky cockpit save bar (Manual Control local prefs)
+   Base = dark slate + light text. Light theme overrides in titan-theme.css. */
 .cockpit-save-bar {
   position: sticky;
   top: 0;
@@ -844,7 +845,6 @@ table.data tr:hover td {
   padding: 10px 14px;
   border-radius: var(--radius);
   border: 1px solid rgba(180, 200, 224, 0.55);
-  /* Lightened surface — hardcoded overlays ignored theme lifts; keep bar readable */
   background: linear-gradient(180deg, #6b829e, #5a7190);
   backdrop-filter: blur(12px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
@@ -870,7 +870,7 @@ table.data tr:hover td {
 
 .cockpit-save-bar-meta .muted,
 .cockpit-save-bar-meta .small {
-  color: #f4f7fb;
+  color: #e8eef6;
   opacity: 1;
   font-weight: 500;
 }

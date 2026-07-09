@@ -591,10 +591,20 @@
   background: var(--titan-card);
   border: 1px solid var(--border-strong);
   box-shadow: var(--shadow);
+  color: #0f1a28;
 }
-[data-theme="light"] .toast.ok { border-left: 3px solid var(--titan-mint); }
-[data-theme="light"] .toast.warn { border-left: 3px solid var(--titan-amber); }
-[data-theme="light"] .toast.danger { border-left: 3px solid var(--titan-coral); }
+[data-theme="light"] .toast.ok {
+  border-left: 3px solid var(--titan-mint);
+  color: #065f46;
+}
+[data-theme="light"] .toast.warn {
+  border-left: 3px solid var(--titan-amber);
+  color: #92400e;
+}
+[data-theme="light"] .toast.danger {
+  border-left: 3px solid var(--titan-coral);
+  color: #b91c1c;
+}
 
 [data-theme="light"] .sidebar-foot .mini-stat {
   background: var(--titan-card);
@@ -995,80 +1005,138 @@
   color: var(--text) !important;
 }
 
-/* ---------- Save bar meta/chips (beat [data-theme] .chip / .muted) ---------- */
+/* ---------- Save bar: theme-aware surface + meta (beat [data-theme] .chip / .muted) ---------- */
 
-.cockpit-save-bar-meta .muted,
-.cockpit-save-bar-meta .small,
+/* Dark: slate bar + light meta (default surface lives in global.css) */
+[data-theme="dark"] .cockpit-save-bar {
+  border-color: rgba(180, 200, 224, 0.55);
+  background: linear-gradient(180deg, #6b829e, #5a7190);
+  color: #f4f7fb;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+[data-theme="dark"] .cockpit-save-bar.dirty {
+  border-color: rgba(242, 193, 78, 0.65);
+  background: linear-gradient(90deg, rgba(242, 193, 78, 0.28), #5a7190 55%);
+}
+
 [data-theme="dark"] .cockpit-save-bar-meta .muted,
-[data-theme="dark"] .cockpit-save-bar-meta .small,
-[data-theme="light"] .cockpit-save-bar-meta .muted,
-[data-theme="light"] .cockpit-save-bar-meta .small {
-  color: #f4f7fb !important;
+[data-theme="dark"] .cockpit-save-bar-meta .small {
+  color: #e8eef6 !important;
   opacity: 1;
   font-weight: 500;
 }
 
-.cockpit-save-bar-meta .chip,
-[data-theme="dark"] .cockpit-save-bar-meta .chip,
-[data-theme="light"] .cockpit-save-bar-meta .chip {
+[data-theme="dark"] .cockpit-save-bar-meta .chip {
   color: #ffffff !important;
   border-color: rgba(244, 247, 251, 0.55) !important;
   background: rgba(8, 14, 22, 0.45) !important;
   font-weight: 600;
 }
 
-.cockpit-save-bar-meta .chip.ok,
-[data-theme="dark"] .cockpit-save-bar-meta .chip.ok,
-[data-theme="light"] .cockpit-save-bar-meta .chip.ok {
+[data-theme="dark"] .cockpit-save-bar-meta .chip.ok {
   color: #04140f !important;
   border-color: rgba(52, 224, 180, 0.85) !important;
   background: #34e0b4 !important;
   font-weight: 700;
 }
 
-.cockpit-save-bar-meta .chip.warn,
-[data-theme="dark"] .cockpit-save-bar-meta .chip.warn,
-[data-theme="light"] .cockpit-save-bar-meta .chip.warn {
+[data-theme="dark"] .cockpit-save-bar-meta .chip.warn {
   color: #1a1200 !important;
   border-color: rgba(242, 193, 78, 0.9) !important;
   background: #f2c14e !important;
   font-weight: 700;
 }
 
+/* Light: pale panel + navy/slate meta (light text on light bar was invisible) */
+[data-theme="light"] .cockpit-save-bar {
+  border-color: var(--border-strong);
+  background: linear-gradient(180deg, #ffffff, #eef2f7);
+  color: #0f1a28;
+  box-shadow: var(--shadow-soft);
+}
+[data-theme="light"] .cockpit-save-bar.dirty {
+  border-color: rgba(180, 83, 9, 0.45);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.16), #eef2f7 55%);
+  color: #0f1a28;
+}
+
+[data-theme="light"] .cockpit-save-bar-meta .muted,
+[data-theme="light"] .cockpit-save-bar-meta .small {
+  color: #4a5568 !important;
+  opacity: 1;
+  font-weight: 500;
+}
+
+[data-theme="light"] .cockpit-save-bar-meta .chip {
+  color: #0f1a28 !important;
+  border-color: rgba(11, 21, 40, 0.18) !important;
+  background: rgba(11, 21, 40, 0.06) !important;
+  font-weight: 600;
+}
+
+[data-theme="light"] .cockpit-save-bar-meta .chip.ok {
+  color: #065f46 !important;
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  background: rgba(16, 185, 129, 0.14) !important;
+  font-weight: 700;
+}
+
+[data-theme="light"] .cockpit-save-bar-meta .chip.warn {
+  color: #92400e !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  background: rgba(245, 158, 11, 0.16) !important;
+  font-weight: 700;
+}
+
 /* ---------- Save bar buttons (beat [data-theme] .btn specificity) ---------- */
 
-.cockpit-save-bar-actions .btn,
-[data-theme="dark"] .cockpit-save-bar-actions .btn,
-[data-theme="light"] .cockpit-save-bar-actions .btn {
+[data-theme="dark"] .cockpit-save-bar-actions .btn {
   background: rgba(15, 22, 32, 0.28);
   color: #f0f4f8;
   border-color: rgba(232, 238, 246, 0.35);
 }
-.cockpit-save-bar-actions .btn:hover:not(:disabled),
-[data-theme="dark"] .cockpit-save-bar-actions .btn:hover:not(:disabled),
-[data-theme="light"] .cockpit-save-bar-actions .btn:hover:not(:disabled) {
+[data-theme="dark"] .cockpit-save-bar-actions .btn:hover:not(:disabled) {
   background: rgba(15, 22, 32, 0.42);
   color: #ffffff;
   border-color: rgba(232, 238, 246, 0.55);
 }
-.cockpit-save-bar-actions .btn.ghost,
-[data-theme="dark"] .cockpit-save-bar-actions .btn.ghost,
-[data-theme="light"] .cockpit-save-bar-actions .btn.ghost {
+[data-theme="dark"] .cockpit-save-bar-actions .btn.ghost {
   color: #f0f4f8;
   border-color: rgba(232, 238, 246, 0.35);
   background: rgba(15, 22, 32, 0.18);
 }
-.cockpit-save-bar-actions .btn.ghost:hover:not(:disabled),
-[data-theme="dark"] .cockpit-save-bar-actions .btn.ghost:hover:not(:disabled),
-[data-theme="light"] .cockpit-save-bar-actions .btn.ghost:hover:not(:disabled) {
+[data-theme="dark"] .cockpit-save-bar-actions .btn.ghost:hover:not(:disabled) {
   color: #ffffff;
   background: rgba(15, 22, 32, 0.32);
   border-color: rgba(232, 238, 246, 0.55);
 }
-.cockpit-save-bar-actions .btn.ghost:disabled,
-[data-theme="dark"] .cockpit-save-bar-actions .btn.ghost:disabled,
-[data-theme="light"] .cockpit-save-bar-actions .btn.ghost:disabled {
+[data-theme="dark"] .cockpit-save-bar-actions .btn.ghost:disabled {
   color: #d5deea;
+  opacity: 0.65;
+}
+
+[data-theme="light"] .cockpit-save-bar-actions .btn {
+  background: rgba(11, 21, 40, 0.05);
+  color: #0f1a28;
+  border-color: rgba(11, 21, 40, 0.16);
+}
+[data-theme="light"] .cockpit-save-bar-actions .btn:hover:not(:disabled) {
+  background: rgba(11, 21, 40, 0.1);
+  color: #0b1528;
+  border-color: rgba(11, 21, 40, 0.28);
+}
+[data-theme="light"] .cockpit-save-bar-actions .btn.ghost {
+  color: #0f1a28;
+  border-color: rgba(11, 21, 40, 0.16);
+  background: transparent;
+}
+[data-theme="light"] .cockpit-save-bar-actions .btn.ghost:hover:not(:disabled) {
+  color: #0b1528;
+  background: rgba(11, 21, 40, 0.08);
+  border-color: rgba(11, 21, 40, 0.28);
+}
+[data-theme="light"] .cockpit-save-bar-actions .btn.ghost:disabled {
+  color: #7b8798;
   opacity: 0.65;
 }
 /* Beat [data-theme] button.btn.primary — teal + near-black, high-contrast label */
