@@ -8,7 +8,7 @@ export function SaveBar({
   onDiscard,
   onResetDefaults,
   disabled,
-  label = "Saved locally (cockpit)",
+  label = "Saved locally",
 }: {
   dirty: boolean;
   lastSavedAt?: string | null;

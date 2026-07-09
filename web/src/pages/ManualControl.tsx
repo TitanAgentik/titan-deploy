@@ -285,9 +285,9 @@ export function ManualControl() {
     saveManualControlPrefs(prefs);
     setSavedFingerprint(prefsFingerprint(prefs));
     setLastSavedAt(prefs.savedAt);
-    push("Saved locally (cockpit)", "ok");
+    push("Saved locally", "ok");
     setLog((l) =>
-      [`${prefs.savedAt}  Saved locally (cockpit)`, ...l].slice(0, 24),
+      [`${prefs.savedAt}  Saved locally`, ...l].slice(0, 24),
     );
   };
 
