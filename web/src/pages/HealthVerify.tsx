@@ -176,7 +176,7 @@ export function HealthVerify() {
         </div>
         <p className="muted small" style={{ marginBottom: 0, marginTop: 12 }}>
           CLI · <span className="mono">{verifyChecklist.script}</span> · fails live capital without
-          UPS ack
+          UPS ack. Signing is in-process in titan-safety — no :19010 required (legacy HTTP optional).
         </p>
       </Card>
 

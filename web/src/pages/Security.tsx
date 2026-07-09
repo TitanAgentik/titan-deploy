@@ -52,7 +52,7 @@ const pillarMeta: Record<
   impenetrable: {
     label: "Impenetrable",
     icon: Shield,
-    blurb: "Defense-in-depth — kernel DENY, signing isolation, PCR, netns",
+    blurb: "Defense-in-depth — kernel DENY, in-process signing isolation, PCR, netns",
   },
   evasion: {
     label: "Evasion",
@@ -553,12 +553,12 @@ export function Security() {
             <button
               type="button"
               className="option-tile"
-              onClick={() => push("Signing node HALT requested (demo)", "danger")}
+              onClick={() => push("In-process signing HALT requested (demo)", "danger")}
             >
               <strong>
                 <Lock size={14} style={{ verticalAlign: "-2px" }} /> Halt signing
               </strong>
-              <span>SIGNING_HALTED (in-process)</span>
+              <span>SIGNING_HALTED · titan-safety</span>
             </button>
             <button
               type="button"
@@ -763,7 +763,7 @@ export function Security() {
         <ul className="muted small" style={{ lineHeight: 1.8 }}>
           <li>Global kill switch → ACTIVE</li>
           <li>Evolution → frozen (shadow-only)</li>
-          <li>Signing node → SIGNING_HALTED</li>
+          <li>In-process SigningNode → SIGNING_HALTED</li>
           <li>Honeypot lattice → ARMED</li>
           <li>Edge routing → fail-closed to known-good PoPs</li>
         </ul>

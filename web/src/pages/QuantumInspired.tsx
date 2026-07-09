@@ -47,7 +47,7 @@ export function QuantumInspired() {
     <>
       <PageHeader
         title="Quantum-Inspired Optimizer"
-        subtitle="Classical QUBO + simulated annealing lane subset selection — research / advisory only. Compares against fractional-Kelly CapitalAllocator."
+        subtitle="Classical SA / QUBO only — advisory. Not a quantum agent; QCC/QSA/QRP removed. Compares against fractional-Kelly CapitalAllocator."
         actions={
           <>
             <Link className="btn" to="/pipelines">

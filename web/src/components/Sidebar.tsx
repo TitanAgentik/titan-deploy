@@ -71,7 +71,7 @@ export const NAV = [
       { to: "/edge", icon: Globe2, label: "Edge Mesh" },
       { to: "/latency", icon: Timer, label: "Latency" },
       { to: "/flash-loans", icon: Zap, label: "Flash Loans" },
-      { to: "/signing", icon: KeyRound, label: "Signing Node" },
+      { to: "/signing", icon: KeyRound, label: "Signing" },
     ],
   },
   {

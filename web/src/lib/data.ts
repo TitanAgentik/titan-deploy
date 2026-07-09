@@ -317,19 +317,28 @@ export const lanes = pnlByStrategy.map((s) => ({
   phase: s.phase,
 }));
 
+/** 20 named agents — 12 TITANHOME + 8 utility. QCC/QSA/QRP removed. */
 export const agents = [
   { id: "ARCHON", role: "Orchestrator", tier: "T2 :30001", status: "online", load: 42 },
-  { id: "GUARDIAN", role: "Risk / Kelly", tier: "T1 :30000", status: "online", load: 61 },
   { id: "CORTEX", role: "Meta / GEPA", tier: "T3a :30005", status: "standby", load: 8 },
+  { id: "GUARDIAN", role: "Risk / Kelly", tier: "T1 :30000", status: "online", load: 61 },
+  { id: "SENTINEL", role: "Security / CodeQL", tier: "T2 :30001", status: "online", load: 27 },
   { id: "ORACLE", role: "Signals", tier: "T1 :30000", status: "online", load: 55 },
+  { id: "WRAITH", role: "On-chain analysis", tier: "T1 :30000", status: "online", load: 44 },
   { id: "PREDATOR", role: "Mempool", tier: "T1 :30000", status: "online", load: 48 },
   { id: "AUGUR", role: "Macro regime", tier: "T1 :30000", status: "online", load: 33 },
-  { id: "TRENCH-OPS", role: "Execution", tier: "T1 :30000", status: "online", load: 71 },
+  { id: "NARRATIVE", role: "Catalyst ingestion", tier: "T1 :30000", status: "online", load: 31 },
+  { id: "TRENCH-OPS", role: "Execution + signing", tier: "T1 :30000", status: "online", load: 71 },
+  { id: "LAMARCK", role: "Post-trade / OPD / GEPA", tier: "T2 :30001", status: "online", load: 19 },
+  { id: "DARWIN_GODEL", role: "Auto-research / DGM-H", tier: "T3a :30005", status: "standby", load: 6 },
+  { id: "HERALD", role: "Telegram", tier: "U :30002", status: "online", load: 12 },
+  { id: "NEXUS", role: "Data feeds / funding", tier: "U :30002", status: "online", load: 21 },
+  { id: "FORGE", role: "Infra health", tier: "U :30002", status: "online", load: 22 },
   { id: "ALCHEMY", role: "DeFi / flash compose", tier: "U :30002", status: "online", load: 24 },
   { id: "ATLAS", role: "Portfolio", tier: "U :30002", status: "online", load: 29 },
-  { id: "HERALD", role: "Telegram", tier: "U :30002", status: "online", load: 12 },
-  { id: "FORGE", role: "Infra health", tier: "U :30002", status: "online", load: 22 },
-  { id: "ARBITER", role: "Backtest", tier: "U :30002", status: "online", load: 18 },
+  { id: "QUANT", role: "Statistical / pairs", tier: "U :30002", status: "online", load: 17 },
+  { id: "ARBITER", role: "Backtest / Red Team", tier: "U :30002", status: "online", load: 18 },
+  { id: "HORIZON", role: "R&D metrology", tier: "U :30002", status: "online", load: 11 },
 ];
 
 export const services = [
@@ -2050,7 +2059,7 @@ export const stalkTargets = [
     severity: "medium" as const,
     lastSeen: "18m ago",
     status: "watching",
-    note: "Repeated eth_call from unknown ASN against signing health endpoint",
+    note: "Repeated eth_call from unknown ASN against titan-safety health surface",
   },
   {
     id: "st-3",
@@ -2258,8 +2267,11 @@ export const manualControl = {
   drawdownPct: portfolio.drawdownPct,
   windDownMode: "none" as WindDownMode,
   evolutionFrozen: portfolio.evolutionFrozen,
+  /** Policy flag retained; quantum agents (QCC/QSA/QRP) removed from catalog. */
   quantumDormant: true,
   quantumEnabled: false,
+  quantumAgentsRemoved: true,
+  agentCount: 20,
   honeypotArmed: true,
   huntMode: true,
   edgeFailClosed: true,

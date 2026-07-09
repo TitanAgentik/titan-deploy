@@ -19,7 +19,9 @@ export default defineConfig({
       "/api/allocator": { target: "http://127.0.0.1:19006", changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/allocator/, "") },
       "/api/tca": { target: "http://127.0.0.1:19007", changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/tca/, "") },
       "/api/security": { target: "http://127.0.0.1:19008", changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/security/, "") },
+      // Legacy optional HTTP signing_node (:19010). Default signing is in-process via titan-safety.
       "/api/sign": { target: "http://127.0.0.1:19010", changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/sign/, "") },
+      "/api/signing": { target: "http://127.0.0.1:19003", changeOrigin: true, rewrite: (p) => p.replace(/^\/api\/signing/, "") },
     },
   },
 });

@@ -710,7 +710,7 @@ export function ManualControl() {
             Security Ops
           </Link>
           <Link className="btn" to="/signing">
-            Signing Node
+            Signing
           </Link>
         </div>
         <AuthNote hmac humanYes />
@@ -1047,7 +1047,7 @@ export function ManualControl() {
             value={seed.allocator.selectedIds.join(", ") || "—"}
           />
           <Metric label="Last plan" value={seed.allocator.lastPlanAt.slice(11, 19) + "Z"} />
-          <Metric label="Backend" value="classical_sa" delta="agents removed" />
+          <Metric label="Backend" value="classical_sa" delta="QCC/QSA/QRP gone" />
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Btn
@@ -1452,8 +1452,8 @@ export function ManualControl() {
       <Modal
         open={confirm === "signing_halt"}
         onClose={() => setConfirm(null)}
-        title="Halt signing node"
-        subtitle="SIGNING_HALTED — no new signatures until resume"
+        title="Halt in-process signing"
+        subtitle="SIGNING_HALTED — titan-safety SigningNode refuses until resume"
         footer={
           <>
             <Btn variant="ghost" onClick={() => setConfirm(null)}>

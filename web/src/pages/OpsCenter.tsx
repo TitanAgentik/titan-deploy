@@ -119,16 +119,16 @@ export function OpsCenter() {
           </div>
         </Card>
 
-        <Card title="Signing node pre-sign gates">
+        <Card title="In-process signing pre-sign gates">
           <ol className="muted small" style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
             <li>Mock-adapter ban (live)</li>
             <li>Reconciliation :19002</li>
             <li>Risk kernel :19001</li>
             <li>Issue X-Titan-Gate-Receipt</li>
-            <li>POST /v1/sign with receipt ≤30s</li>
+            <li>titan-safety SigningNode (same process · receipt ≤30s)</li>
           </ol>
           <p className="mono small" style={{ marginTop: 14 }}>
-            mode · in-process (titan-safety)
+            mode · in-process · no :19010 hop required
           </p>
         </Card>
       </div>

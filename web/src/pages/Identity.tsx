@@ -15,7 +15,7 @@ export function Identity() {
     <>
       <PageHeader
         title="Identity"
-        subtitle="Operator + system identity — SOUL / IDENTITY bootstrap, bounded autonomy matrix, signing isolation."
+        subtitle="Operator + system identity — SOUL / IDENTITY bootstrap, bounded autonomy matrix, in-process signing isolation."
         actions={
           <Btn
             variant={draft.showMatrix ? "primary" : "ghost"}
@@ -54,10 +54,11 @@ export function Identity() {
             Titan Agentik · OpenClaw + Hermes
           </div>
           <p className="muted small">
-            Capital-preservation-first. No closed/cloud models on live path. Quantum agents DORMANT.
+            Capital-preservation-first. No closed/cloud models on live path. Quantum agents removed
+            (QCC/QSA/QRP) — classical-only; QI Optimizer is classical SA.
           </p>
           <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Tag kind="healthy">23 AGENTS</Tag>
+            <Tag kind="healthy">20 AGENTS</Tag>
             <Tag kind="info">47 PIPELINES</Tag>
             <Tag kind="neutral">CLASSICAL ONLY</Tag>
           </div>

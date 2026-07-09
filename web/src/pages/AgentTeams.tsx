@@ -39,7 +39,7 @@ export function AgentTeams() {
     <>
       <PageHeader
         title="Agent Teams"
-        subtitle="Click an agent card for controls — spawn, restart, route, or inspect load."
+        subtitle="20 named agents (12 TITANHOME + 8 utility). QCC/QSA/QRP removed — classical-only. Click a card for controls."
         actions={
           <Btn variant="primary" onClick={() => setSpawn(true)}>
             Spawn sub-agent…

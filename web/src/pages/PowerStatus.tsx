@@ -26,7 +26,7 @@ export function PowerStatus() {
               Health & Verify
             </Link>
             <Link className="btn" to="/signing">
-              Signing Node
+              Signing
             </Link>
             <Btn
               variant="primary"
@@ -171,8 +171,8 @@ export function PowerStatus() {
               />
             </div>
             <p className="muted small" style={{ marginBottom: 0, marginTop: 12 }}>
-              Signing node and TITANHOME share UPS protection — live capital gate fails in verify.sh
-              without ups_acknowledged.
+              In-process signing (titan-safety) and TITANHOME share UPS protection — live capital
+              gate fails in verify.sh without ups_acknowledged.
             </p>
           </>
         )}

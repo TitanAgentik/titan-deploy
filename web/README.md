@@ -13,7 +13,7 @@ Inspired by [ClawBuddy](https://clawbuddy.help) and the [OpenClaw Control UI](ht
 - **Status strip** — light translucent KPI band on Dashboard
 - **DEX-only** — no CEX venues; Uniswap / Curve / Hyperliquid / Solana / L2 DEX
 - **Interactive UX** — clickable metrics, modals, drawers, confirmation flows, toasts
-- **23 sections** — capital, risk, pipelines, promotions, memecoin trench, edge mesh, flash loans, signing, and more
+- **Operator sections** — capital, risk, pipelines, promotions, memecoin trench, edge mesh, flash loans, in-process signing, and more
 
 ## Quick start
 
@@ -47,13 +47,14 @@ Vite proxies safety services:
 | `/api/allocator` | `:19006` |
 | `/api/tca` | `:19007` |
 | `/api/security` | `:19008` Security Ops |
-| `/api/sign` | `:19010` |
+| `/api/signing` | Status / control plane (in-process signing halt via titan-safety) |
+| `/api/sign` | Optional legacy HTTP signing_node `:19010` (not required) |
 
 ## Sidebar sections
 
 **Control:** Dashboard · Command Center · Capital & Wallets · Risk & CBs · **Security Ops** · Ops Center · Forge
 
-**Trading:** Pipelines · Promotions · Memecoin Trench · Edge Mesh · Flash Loans · Signing Node
+**Trading:** Pipelines · Promotions · Memecoin Trench · Edge Mesh · Flash Loans · Signing
 
 **Intelligence:** Automations · Crypto Twitter · Goals Lab · Identity · Model Tiers · AI Log · Questions
 
@@ -67,7 +68,7 @@ Four-pillar defensive/offensive posture UI:
 
 | Pillar | Role |
 |--------|------|
-| **Impenetrable** | Risk kernel, signing isolation, netns, PCR, DMS, closed-model ban |
+| **Impenetrable** | Risk kernel, in-process signing isolation, netns, PCR, DMS, closed-model ban |
 | **Evasion** | MEV-shielded intents, edge RTT, Nostr dispatch, fingerprint rotation |
 | **Stalking** | PREDATOR/SENTINEL threat hunt — mempool clusters, probes, copy-traders |
 | **Predatory** | Honeypots, Red Team gauntlet, counter-copy poison, kill-chain response |

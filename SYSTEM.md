@@ -28,7 +28,7 @@
 
 ## 1. What Titan is
 
-**Titan (Titan Agentik)** is a local-first, capital-preservation-first crypto trading control plane: a multi-agent OpenClaw/Hermes runtime on operator hardware, gated by an **out-of-process risk kernel** and an **unbypassable execution gate**, with signing isolated on a dedicated signing node and broadcast via a **5-PoP edge mesh**. Agents propose; deterministic safety services veto. Catalog specs (pipelines, skills, pillars) are **not** a checklist to enable everything — selective activation funds a small set of HEALTHY lanes. Quantum agents are **dormant**; live path is classical GPU only. The web cockpit (`web/`) is an operator surface — some pages call live safety APIs, others are advisory/demo until services are up.
+**Titan (Titan Agentik)** is a local-first, capital-preservation-first crypto trading control plane: a multi-agent OpenClaw/Hermes runtime on operator hardware, gated by an **out-of-process risk kernel** and an **unbypassable execution gate**, with **in-process signing** in `titan-safety` after ExecutionGate ALLOW (legacy HTTP `:19010` optional only), broadcast via a **5-PoP edge mesh**. Agents propose; deterministic safety services veto. Catalog specs (pipelines, skills, pillars) are **not** a checklist to enable everything — selective activation funds a small set of HEALTHY lanes. Quantum agents (QCC/QSA/QRP) are **removed**; live path is classical GPU only (QI Optimizer is classical SA, not a quantum agent). The web cockpit (`web/`) is an operator surface — some pages call live safety APIs, others are advisory/demo until services are up.
 
 ---
 
@@ -336,7 +336,7 @@ Representative lanes (from cockpit data + edge routing; not an exhaustive live e
 | **19006** | Capital allocator | `/v1/allocate`, `/v1/plan`, `/health` |
 | **19007** | TCA / execution quality | `/v1/ingest`, `/v1/scorecard`, `/health` |
 | **19008** | Security ops | `/v1/status`, `/health` |
-| **19010** | Signing node | `/v1/sign` (receipt required), `/health` |
+| **19010** | Signing (legacy optional) | HTTP `/v1/sign` only if `signing.mode=http` — **not** required; default is in-process `titan_safety.SigningNode` |
 | **18789** | OpenClaw gateway | Telegram / agent gateway |
 | **19100** | Edge worker (per PoP) | Stateless broadcast workers |
 
@@ -377,7 +377,7 @@ App: `web/` (Titan Agentik). Routes from `web/src/App.tsx` / `Sidebar.tsx`.
 | `/edge` | Edge Mesh | 5-PoP routing |
 | `/latency` | Latency | Hot/warm path budgets |
 | `/flash-loans` | Flash Loans | Router / sim (gated live) |
-| `/signing` | Signing Node | Receipt / isolation status |
+| `/signing` | Signing | In-process titan-safety SigningNode · gate receipt (no `:19010` required) |
 | `/automations` | Automations | Workflows |
 | `/crypto-news` / `/crypto-twitter` | Intel feeds | Narrative / social surfaces |
 | `/goals` | Goals Lab | Operator OKRs |
@@ -462,7 +462,7 @@ Do **not** treat deploy as go-live. Follow these in order:
 1. **`BOOTSTRAP.md`** — first-run ritual (hardware, inference, NATS, UPS, safety units).
 2. **`./deploy.sh`** — build/install templates; optional `--systemd`, `--start-services`, `--verify`, `--edge-bootstrap`.
 3. **`./verify.sh`** — bootstrap limits, config presence, safety/unit checks (fails live-capital checks without UPS ack when configured).
-4. **`PRODUCTION_READINESS.md`** — fail-closed drills, kill switch, recon adapter, signing isolation, quantum dormant confirm, residual risk acceptance.
+4. **`PRODUCTION_READINESS.md`** — fail-closed drills, kill switch, recon adapter, in-process signing isolation, quantum agents removed / `quantum.enabled=false`, residual risk acceptance.
 5. **`BOOT.md`** — short gateway-restart checklist (health `:19001`–`:19008`; in-process signing; no auto-promote).
 6. **Phased rollout** — paper → micro-live → scale; calendar is **advisory** (`rollout.calendarIsNotAGate: true`); Phase 5 always needs human YES.
 7. Beginner/ops narratives: `DEPLOYMENT_GUIDE.md`, `DEPLOYMENT_GUIDE_BEGINNER.md`, `TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md`.

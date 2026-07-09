@@ -189,20 +189,26 @@ export function Settings() {
               </tr>
             </thead>
             <tbody>
-              {[
-                ["/api/risk", ":19001"],
-                ["/api/recon", ":19002"],
-                ["/api/status", ":19003"],
-                ["/api/portfolio", ":19004"],
-                ["/api/dms", ":19005"],
-                ["/api/allocator", ":19006"],
-                ["/api/tca", ":19007"],
-                ["/api/security", ":19008"],
-                ["/api/sign", "in-process"],
-              ].map(([a, b]) => (
+              {(
+                [
+                  ["/api/risk", "http://127.0.0.1:19001"],
+                  ["/api/recon", "http://127.0.0.1:19002"],
+                  ["/api/status", "http://127.0.0.1:19003"],
+                  ["/api/portfolio", "http://127.0.0.1:19004"],
+                  ["/api/dms", "http://127.0.0.1:19005"],
+                  ["/api/allocator", "http://127.0.0.1:19006"],
+                  ["/api/tca", "http://127.0.0.1:19007"],
+                  ["/api/security", "http://127.0.0.1:19008"],
+                  ["/api/signing", "http://127.0.0.1:19003 (halt via control plane)"],
+                  [
+                    "/api/sign",
+                    "optional legacy :19010 (default signing is in-process titan-safety)",
+                  ],
+                ] as const
+              ).map(([a, b]) => (
                 <tr key={a}>
                   <td>{a}</td>
-                  <td>http://127.0.0.1{b}</td>
+                  <td>{b}</td>
                 </tr>
               ))}
             </tbody>

@@ -34,7 +34,7 @@ const TITLES: Record<string, string> = {
   "/qi-optimizer": "QI Optimizer",
   "/flash-loans": "Flash Loans",
   "/memecoin": "Memecoin Trench",
-  "/signing": "Signing Node",
+  "/signing": "Signing",
   "/automations": "Automations",
   "/crypto-twitter": "Crypto Twitter",
   "/crypto-news": "Crypto News",
