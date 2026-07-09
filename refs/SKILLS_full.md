@@ -31,7 +31,7 @@
 - `darwin_godel_research/` — Darwin Godel Research — stub skill (full definition pending §SKILLS_full.md)
 - `defi_operations/` — Defi Operations
 - `dissent_log/` — Dissent Log
-- `flash_loan_router/` — Flash Loan Router
+- `flash_loan_router/` — Multi-source flash-loan routing — Balancer/Morpho/Uni V4/Aave atomic compose
 - `forge_infra/` — Forge Infra — TITANHOME health, UPS telemetry, GPU schedule enforcement
 - `guardian_risk/` — Guardian Risk — stub skill (full definition pending §SKILLS_full.md)
 - `herald_notify/` — HERALD institutional Telegram trade notifications — JSON-first payloads + Markdown alerts (§TGCMD.2 / §TGCMD.3)

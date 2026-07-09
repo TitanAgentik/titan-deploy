@@ -54,7 +54,7 @@
 - **Models**: ALL LOCAL — GLM-5.2-753B-A40B (GPU TP=2, llama.cpp `--n-cpu-moe` expert-offload) + Qwen3.6-35B-A3B (CPU, llama.cpp) + MTP native speculative  
 - **Quantum**: 100% Classical Execution — quantum agents DORMANT (Quantum simulators removed to dedicate all VRAM to REVM parallelization)  
 - **Scale**: 23 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 26 workflows | 47 pipelines (P1-P34, P37-P48 incl. §GRIS)  
-- **Edge**: Phase 1 single-PoP (EDGE-FRA default); full 5-PoP mesh Phase 3+ — EDGE-TKY (AWS `ap-northeast-1` c7i.metal-24xl) + EDGE-SIN (AWS `ap-southeast-1` c7i.4xlarge) + EDGE-FRA (Vultr BM Frankfurt, DE-CIX peered) + EDGE-USE (AWS `us-east-1` c7i.2xlarge) + EDGE-AMS (Vultr BM Amsterdam) — same-AZ as exchange matching engines, sub-1ms RTT  
+- **Edge**: Phase 1 single-PoP (EDGE-FRA default); full 5-PoP mesh Phase 3+ — EDGE-TKY (AWS `ap-northeast-1` c7i.metal-24xl) + EDGE-SIN (AWS `ap-southeast-1` c7i.4xlarge) + EDGE-FRA (Vultr BM Frankfurt, DE-CIX peered) + EDGE-USE (AWS `us-east-1` c7i.2xlarge) + EDGE-AMS (Vultr BM Amsterdam) — same-AZ as DEX / sequencers / builders, sub-1ms RTT  
 - **OS**: Ubuntu 24.04 LTS HWE (kernel 7.0) + AF_XDP Kernel-Bypass Networking (sub-10µs packet processing) | Python 3.12 | systemd 255  
 - **Learning**: SAGE + MGPO + Hermes-RL/DRPO + HyEvo + GEPA + DGM-H + SIA + SkillOpt + InterleaveThinker + ALE + Robust  
 - **§REF files (reconstructed under `refs/`):** CONFIGS, SKILLS_full, DEPLOY_scripts, KEYS, MEMORY, AU_audit, PERF, COMM, COCKPIT, MODELS + narrative stubs (GHOST/RESEARCH/MAINT/…). Originals were never on disk.

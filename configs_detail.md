@@ -767,6 +767,30 @@ capital:
     "pumpFunProgram": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
     "note": "Real SOL: set enabled true after promotion YES; live profile already active"
   },
+  "flashLoanRouter": {
+    "enabled": false,
+    "requiresLiveProfile": true,
+    "requiresPromotionYes": true,
+    "skill": "flash_loan_router",
+    "infraSpec": "~/.openclaw/infra/flash_loan.yaml",
+    "playbook": "~/.openclaw/playbooks/flash_loan_live.yaml",
+    "agents": {
+      "compose": "ALCHEMY",
+      "execute": "TRENCH-OPS"
+    },
+    "chains": [
+      "ethereum",
+      "arbitrum",
+      "base"
+    ],
+    "defaultSourcePriority": [
+      "balancer",
+      "morpho",
+      "uniswap_v4",
+      "aave_v3"
+    ],
+    "note": "Set enabled true only after promotion flash_loan_live YES + paper sim"
+  },
   "drawdownTiers": {
     "alert": 2.0,
     "softPause": 5.0,
@@ -1228,6 +1252,20 @@ memecoin_trench:
 
   min_net_bps: 1.0
   require_cost_model: true         # backtests with zero modeled cost are rejected
+
+flash_loan_live:
+  enabled: false  # operator + openclaw flashLoanRouter.enabled after promotion YES
+  max_amount_usd: 500000.0
+  max_fee_bps: 9.0
+  paper_sim_required_days: 3
+  pipeline_ids: [P1, P2, P3, P5, P6, P7, P8, P12, P15, P16, P17]
+  sources:
+    ethereum: [balancer, morpho, uniswap_v4, aave_v3]
+    arbitrum: [balancer, morpho, aave_v3]
+    base: [morpho, balancer, aave_v3]
+  infra_spec: ~/.openclaw/infra/flash_loan.yaml
+  playbook: ~/.openclaw/playbooks/flash_loan_live.yaml
+  note: "Live flash loans require promotion flash_loan_live YES; paper venue always allowed"
 
 promotion_gates:
   phase5_requires_human_yes: true

@@ -150,11 +150,11 @@ Four pillars (Impenetrable baseline; Evasion/Stalking/Predatory on demand). No :
 | --- | --- | --- | --- | --- | --- |  
 | TRENCH-OPS-TKY | EDGE-TKY | AWS `c7i.metal-24xl` (96 vCPU, 192 GB, 25 Gbps ENA) | `ap-northeast-1` (Tokyo) | Hyperliquid DEX (hl-visor), Jito-TKY | **<1ms** |  
 | TRENCH-OPS-SIN | EDGE-SIN | AWS `c7i.4xlarge` (16 vCPU, 32 GB, 12.5 Gbps) | `ap-southeast-1` (Singapore) | BSC DEX, PancakeSwap, Sui, APAC failover | **<1ms** |  
-| TRENCH-OPS-FRA | EDGE-FRA | Vultr Bare Metal (dedicated, DE-CIX peered) | Frankfurt, DE | Solana-EU (Jito-FRA ShredStream), ETH builders, Uniswap/Curve/Balancer, bridges | **<1ms** |  
+| TRENCH-OPS-FRA | EDGE-FRA | Vultr Bare Metal (dedicated, DE-CIX peered) | Frankfurt, DE | Solana-EU (Jito-FRA ShredStream), ETH builders, DEX aggregators, bridges | **<1ms** |  
 | TRENCH-OPS-USE | EDGE-USE | AWS `c7i.2xlarge` (8 vCPU, 16 GB, 12.5 Gbps) | `us-east-1` (N. Virginia) | ARB/OP/Base L2 sequencers, ETH relay US, Flashbots Protect | **<1ms** |  
 | TRENCH-OPS-AMS | EDGE-AMS | Vultr Bare Metal (dedicated, AMS-IX peered) | Amsterdam, NL | Solana secondary (gRPC redundancy), ETH relay redundancy, Nostr relay, bridge monitor | **<1ms** |
 
-> **Architecture rationale:** Each edge PoP is placed near DEX / L2 sequencer / builder infrastructure — **strict DEX-only (R02 / R46); no CEX trading**. Hyperliquid DEX validators run in AWS `ap-northeast-1` (Tokyo); BSC/Sui in `ap-southeast-1` (Singapore); EU DEX + Jito-FRA in Frankfurt; L2 sequencers + Flashbots in `us-east-1`. Traffic stays on colo/backbone paths for sub-millisecond RTT. Erigon archive runs on EDGE-FRA (Frankfurt, DE-CIX peered); CRUSH pipeline and batch data processing run on TITANHOME during off-peak hours.
+> **Architecture rationale:** Each edge PoP is placed in the **exact same AWS region/AZ** as the target DEX / sequencer / builder. Since Hyperliquid DEX validators all run in AWS `ap-northeast-1` (Tokyo), and BSC/Sui run in AWS `ap-southeast-1` (Singapore), traffic between our edge and the exchange never leaves Amazon's backbone — achieving sub-millisecond RTT. This replaces the previous single-PoP Falkenstein design which added 130-200ms RTT to APAC exchanges. Erigon archive runs on EDGE-FRA (Frankfurt, DE-CIX peered); CRUSH pipeline and batch data processing run on TITANHOME during off-peak hours.
 
 **Total: 23 agents — 15 share the GPU TP=2 llama-server `:30000` (4 orchestrator
 
