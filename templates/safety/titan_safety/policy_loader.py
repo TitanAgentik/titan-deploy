@@ -59,6 +59,28 @@ def expand_path(path: str | Path) -> Path:
     return Path(str(path).replace("~", str(Path.home()))).expanduser().resolve()
 
 
+def load_component(spec: str) -> Any:
+    """Load a pluggable component from a "module.path:attr" spec.
+
+    Used for live signer / position-closer / key-revoker wiring so mock
+    implementations never silently run against a live capital profile.
+    """
+    module_path, sep, attr = spec.partition(":")
+    if not sep or not module_path or not attr:
+        raise ValueError(f"Component spec must be 'module.path:attr', got: {spec!r}")
+    import importlib
+
+    module = importlib.import_module(module_path)
+    try:
+        return getattr(module, attr)
+    except AttributeError as exc:
+        raise ValueError(f"{module_path} has no attribute {attr!r}") from exc
+
+
+def capital_profile_of(policy: "Policy") -> str:
+    return str(policy.raw.get("capital_profile", "paper")).lower()
+
+
 def load_policy(path: str | Path) -> Policy:
     p = expand_path(path)
     data = yaml.safe_load(p.read_text(encoding="utf-8"))

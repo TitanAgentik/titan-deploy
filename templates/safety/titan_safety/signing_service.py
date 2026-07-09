@@ -20,7 +20,7 @@ from .gate_receipt import RECEIPT_HEADER, verify_gate_receipt
 from .http_server import SafetyHTTPServer
 from .kernel import TradeRequest
 from .observability import METRICS, setup_logging
-from .policy_loader import expand_path, load_policy
+from .policy_loader import capital_profile_of, expand_path, load_component, load_policy
 
 logger = setup_logging("signing_node")
 
@@ -169,6 +169,23 @@ def create_app(
         port = policy.service.signing_node_port
         signing_cfg = (policy.raw or {}).get("signing", {})
         max_age = int(signing_cfg.get("max_receipt_age_seconds", 30))
+
+        # Live signer wiring: signing.signer_module = "package.module:signer_fn"
+        signer_spec = str(
+            signing_cfg.get("signer_module")
+            or os.environ.get("TITAN_SIGNER_MODULE", "")
+        ).strip()
+        if signer is None and signer_spec:
+            signer = load_component(signer_spec)
+            logger.info(f"Loaded signer from {signer_spec}")
+
+        # Mock signer ban — a live capital profile must never start on the
+        # mock signer (fail-closed: refuse startup instead of mock-signing).
+        if capital_profile_of(policy) == "live" and signer is None:
+            raise ValueError(
+                "capital_profile=live requires signing.signer_module "
+                "(mock signer banned for live)"
+            )
 
     ks = KillSwitch(safety)
     node = SigningNode(

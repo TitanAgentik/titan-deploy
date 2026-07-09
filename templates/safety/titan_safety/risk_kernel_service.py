@@ -23,6 +23,13 @@ def create_app(
     safety_dir: Path | None = None,
 ) -> tuple[SafetyHTTPServer, RiskKernel]:
     policy = load_policy(policy_path)
+
+    # Fail-closed startup: live capital profile refuses to start on mock
+    # flatten adapters (the emergency exit must be real before going live).
+    from .flatten_executor import validate_flatten_config_for_live
+
+    validate_flatten_config_for_live(policy)
+
     ks = KillSwitch(safety_dir)
     kernel = RiskKernel.from_policy_path(
         policy_path,
@@ -82,7 +89,7 @@ def create_app(
     def flatten(_body: dict[str, Any], _headers: dict[str, str]) -> tuple[int, dict[str, Any]]:
         from .flatten_executor import FlattenExecutor
 
-        executor = FlattenExecutor(safety_dir)
+        executor = FlattenExecutor.from_policy(policy, safety_dir)
         payload = executor.execute(
             kernel,
             operator="risk_kernel",

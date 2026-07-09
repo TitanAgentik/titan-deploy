@@ -178,6 +178,12 @@ install_files() {
   if [[ -f "$PROJECT_ROOT/configs_detail.md" ]]; then
     cp "$PROJECT_ROOT/configs_detail.md" "$OPENCLAW_HOME/configs_detail.md"
   fi
+  # Compact spec digest — agents read this instead of the 750KB reconciled doc
+  if [[ -f "$OUTPUT/TITAN.digest.md" ]]; then
+    mkdir -p "$OPENCLAW_HOME/refs"
+    cp "$OUTPUT/TITAN.digest.md" "$OPENCLAW_HOME/refs/TITAN.digest.md"
+    log "Installed spec digest -> $OPENCLAW_HOME/refs/TITAN.digest.md"
+  fi
 
   cp "$OUTPUT/openclaw.json" "$OPENCLAW_HOME/openclaw.json"
   cp "$OUTPUT/config.yaml" "$HERMES_HOME/config.yaml"

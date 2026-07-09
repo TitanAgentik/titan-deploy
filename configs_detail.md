@@ -1009,6 +1009,14 @@ signing:
   require_gate_receipt: true
   max_receipt_age_seconds: 30
   on_env_compromised: halt_all_signing
+  # Live signer wiring (REQUIRED when capital_profile=live — mock signer banned):
+  # signer_module: "titan_signers.trezor:sign_request"   # module.path:callable
+
+# Flatten adapters — mock is banned when capital_profile=live (startup refuses)
+flatten:
+  closer: mock          # mock | signing_node | "module.path:ClassOrFactory"
+  revoker: mock         # mock | "module.path:ClassOrFactory"
+  signing_endpoint: http://127.0.0.1:19010
 
 # Evolution freeze — set freeze_during_live true; CLI: titan-safety evolution freeze
 evolution:

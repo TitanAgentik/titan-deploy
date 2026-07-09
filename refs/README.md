@@ -1,6 +1,7 @@
 # refs/ manifest
 
 - `AEGIS_detail.md`
+- `AGENTS_schemas.md`
 - `AU_audit.md`
 - `COCKPIT_detail.md`
 - `COMM_detail.md`
@@ -16,6 +17,7 @@
 - `MEV_detail.md`
 - `MODELS_detail.md`
 - `PERF_detail.md`
+- `README.md`
 - `REAPER_detail.md`
 - `RESEARCH_detail.md`
 - `SKILLS_full.md`

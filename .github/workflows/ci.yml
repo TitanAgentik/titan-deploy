@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pyyaml
+
+      - name: Run test suite
+        run: pytest tests/ -q
+
+      - name: Build bundle (reconcile + bootstrap extraction)
+        run: python scripts/build.py
+
+      - name: Verify bootstrap size limits
+        run: |
+          python - <<'EOF'
+          from pathlib import Path
+          PER_FILE = 20000
+          TOTAL = 150000
+          sizes = {p.name: p.stat().st_size for p in Path("output/bootstrap").glob("*.md")}
+          total = sum(sizes.values())
+          for name, size in sorted(sizes.items()):
+              status = "OK" if size <= PER_FILE else "OVER"
+              print(f"{status} {name}: {size}")
+          print(f"total: {total} (limit {TOTAL})")
+          assert all(s <= PER_FILE for s in sizes.values()), "bootstrap file over per-file limit"
+          assert total <= TOTAL, "bootstrap total over limit"
+          EOF

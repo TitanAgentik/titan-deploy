@@ -55,6 +55,55 @@ class MockPositionCloser(PositionCloser):
         }
 
 
+class SigningNodeCloser(PositionCloser):
+    """Closes positions by submitting close orders to the signing node.
+
+    Each close order gets a fresh gate receipt (issued locally — the flatten
+    path is the emergency exit, so it must not depend on recon/kernel being
+    healthy), then POSTs to the signing node which enforces the receipt.
+    """
+
+    def __init__(
+        self,
+        endpoint: str = "http://127.0.0.1:19010",
+        safety_dir: Path | None = None,
+        timeout: float = 10.0,
+    ) -> None:
+        self.endpoint = endpoint.rstrip("/")
+        self.safety_dir = safety_dir
+        self.timeout = timeout
+
+    def close(self, order: FlattenOrder) -> dict[str, Any]:
+        import urllib.request
+        import uuid
+
+        from .gate_receipt import RECEIPT_HEADER, issue_gate_receipt
+
+        trade = {
+            "trade_id": f"flatten-{uuid.uuid4().hex[:12]}",
+            "venue": order.venue,
+            "contract": order.contract,
+            "side": order.side,
+            "notional_usd": order.notional_usd,
+            "leverage": 1.0,
+            "expected_price": 0.0,
+            "worst_price": 0.0,
+        }
+        receipt = issue_gate_receipt(trade, self.safety_dir)
+        req = urllib.request.Request(
+            f"{self.endpoint}/v1/sign",
+            data=json.dumps({"trade": trade, "reduce_only": True}).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                RECEIPT_HEADER: receipt.token,
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        return {"status": payload.get("status", "submitted"), **payload}
+
+
 class KeyRevoker(ABC):
     @abstractmethod
     def revoke(self, venues: list[str], operator: str, reason: str) -> dict[str, Any]:
@@ -72,8 +121,65 @@ class MockKeyRevoker(KeyRevoker):
         }
 
 
+def validate_flatten_config_for_live(policy: Any) -> None:
+    """Fail-closed startup check: live profile must not rely on mock closer/revoker.
+
+    Call at service startup (risk kernel) so a live deployment refuses to come
+    up until flatten.closer / flatten.revoker are wired to real adapters.
+    """
+    from .policy_loader import capital_profile_of
+
+    if capital_profile_of(policy) != "live":
+        return
+    cfg = (policy.raw or {}).get("flatten", {})
+    closer = str(cfg.get("closer", "mock")).lower()
+    revoker = str(cfg.get("revoker", "mock")).lower()
+    if closer == "mock":
+        raise ValueError(
+            "capital_profile=live requires flatten.closer (signing_node or "
+            "module:attr) — mock closer banned for live"
+        )
+    if revoker == "mock":
+        raise ValueError(
+            "capital_profile=live requires flatten.revoker (module:attr) — "
+            "mock revoker banned for live"
+        )
+
+
 class FlattenExecutor:
     """Reads kernel/kill flatten intent and enqueues close + revoke actions."""
+
+    @classmethod
+    def from_policy(cls, policy: Any, safety_dir: Path | None = None) -> "FlattenExecutor":
+        """Build closer/revoker from policy `flatten:` section.
+
+        closer: mock | signing_node | "module.path:ClassOrFactory"
+        revoker: mock | "module.path:ClassOrFactory"
+        """
+        from .policy_loader import load_component
+
+        cfg = (policy.raw or {}).get("flatten", {}) if getattr(policy, "raw", None) else {}
+        closer_spec = str(cfg.get("closer", "mock"))
+        revoker_spec = str(cfg.get("revoker", "mock"))
+
+        closer: PositionCloser
+        if closer_spec.lower() == "mock":
+            closer = MockPositionCloser()
+        elif closer_spec.lower() == "signing_node":
+            endpoint = str(cfg.get("signing_endpoint", "http://127.0.0.1:19010"))
+            closer = SigningNodeCloser(endpoint=endpoint, safety_dir=safety_dir)
+        else:
+            loaded = load_component(closer_spec)
+            closer = loaded() if isinstance(loaded, type) else loaded
+
+        revoker: KeyRevoker
+        if revoker_spec.lower() == "mock":
+            revoker = MockKeyRevoker()
+        else:
+            loaded = load_component(revoker_spec)
+            revoker = loaded() if isinstance(loaded, type) else loaded
+
+        return cls(safety_dir=safety_dir, closer=closer, revoker=revoker)
 
     def __init__(
         self,

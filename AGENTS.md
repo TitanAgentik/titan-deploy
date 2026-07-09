@@ -179,49 +179,18 @@ Same-family voters = correlated consensus. Distinct families (Qwen3-30B ≠ Qwen
   - `BEAR_RESEARCHER`: Constructs the bearish counter-thesis citing specific evidence from all 4 analyst reports. Must address every bullish argument raised.
 
   **Structured-Output Debate Protocol (per TradingAgents v0.2.4+, enforced via llama-server xgrammar):**  
-  ```json  
-  {  
-    "thesis_direction": "bullish|bearish",  
-    "confidence": 0.0-1.0,  
-    "key_arguments": [{"claim": "...", "evidence_source": "fundamentals|sentiment|news|technical", "evidence_excerpt": "..."}],  
-    "risk_factors": [{"risk": "...", "severity": "low|medium|high|critical", "mitigation": "..."}],  
-    "price_target": {"entry": "...", "target": "...", "stop_loss": "..."},  
-    "time_horizon": "1h|4h|24h|7d",  
-    "counterargument_responses": [{"opponent_claim": "...", "rebuttal": "..."}]  
-  }  
-  ```
+*(full JSON schema: `~/.openclaw/refs/AGENTS_schemas.md`)*
 
 #### Phase 3: Trader Decision (Deep-Think LLM)
 
-  ```json  
-  {  
-    "action": "strong_buy|buy|hold|sell|strong_sell",  
-    "asset": "...",  
-    "position_size_pct": 0.0-5.0,  
-    "entry_price": "...",  
-    "stop_loss": "...",  
-    "take_profit": "...",  
-    "rationale": "...",  
-    "key_risk": "...",  
-    "confidence": 0.0-1.0  
-  }  
-  ```
+*(full JSON schema: `~/.openclaw/refs/AGENTS_schemas.md`)*
 
 #### Phase 4: Risk Management Debate (Aggressive vs Conservative, 2 Rounds)
 
 - `AGGRESSIVE_RISK_AGENT`: Argues for executing the trade — focuses on upside potential, acceptable risk/reward ratio, portfolio diversification benefits.  
 - `CONSERVATIVE_RISK_AGENT`: Argues against — focuses on tail risks, correlation with existing positions, max drawdown impact, liquidity concerns, counterparty risk.
 
-  ```json  
-  {  
-    "risk_adjusted_recommendation": "approve|approve_reduced|reject",  
-    "position_size_adjustment": 0.0-1.0,  
-    "risk_factors_accepted": ["..."],  
-    "risk_factors_mitigated": ["..."],  
-    "stop_loss_adjustment": "...",  
-    "max_drawdown_contribution": "..."  
-  }  
-  ```
+*(full JSON schema: `~/.openclaw/refs/AGENTS_schemas.md`)*
 
 #### Phase 5: Portfolio Manager Final Authority Gate
 
@@ -246,30 +215,7 @@ Same-family voters = correlated consensus. Distinct families (Qwen3-30B ≠ Qwen
 
 **Decision log format (`/data/openclaw/memory/decision_log.jsonl`):**
 
-```json  
-{  
-  "id": "uuid",  
-  "timestamp": "2026-06-13T04:00:00Z",  
-  "asset": "ETH",  
-  "chain": "ethereum",  
-  "pipeline": "P1",  
-  "rating": "strong_buy",  
-  "confidence": 0.85,  
-  "entry_price": 3450.00,  
-  "stop_loss": 3350.00,  
-  "take_profit": 3650.00,  
-  "position_size_pct": 2.5,  
-  "analyst_consensus": {"fundamentals": "bullish", "sentiment": "neutral", "news": "bullish", "technical": "bullish"},  
-  "debate_winner": "bull",  
-  "risk_assessment": "approve",  
-  "bft_vote": "2/3 approve",  
-  "status": "pending|resolved",  
-  "realized_pnl": null,  
-  "alpha_vs_btc": null,  
-  "reflection": null,  
-  "decision_text": "Full trade proposal text..."  
-}  
-```
+*(full JSON schema: `~/.openclaw/refs/AGENTS_schemas.md`)*
 
 **Reflection prompt (Trading-R1 inspired, reverse chain-of-thought, InterleaveThinker step-wise critique scores):**
 
@@ -306,5 +252,21 @@ checkpoint_clear_on_success: true
 - **Multi-Peer Setup & Cloning:** Specialized profiles are cloned from target bases using:  
   `hermes profile create <profile_name> --clone --aiPeer <ai_peer_name> --workspace <shared_workspace>`
 
+- **Dialectic User Modeling:** Peers leverage Honcho's dual-layer context (base layer of session summary + representation + peer cards + dialectic supplement LLM reasoning).  
+- **Dialectic Observation Mode:** Configured via `observationMode` (`directional` vs `unified`) to define whether the dialectic reasoner tracks peer-specific directional dialogues or a unified shared conversation history.  
+- **OpenClaw Subagents:** Spawn at ZERO context cost to parent; isolated Docker/Singularity/SSH/Modal/Local backend; parent orchestrator pays zero token overhead to track subordinate work.
+
+## §TA — TradingAgents Framework Integration Layer
+
+### What Was Adopted
+
+| TradingAgents Feature | Titan Integration | Enhancement Over TradingAgents |  
+| --- | --- | --- |  
+| 4-Analyst concurrent pipeline | Multi-analyst evidence pipeline (fundamentals, sentiment, news, technical) | DeFi-native: on-chain metrics, mempool data, funding rates replace equity-centric Yahoo Finance data |  
+| Bull/Bear research debate | BULL_RESEARCHER / BEAR_RESEARCHER adversarial sub-roles | Classical-only (quantum dormant)|  
+| Structured-output agents | JSON-enforced thesis schemas for all debate participants | Integrated with existing BFT voting consensus (2-of-3 threshold) |  
+| Risk management debate | AGGRESSIVE_RISK_AGENT / CONSERVATIVE_RISK_AGENT | Classical-only (quantum dormant)|  
+| Portfolio Manager approval | GUARDIAN as final authority gate | Augmented with 44-pipeline portfolio-level constraint checking |  
+| Trading Memory Decision Log | JSONL decision audit trail with 3-phase lifecycle | Classical signal provenance tracking only (quantum dormant) |  
 
 <!-- truncated to bootstrap char limit -->

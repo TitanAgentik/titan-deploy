@@ -57,7 +57,7 @@
 - **OS**: Ubuntu 24.04 LTS HWE (kernel 7.0) + AF_XDP Kernel-Bypass Networking (sub-10µs packet processing) | Python 3.12 | systemd 255  
 - **Learning**: SAGE + MGPO + Hermes-RL/DRPO + HyEvo + GEPA + DGM-H + SIA + SkillOpt + InterleaveThinker + ALE + Robust  
 - **§REF files (reconstructed under `refs/`):** CONFIGS, SKILLS_full, DEPLOY_scripts, KEYS, MEMORY, AU_audit, PERF, COMM, COCKPIT, MODELS + narrative stubs (GHOST/RESEARCH/MAINT/…). Originals were never on disk.
-- **Autonomy**: FULLY AUTONOMOUS — zero human gates for standard operations; operator receives informational notifications only; CRITICAL alerts for 6 emergency conditions only  
+- **Autonomy**: BOUNDED — routine trades <1% equity auto-execute within GUARDIAN limits; human YES required for promotion to live, evolution deploys, leverage changes, flash-loan live, and trades >1% equity; operator receives informational notifications plus CRITICAL alerts for 6 emergency conditions
 - **Global Intelligence**: §GRIS — 35+ sources (10 academic, 6 international, 7 code, 8 intelligence, 4 model), 4-stage NLP triage (800+/day → 5-15 candidates), P48 safe implementation pipeline (sandbox → benchmark → hot-swap), top-20 AI model watchlist with auto-evaluate-swap, Global Research Digest in daily Telegram briefing
 
 > **QUANTUM STATUS (reconciled):** QCC, QSA, QRP are **DORMANT**. No cuQuantum, Wukong,
@@ -73,7 +73,7 @@
 > **Constraints:**
 > - **DO NOT** route TRENCH-OPS, GUARDIAN, or EXECUTOR through GLM-5.2 or DeepSeek V4 Pro on the live critical path.
 > - **No closed / cloud models** (Claude Fable 5, Opus 4.8, GPT-*, Gemini, etc.) on the live trading path — 100% local open weights only.
-> - Standard operations remain fully autonomous (zero human gates); Tier 3 mutations stay shadow/air-gapped until promotion gates pass.
+> - Routine operations stay autonomous within GUARDIAN risk limits (bounded-autonomy matrix); Tier 3 mutations stay shadow/air-gapped until promotion gates pass with human YES.
 >
 > **Rationale:** DeepSeek V4 Pro improves long-horizon agentic efficiency for evolution loops while GLM-5.2 remains a strong secondary. Heterogeneous Tier-3 models also enable true multi-family BFT voting (see below). Live critical path stays on the proven Qwen3 Tier 1/2 stack.
 

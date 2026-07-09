@@ -233,6 +233,37 @@ def write_keys_detail() -> None:
     print(f"  refs/KEYS_detail.md ({len(body)} chars)")
 
 
+def write_agents_schemas() -> None:
+    """Full JSON schema fences externalized from bootstrap AGENTS.md for headroom."""
+    body = _header(
+        "AGENTS_schemas.md",
+        "Structured-output JSON schemas (debate, trader decision, risk debate, "
+        "decision log) externalized from AGENTS.md to stay under the 20,000-byte "
+        "bootstrap limit.",
+    )
+    source = RECONCILED_PATH if RECONCILED_PATH.exists() else None
+    fences: list[str] = []
+    if source is not None:
+        text = source.read_text(encoding="utf-8")
+        agents_block = text
+        marker = "## Inter-Agent Protocol & Consensus Engine"
+        if marker in text:
+            start = text.index(marker)
+            agents_block = text[start : start + 30000]
+        fences = re.findall(
+            r"(?ms)^[ \t]*```json[ \t]*\n.*?\n[ \t]*```[ \t]*$", agents_block
+        )
+    if fences:
+        body += "\n\n".join(f.strip() for f in fences) + "\n"
+    else:
+        body += (
+            "Schemas not found in reconciled source — see "
+            "`output/TITAN.reconciled.md` §Inter-Agent Protocol.\n"
+        )
+    write_text(REFS / "AGENTS_schemas.md", body)
+    print("  refs/AGENTS_schemas.md")
+
+
 def write_narrative_stub(name: str, purpose: str, see_also: str) -> None:
     body = _header(name, purpose)
     body += f"""## Status
@@ -400,6 +431,7 @@ def main() -> int:
     write_comm_detail()
     write_cockpit_detail()
     write_models_detail()
+    write_agents_schemas()
 
     # Narrative-only companions — honest stubs with pointers
     write_narrative_stub(

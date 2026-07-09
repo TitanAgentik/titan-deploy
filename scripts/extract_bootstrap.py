@@ -457,13 +457,39 @@ def patch_model_tiers(content: str) -> str:
     return content
 
 
+AGENTS_HEADROOM_TARGET = 19_000
+
+
+def compact_agents_headroom(content: str, target: int = AGENTS_HEADROOM_TARGET) -> str:
+    """Replace inline JSON schema fences with refs/AGENTS_schemas.md pointers.
+
+    The AGENTS source block exceeds the 20,000-byte bootstrap limit, so the
+    tail is always truncated. Externalizing example schemas ensures the cut
+    lands on trailing narrative (adoption rationale tables) rather than
+    enforceable policy content.
+    """
+    if byte_len(content) <= target:
+        return content
+    pointer = "*(full JSON schema: `~/.openclaw/refs/AGENTS_schemas.md`)*"
+    fences = sorted(
+        re.finditer(r"(?ms)^[ \t]*```json[ \t]*\n.*?\n[ \t]*```[ \t]*$", content),
+        key=lambda m: len(m.group(0)),
+        reverse=True,
+    )
+    for match in fences:
+        if byte_len(content) <= target:
+            break
+        content = content.replace(match.group(0), pointer, 1)
+    return content
+
+
 def build_agents(text: str) -> str:
     block = extract_deploy_block(text, "AGENTS.md")
     if block:
         content = block + "\n"
     else:
         content = find_section(text, "# AGENTS.md", ["Deploy to:", "# §E"]) + "\n"
-    return patch_agents_survivability(content)
+    return compact_agents_headroom(patch_agents_survivability(content))
 
 
 def build_memory_trimmed(text: str) -> str:

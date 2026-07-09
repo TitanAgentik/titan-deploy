@@ -35,7 +35,15 @@ class DeadMansDaemon:
         self.poll_seconds = poll_seconds
         self.ks = KillSwitch(safety_dir)
         self.wind_down = WindDownController(safety_dir)
-        self.flatten_exec = FlattenExecutor(safety_dir)
+        try:
+            from .policy_loader import load_policy
+
+            self.flatten_exec = FlattenExecutor.from_policy(
+                load_policy(policy_path), safety_dir
+            )
+        except Exception as exc:
+            logger.warning(f"Policy-driven flatten wiring failed ({exc}); using defaults")
+            self.flatten_exec = FlattenExecutor(safety_dir)
 
     def tick(self) -> dict[str, Any]:
         result = self.dms.evaluate()

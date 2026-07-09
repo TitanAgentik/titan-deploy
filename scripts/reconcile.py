@@ -238,6 +238,27 @@ def reconcile_autonomy_scope(text: str) -> str:
         "| eurekagent_strategy_discovery | Shadow discover/implement; human promotion to live |",
         text,
     )
+    # Title + header autonomy claims: replace "zero human gates" with the
+    # bounded-autonomy matrix summary so the doc never contradicts AGENTS.md.
+    text = re.sub(
+        r"AUTONOMOUS OPERATION MODE — ZERO HUMAN GATES FOR STANDARD OPERATIONS",
+        "AUTONOMOUS OPERATION MODE — BOUNDED AUTONOMY (routine ops auto; "
+        "promotion/evolution/leverage/>1% equity require human YES)",
+        text,
+    )
+    text = re.sub(
+        r"- \*\*Autonomy\*\*: FULLY AUTONOMOUS — zero human gates for standard operations;[^\n]*",
+        "- **Autonomy**: BOUNDED — routine trades <1% equity auto-execute within GUARDIAN "
+        "limits; human YES required for promotion to live, evolution deploys, leverage "
+        "changes, flash-loan live, and trades >1% equity; operator receives informational "
+        "notifications plus CRITICAL alerts for 6 emergency conditions",
+        text,
+    )
+    text = re.sub(
+        r"#### Signal / on-chain / macro tier \(5 agents\) — FULL AUTONOMY",
+        "#### Signal / on-chain / macro tier (5 agents) — autonomous within GUARDIAN limits",
+        text,
+    )
     text = text.replace(
         "**ABSOLUTE CONTROL PROTOCOL INTEGRATION**:",
         "**OPERATOR DASHBOARD INTEGRATION (informational + promotion gates)**:",
@@ -607,7 +628,7 @@ def reconcile_model_tiers(text: str) -> str:
 > **Constraints:**
 > - **DO NOT** route TRENCH-OPS, GUARDIAN, or EXECUTOR through GLM-5.2 or DeepSeek V4 Pro on the live critical path.
 > - **No closed / cloud models** (Claude Fable 5, Opus 4.8, GPT-*, Gemini, etc.) on the live trading path — 100% local open weights only.
-> - Standard operations remain fully autonomous (zero human gates); Tier 3 mutations stay shadow/air-gapped until promotion gates pass.
+> - Routine operations stay autonomous within GUARDIAN risk limits (bounded-autonomy matrix); Tier 3 mutations stay shadow/air-gapped until promotion gates pass with human YES.
 >
 > **Rationale:** DeepSeek V4 Pro improves long-horizon agentic efficiency for evolution loops while GLM-5.2 remains a strong secondary. Heterogeneous Tier-3 models also enable true multi-family BFT voting (see below). Live critical path stays on the proven Qwen3 Tier 1/2 stack.
 
@@ -628,7 +649,7 @@ def reconcile_model_tiers(text: str) -> str:
 > **Constraints:**
 > - **DO NOT** route TRENCH-OPS, GUARDIAN, or EXECUTOR through GLM-5.2 or DeepSeek V4 Pro on the live critical path.
 > - **No closed / cloud models** (Claude Fable 5, Opus 4.8, GPT-*, Gemini, etc.) on the live trading path — 100% local open weights only.
-> - Standard operations remain fully autonomous (zero human gates); Tier 3 mutations stay shadow/air-gapped until promotion gates pass.
+> - Routine operations stay autonomous within GUARDIAN risk limits (bounded-autonomy matrix); Tier 3 mutations stay shadow/air-gapped until promotion gates pass with human YES.
 >
 > **Rationale:** DeepSeek V4 Pro improves long-horizon agentic efficiency for evolution loops while GLM-5.2 remains a strong secondary. Heterogeneous Tier-3 models also enable true multi-family BFT voting (see below). Live critical path stays on the proven Qwen3 Tier 1/2 stack.
 """,

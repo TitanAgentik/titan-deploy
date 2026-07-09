@@ -156,6 +156,7 @@ def main() -> int:
     overlay_infra_skills()
     # Reconstruct missing §REF companions, then sync Cursor-visible workspace docs
     run_script("reconstruct_refs.py")
+    run_script("make_digest.py")
     run_script("sync_workspace_docs.py")
 
     print(f"\nBuild complete -> {OUTPUT}")
