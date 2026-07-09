@@ -36,7 +36,6 @@ def aggregate(policy_path: Path) -> dict[str, Any]:
         "allocator": f"http://127.0.0.1:{ports.allocator_port}/health",
         "tca": f"http://127.0.0.1:{ports.tca_port}/health",
         "security_ops": f"http://127.0.0.1:{getattr(ports, 'security_ops_port', 19008)}/health",
-        "signing_node": f"http://127.0.0.1:{ports.signing_node_port}/health",
     }
     results: dict[str, Any] = {}
     overall = "ok"
@@ -49,6 +48,33 @@ def aggregate(policy_path: Path) -> dict[str, Any]:
             overall = "halted"
         if health.get("halted"):
             overall = "halted"
+
+    # In-process signing — no :19010 dependency; report local SigningNode health.
+    from .signing_service import build_signing_node, resolve_signing_mode
+
+    mode = resolve_signing_mode(policy.raw or {})
+    if mode == "http":
+        sn_url = f"http://127.0.0.1:{ports.signing_node_port}/health"
+        sn_health = fetch_health(sn_url)
+        results["signing"] = {**sn_health, "mode": "http_legacy"}
+        if sn_health.get("status") in ("unreachable", "halted"):
+            overall = "degraded" if overall == "ok" else overall
+        if sn_health.get("halted"):
+            overall = "halted"
+    else:
+        try:
+            node = build_signing_node(
+                policy_path=policy_path,
+                require_live_signer=False,
+            )
+            sn_health = node.health()
+        except Exception as exc:  # noqa: BLE001 — health must never crash aggregator
+            sn_health = {"status": "error", "error": str(exc), "mode": "in_process"}
+            overall = "degraded" if overall == "ok" else overall
+        results["signing"] = sn_health
+        if sn_health.get("halted") or sn_health.get("status") == "halted":
+            overall = "halted"
+
     return {"status": overall, "services": results}
 
 

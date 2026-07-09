@@ -8,7 +8,7 @@ import { edgePops, latencyBudget, services } from "@/lib/data";
 const CORE_HOSTS = [
   { host: "TITANHOME", role: "Primary inference + safety", gpu: "2× RTX PRO 6000", status: "healthy" },
   { host: "TITANSPARK", role: "Utility SGLang :30002", gpu: "GB10 128GB", status: "healthy" },
-  { host: "signing_node", role: "Isolated signing :19010", gpu: "—", status: "healthy" },
+  { host: "signing", role: "In-process SigningNode (titan-safety)", gpu: "—", status: "healthy" },
 ];
 
 const FORGE_DEFAULTS = { showEdge: true };

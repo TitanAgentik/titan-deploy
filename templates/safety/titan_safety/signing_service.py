@@ -1,9 +1,14 @@
-"""Signing node HTTP service — refuses to sign without a fresh gate receipt.
+"""In-process signing gate — refuses to sign without a fresh gate receipt.
 
-This is the server-side enforcement that agent skill docs cannot provide.
-POST /v1/sign requires X-Titan-Gate-Receipt matching the trade body.
+Hot path (default): ``build_signing_node()`` + ``SigningNode.sign()`` inside
+``titan-safety gate sign`` / flatten / capital — same process as the gate,
+no HTTP hop to :19010.
+
+Optional legacy: ``create_app()`` / ``python -m titan_safety.signing_service``
+still exposes POST /v1/sign for compatibility; not required for deploy.
+
 Actual cryptographic signing is pluggable (mock by default); live wires
-Trezor / hardware via signing_node.yaml.
+Trezor / hardware via signing_node.yaml + signing.signer_module.
 """
 
 from __future__ import annotations
@@ -22,9 +27,12 @@ from .kernel import TradeRequest
 from .observability import METRICS, setup_logging
 from .policy_loader import capital_profile_of, expand_path, load_component, load_policy
 
-logger = setup_logging("signing_node")
+logger = setup_logging("signing")
 
 SignerFn = Callable[[dict[str, Any]], dict[str, Any]]
+
+# Default mode for gate sign / flatten / capital — in-process, no :19010.
+DEFAULT_SIGNING_MODE = "in_process"
 
 
 def mock_signer(request: dict[str, Any]) -> dict[str, Any]:
@@ -33,9 +41,21 @@ def mock_signer(request: dict[str, Any]) -> dict[str, Any]:
         "status": "mock_signed",
         "signature": f"0xmocksig{uuid.uuid4().hex[:48]}",
         "signed_at": time.time(),
-        "note": "Mock signer — wire Trezor/hardware via signing_node.yaml for live",
+        "note": "Mock signer — wire Trezor/hardware via signing.signer_module for live",
         "request_id": request.get("request_id", ""),
     }
+
+
+def resolve_signing_mode(policy_raw: dict[str, Any] | None = None) -> str:
+    """Return ``in_process`` (default) or ``http`` (legacy :19010)."""
+    env = os.environ.get("TITAN_SIGNING_MODE", "").strip().lower()
+    if env in ("in_process", "http", "legacy"):
+        return "http" if env == "legacy" else env
+    signing = (policy_raw or {}).get("signing") or {}
+    mode = str(signing.get("mode") or DEFAULT_SIGNING_MODE).strip().lower()
+    if mode in ("http", "legacy", "signing_node"):
+        return "http"
+    return "in_process"
 
 
 class SigningNode:
@@ -88,7 +108,7 @@ class SigningNode:
             return 403, {
                 "decision": "DENY",
                 "code": "SIGNING_HALTED",
-                "reason": "signing node halted",
+                "reason": "signing halted",
             }
 
         receipt = ""
@@ -170,40 +190,49 @@ class SigningNode:
         return {
             "status": "ok" if not self.is_halted() else "halted",
             "halted": self.is_halted(),
+            "mode": "in_process",
             "receipt_required": True,
             "max_receipt_age_seconds": self.max_receipt_age,
         }
 
 
-def create_app(
+def build_signing_node(
     policy_path: Path | None = None,
     safety_dir: Path | None = None,
     signer: SignerFn | None = None,
-) -> SafetyHTTPServer:
+    policy_raw: dict[str, Any] | None = None,
+    *,
+    require_live_signer: bool = True,
+) -> SigningNode:
+    """Construct a SigningNode for in-process use (no HTTP server).
+
+    Loads ``signing.signer_module`` from policy when present. Live capital
+    profiles refuse the mock signer when ``require_live_signer`` is True.
+    """
     from .kill_switch import KillSwitch
 
     safety = safety_dir or (Path.home() / ".openclaw" / "safety")
-    port = 19010
+    safety = Path(safety)
+    safety.mkdir(parents=True, exist_ok=True)
     max_age = 30
-    policy_raw: dict[str, Any] = {}
+    raw: dict[str, Any] = dict(policy_raw or {})
+    policy = None
     if policy_path and Path(policy_path).exists():
         policy = load_policy(policy_path)
-        policy_raw = policy.raw or {}
-        port = policy.service.signing_node_port
-        signing_cfg = (policy.raw or {}).get("signing", {})
-        max_age = int(signing_cfg.get("max_receipt_age_seconds", 30))
+        raw = policy.raw or raw
+    signing_cfg = raw.get("signing", {}) or {}
+    max_age = int(signing_cfg.get("max_receipt_age_seconds", max_age))
 
-        # Live signer wiring: signing.signer_module = "package.module:signer_fn"
+    if signer is None:
         signer_spec = str(
             signing_cfg.get("signer_module")
             or os.environ.get("TITAN_SIGNER_MODULE", "")
         ).strip()
-        if signer is None and signer_spec:
+        if signer_spec:
             signer = load_component(signer_spec)
             logger.info(f"Loaded signer from {signer_spec}")
 
-        # Mock signer ban — a live capital profile must never start on the
-        # mock signer (fail-closed: refuse startup instead of mock-signing).
+    if require_live_signer and policy is not None:
         if capital_profile_of(policy) == "live" and signer is None:
             raise ValueError(
                 "capital_profile=live requires signing.signer_module "
@@ -211,23 +240,45 @@ def create_app(
             )
 
     ks = KillSwitch(safety)
-    node = SigningNode(
+    return SigningNode(
         safety_dir=safety,
         signer=signer,
         max_receipt_age=max_age,
         halt_checker=ks.is_active,
-        policy_raw=policy_raw,
+        policy_raw=raw,
+    )
+
+
+def create_app(
+    policy_path: Path | None = None,
+    safety_dir: Path | None = None,
+    signer: SignerFn | None = None,
+) -> SafetyHTTPServer:
+    """Optional legacy HTTP wrapper around SigningNode (not required for deploy)."""
+    safety = safety_dir or (Path.home() / ".openclaw" / "safety")
+    port = 19010
+    if policy_path and Path(policy_path).exists():
+        policy = load_policy(policy_path)
+        port = int(getattr(policy.service, "signing_node_port", 19010) or 19010)
+
+    node = build_signing_node(
+        policy_path=policy_path,
+        safety_dir=Path(safety),
+        signer=signer,
+        require_live_signer=True,
     )
 
     def sign_route(body: dict[str, Any], headers: dict[str, str]) -> tuple[int, dict[str, Any]]:
         return node.sign(body, headers)
 
     def health(_body: dict[str, Any], _headers: dict[str, str]) -> tuple[int, dict[str, Any]]:
-        return 200, node.health()
+        h = node.health()
+        h["mode"] = "http_legacy"
+        return 200, h
 
     def halt(body: dict[str, Any], _headers: dict[str, str]) -> tuple[int, dict[str, Any]]:
         node.halt(str(body.get("reason", "operator halt")))
-        (safety / "SIGNING_HALTED").write_text(
+        (Path(safety) / "SIGNING_HALTED").write_text(
             json.dumps({"ts": time.time(), "reason": body.get("reason", "")}),
             encoding="utf-8",
         )
@@ -244,12 +295,14 @@ def create_app(
         port,
         routes,
         auth_commands={"POST /v1/halt": "SIGN_HALT"},
-        safety_dir=safety,
+        safety_dir=Path(safety),
     )
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="TITAN Signing Node")
+    parser = argparse.ArgumentParser(
+        description="TITAN Signing (legacy HTTP — prefer in-process via titan-safety gate sign)"
+    )
     parser.add_argument(
         "--policy",
         default=os.environ.get(
@@ -263,7 +316,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     server = create_app(expand_path(args.policy), Path(args.safety_dir))
-    logger.info("Signing node listening (receipt-required)")
+    logger.warning(
+        "Legacy HTTP signing listener started — prefer mode=in_process "
+        "(titan-safety gate sign); :19010 is optional"
+    )
     server.start(background=False)
     return 0
 

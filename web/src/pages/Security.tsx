@@ -558,7 +558,7 @@ export function Security() {
               <strong>
                 <Lock size={14} style={{ verticalAlign: "-2px" }} /> Halt signing
               </strong>
-              <span>:19010 SIGNING_HALTED</span>
+              <span>SIGNING_HALTED (in-process)</span>
             </button>
             <button
               type="button"

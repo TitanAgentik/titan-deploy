@@ -220,12 +220,18 @@ def cmd_bft_vote(args: argparse.Namespace) -> int:
 
 
 def cmd_gate_sign(args: argparse.Namespace) -> int:
-    """Gate check then POST to signing_node if ALLOW (agent-autonomous path)."""
-    import urllib.error
-    import urllib.request
+    """Gate check then in-process sign if ALLOW (agent-autonomous path).
 
+    Default: SigningNode in the same process (no :19010 hop).
+    Legacy: ``--signing-mode http`` or ``--signing-endpoint`` POSTs to HTTP.
+    """
+    from .gate_receipt import RECEIPT_HEADER
     from .kernel import TradeRequest
     from .policy_loader import load_policy
+    from .signing_service import (
+        build_signing_node,
+        resolve_signing_mode,
+    )
 
     policy = load_policy(args.policy)
     safety = Path(args.safety_dir) if args.safety_dir else Path.home() / ".openclaw" / "safety"
@@ -238,7 +244,6 @@ def cmd_gate_sign(args: argparse.Namespace) -> int:
     if not decision.allowed:
         print(json.dumps({"gate": decision.to_dict(), "signed": False}, indent=2))
         return 1
-    endpoint = args.signing_endpoint.rstrip("/")
     body: dict[str, Any] = {
         "request_id": trade.trade_id,
         "trade": trade_data,
@@ -248,22 +253,39 @@ def cmd_gate_sign(args: argparse.Namespace) -> int:
         body["calldata"] = args.calldata
     if args.typed_data:
         body["typed_data"] = json.loads(args.typed_data)
-    req = urllib.request.Request(
-        f"{endpoint}/v1/sign",
-        data=json.dumps(body).encode(),
-        headers={
-            "Content-Type": "application/json",
-            "X-Titan-Gate-Receipt": decision.receipt,
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=float(args.timeout)) as resp:
-            signed = json.loads(resp.read().decode())
-    except urllib.error.HTTPError as exc:
-        signed = json.loads(exc.read().decode()) if exc.fp else {"error": str(exc)}
-    except (urllib.error.URLError, TimeoutError, OSError) as exc:
-        signed = {"error": str(exc), "decision": "DENY"}
+
+    mode = getattr(args, "signing_mode", None) or resolve_signing_mode(policy.raw or {})
+    endpoint = (getattr(args, "signing_endpoint", None) or "").strip()
+    if mode == "http":
+        import urllib.error
+        import urllib.request
+
+        url = (endpoint or "http://127.0.0.1:19010").rstrip("/")
+        req = urllib.request.Request(
+            f"{url}/v1/sign",
+            data=json.dumps(body).encode(),
+            headers={
+                "Content-Type": "application/json",
+                RECEIPT_HEADER: decision.receipt,
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=float(args.timeout)) as resp:
+                signed = json.loads(resp.read().decode())
+        except urllib.error.HTTPError as exc:
+            signed = json.loads(exc.read().decode()) if exc.fp else {"error": str(exc)}
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            signed = {"error": str(exc), "decision": "DENY"}
+        signed.setdefault("mode", "http_legacy")
+    else:
+        node = build_signing_node(
+            policy_path=Path(args.policy),
+            safety_dir=safety,
+            require_live_signer=False,
+        )
+        _code, signed = node.sign(body, {RECEIPT_HEADER: decision.receipt})
+        signed.setdefault("mode", "in_process")
     print(json.dumps({"gate": decision.to_dict(), "signing": signed}, indent=2))
     return 0 if signed.get("decision") == "ALLOW" else 1
 
@@ -980,14 +1002,27 @@ def main(argv: list[str] | None = None) -> int:
     gc.add_argument("--fast", action="store_true", help="Millisecond hot path via /v1/fast_validate")
     gc.add_argument("--safety-dir", default="", help="~/.openclaw/safety for receipt secret")
     gc.set_defaults(func=cmd_gate_check)
-    gs = gate_sub.add_parser("sign", help="Gate check + signing_node POST (autonomous path)")
+    gs = gate_sub.add_parser(
+        "sign",
+        help="Gate check + in-process sign (autonomous path; no :19010 hop)",
+    )
     gs.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
     gs.add_argument("--trade", required=True, help="JSON TradeRequest incl. confidence + bft_votes")
     gs.add_argument("--believed", default="", help="JSON believed positions")
     gs.add_argument("--fast", action="store_true", help="Millisecond hot path via /v1/fast_validate")
     gs.add_argument("--calldata", default="", help="Hex calldata for live venues")
     gs.add_argument("--typed-data", default="", help="JSON EIP-712 typed_data for live venues")
-    gs.add_argument("--signing-endpoint", default="http://127.0.0.1:19010")
+    gs.add_argument(
+        "--signing-mode",
+        default=None,
+        choices=["in_process", "http"],
+        help="Default in_process; http = legacy :19010",
+    )
+    gs.add_argument(
+        "--signing-endpoint",
+        default="",
+        help="Legacy HTTP endpoint when --signing-mode http (default http://127.0.0.1:19010)",
+    )
     gs.add_argument("--safety-dir", default="")
     gs.add_argument("--timeout", default="5")
     gs.set_defaults(func=cmd_gate_sign)

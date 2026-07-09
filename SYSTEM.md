@@ -61,8 +61,8 @@ flowchart TB
     STATUS[":19003 Status aggregator"]
   end
 
-  subgraph Signing["Isolated signing"]
-    SIGN[":19010 signing_node"]
+  subgraph Signing["In-process signing (titan-safety)"]
+    SIGN["SigningNode (in-process)"]
     VAULT[Mac Mini vault metadata]
   end
 
@@ -115,7 +115,7 @@ Specs: `templates/infra/hardware_bom.yaml`, `power_requirements.yaml`, `signing_
 | **TITANHOME** | Primary compute + inference + safety services | Threadripper PRO 9995WX, 512 GB ECC, 2× RTX PRO 6000 (96 GB), E810 NIC + LBE-1425 GPSDO, Eaton 9SX UPS **required for live** |
 | **TITANSPARK** | Utility inference + gateway failover | ASUS GX10 — Qwen3-30B utility agents on `:30002` |
 | **Mac Mini vault** | Key metadata + Trezor ceremonies | Does **not** execute trade signing; Telegram gateway primary often here |
-| **signing_node** | Isolated tx signing `:19010` | Minimal OS / cgroup; no evolution / no LLM; UPS-backed; requires fresh gate receipt |
+| **Signing (in-process)** | `titan_safety.SigningNode` after gate ALLOW | Same TITANHOME safety process; no `:19010` hop; UPS-backed; fresh gate receipt required |
 | **Edge mesh (5 PoP)** | Stateless TRENCH-OPS workers | FRA, TKY, SIN, USE, AMS — same routing for paper + live (`latency_faithful`) |
 
 **Edge PoPs (summary)**
@@ -166,7 +166,7 @@ Total: **12** LLM agents on TITANHOME tiers (4 orch + 5 signal + 3 coding) + **8
 | **PREDATOR** | Tier 1 | Scanner / mempool / stalking / P22 filter |
 | **AUGUR** | Tier 1 | Macro regime |
 | **NARRATIVE** | Tier 1 | Catalyst / news ingestion |
-| **TRENCH-OPS** | Tier 1 | Execution planning + edge dispatch; signs via signing_node |
+| **TRENCH-OPS** | Tier 1 | Execution planning + edge dispatch; signs via in-process titan-safety |
 | **LAMARCK** | Tier 2 | Post-trade learning / OPD / GEPA |
 | **DARWIN_GODEL** | Tier 2 / R&D | Auto-research / DGM-H (**shadow only** until YES) |
 | **HERALD** | Utility `:30002` | Telegram notifications |
@@ -194,7 +194,7 @@ sequenceDiagram
   participant Gate as ExecutionGate
   participant Recon as :19002
   participant Kern as :19001
-  participant Sign as :19010
+  participant Sign as SigningNode
   participant Edge as Edge PoP
 
   Sig->>TO: Trade proposal + confidence
@@ -208,7 +208,7 @@ sequenceDiagram
   Kern-->>Gate: ALLOW or DENY
   alt ALLOW
     Gate-->>TO: X-Titan-Gate-Receipt (fresh, ~10s)
-    TO->>Sign: POST /v1/sign + receipt + typed_data
+    TO->>Sign: in-process sign + receipt + typed_data
     Sign->>Edge: Signed payload → lowest-RTT PoP
     Edge-->>TO: Broadcast ack
   else DENY / unreachable
@@ -288,7 +288,7 @@ Always-on posture (`securityOps` in `openclaw.json`, `security_ops.py`, `ghost_e
 
 | Pillar | Owner | Core controls |
 |--------|-------|---------------|
-| **Impenetrable** | SENTINEL | L1 kernel, L2 signing_node, L3 netns, L4 PCR/CodeQL, L5 DMS, L6 closed-model ban |
+| **Impenetrable** | SENTINEL | L1 kernel, L2 signing in-process, L3 netns, L4 PCR/CodeQL, L5 DMS, L6 closed-model ban |
 | **Evasion (Ghost)** | TRENCH-OPS | MEV-shield / intents, edge RTT, Nostr NIP-44, fingerprint rotate, traffic jitter, air-gapped vault metadata |
 | **Stalking** | PREDATOR | Hunt mode default; mempool / copy-trade / RPC probe feeds |
 | **Predatory** | PREDATOR | Honeypot lattice armed by default; poison fills ≤1% equity auto; Graph-R1 fraud checks |
@@ -410,7 +410,7 @@ titan-safety kill deactivate --operator YOU --signed "$SIGNED"
 
 # Gate + autonomous sign path
 titan-safety gate check --trade-json '...'
-titan-safety gate sign --trade-json '...' --signing-endpoint http://127.0.0.1:19010
+titan-safety gate sign --trade-json '...'
 titan-safety bft vote --voter AUGUR --trade-id ... 
 
 # Capital / allocator / TCA
@@ -463,7 +463,7 @@ Do **not** treat deploy as go-live. Follow these in order:
 2. **`./deploy.sh`** — build/install templates; optional `--systemd`, `--start-services`, `--verify`, `--edge-bootstrap`.
 3. **`./verify.sh`** — bootstrap limits, config presence, safety/unit checks (fails live-capital checks without UPS ack when configured).
 4. **`PRODUCTION_READINESS.md`** — fail-closed drills, kill switch, recon adapter, signing isolation, quantum dormant confirm, residual risk acceptance.
-5. **`BOOT.md`** — short gateway-restart checklist (health `:19001`–`:19008`, `:19010`; no auto-promote).
+5. **`BOOT.md`** — short gateway-restart checklist (health `:19001`–`:19008`; in-process signing; no auto-promote).
 6. **Phased rollout** — paper → micro-live → scale; calendar is **advisory** (`rollout.calendarIsNotAGate: true`); Phase 5 always needs human YES.
 7. Beginner/ops narratives: `DEPLOYMENT_GUIDE.md`, `DEPLOYMENT_GUIDE_BEGINNER.md`, `TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md`.
 
@@ -481,7 +481,7 @@ Do **not** treat deploy as go-live. Follow these in order:
 | Closed/cloud models on live path | TRENCH-OPS / GUARDIAN / EXECUTOR / live votes |
 | Quantum dispatch for live capital | Permanently dormant until re-audit |
 | Public RPC / unshielded venues on live | Ghost evasion + kernel DENY |
-| Signing inside agent runtime | Must use signing_node + gate receipt |
+| Signing inside agent runtime | Must use titan-safety SigningNode + gate receipt (never LLM process) |
 | Mock recon/withdraw adapters on live profile | Banned at startup |
 | Auto security lockdown from LLM alone | HMAC operator required |
 | Modify `SOUL.md` / `iron-laws.md` via DGM-H | Immutable; CRITICAL + rollback |

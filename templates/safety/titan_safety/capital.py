@@ -162,7 +162,7 @@ class WithdrawalAdapter(ABC):
 
 
 class MockWithdrawalAdapter(WithdrawalAdapter):
-    """Mock adapter — no real keys; ops wires Trezor/signing_node later."""
+    """Mock adapter — no real keys; ops wires Trezor / in-process SigningNode later."""
 
     @property
     def name(self) -> str:
@@ -182,27 +182,34 @@ class MockWithdrawalAdapter(WithdrawalAdapter):
             "asset": asset,
             "address": address or "trezor:cold-vault",
             "operator": operator,
-            "note": "Mock execution — wire signing_node + Trezor for production",
+            "note": "Mock execution — wire in-process SigningNode + Trezor for production",
         }
 
 
 class SigningNodeWithdrawalAdapter(WithdrawalAdapter):
-    """Routes withdrawals through signing node :19010 (requires gate receipt).
+    """Routes withdrawals through in-process SigningNode (requires gate receipt).
 
     Live profile: set capital.withdrawal_adapter to trezor_signing / signing_node.
-    Until a hardware signer is plugged into SigningNode, this still uses the
-    mock signer behind the receipt gate — but it refuses unsigned requests.
+    Until a hardware signer is plugged in, this still uses the mock signer behind
+    the receipt gate — but it refuses unsigned requests. Legacy HTTP :19010 via
+    mode=http + endpoint.
     """
 
     def __init__(
         self,
-        endpoint: str = "http://127.0.0.1:19010",
+        endpoint: str = "",
         safety_dir: Path | None = None,
         timeout: float = 5.0,
+        mode: str = "in_process",
+        policy_path: Path | None = None,
+        policy_raw: dict[str, Any] | None = None,
     ) -> None:
-        self.endpoint = endpoint.rstrip("/")
+        self.endpoint = (endpoint or "").rstrip("/")
         self.safety_dir = safety_dir or (Path.home() / ".openclaw" / "safety")
         self.timeout = timeout
+        self.mode = mode
+        self.policy_path = policy_path
+        self.policy_raw = policy_raw or {}
 
     @property
     def name(self) -> str:
@@ -215,11 +222,9 @@ class SigningNodeWithdrawalAdapter(WithdrawalAdapter):
         address: str | None,
         operator: str,
     ) -> dict[str, Any]:
-        import urllib.error
-        import urllib.request
-
-        from .gate_receipt import issue_gate_receipt
+        from .gate_receipt import RECEIPT_HEADER, issue_gate_receipt
         from .kernel import TradeRequest
+        from .signing_service import build_signing_node
 
         trade_id = f"withdraw-{uuid.uuid4().hex[:12]}"
         trade = TradeRequest(
@@ -230,52 +235,72 @@ class SigningNodeWithdrawalAdapter(WithdrawalAdapter):
             notional_usd=amount_usd,
         )
         receipt = issue_gate_receipt(trade, self.safety_dir)
-        body = json.dumps(
-            {
-                "request_id": trade_id,
-                "trade": {
-                    "trade_id": trade_id,
-                    "venue": "capital",
-                    "contract": asset.lower(),
-                    "side": "withdraw",
-                    "notional_usd": amount_usd,
-                },
-                "calldata": {
-                    "action": "withdraw",
-                    "asset": asset,
-                    "address": address or "trezor:cold-vault",
-                    "operator": operator,
-                },
-                "gate_receipt": receipt.token,
-            }
-        ).encode()
-        req = urllib.request.Request(
-            f"{self.endpoint}/v1/sign",
-            data=body,
-            headers={
-                "Content-Type": "application/json",
-                "X-Titan-Gate-Receipt": receipt.token,
+        body = {
+            "request_id": trade_id,
+            "trade": {
+                "trade_id": trade_id,
+                "venue": "capital",
+                "contract": asset.lower(),
+                "side": "withdraw",
+                "notional_usd": amount_usd,
             },
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                result = json.loads(resp.read().decode())
-        except urllib.error.HTTPError as exc:
-            err = json.loads(exc.read().decode()) if exc.fp else {"reason": str(exc)}
-            return {
-                "status": "denied",
-                "error": err,
-                "amount_usd": amount_usd,
+            "calldata": {
+                "action": "withdraw",
                 "asset": asset,
-            }
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            return {
-                "status": "unreachable",
-                "error": str(exc),
-                "amount_usd": amount_usd,
-                "note": "signing node unreachable — fail-closed",
-            }
+                "address": address or "trezor:cold-vault",
+                "operator": operator,
+            },
+            "gate_receipt": receipt.token,
+        }
+        headers = {RECEIPT_HEADER: receipt.token}
+
+        if self.mode == "http" and self.endpoint:
+            import urllib.error
+            import urllib.request
+
+            req = urllib.request.Request(
+                f"{self.endpoint}/v1/sign",
+                data=json.dumps(body).encode(),
+                headers={
+                    "Content-Type": "application/json",
+                    RECEIPT_HEADER: receipt.token,
+                },
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                    result = json.loads(resp.read().decode())
+            except urllib.error.HTTPError as exc:
+                err = json.loads(exc.read().decode()) if exc.fp else {"reason": str(exc)}
+                return {
+                    "status": "denied",
+                    "error": err,
+                    "amount_usd": amount_usd,
+                    "asset": asset,
+                }
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                return {
+                    "status": "unreachable",
+                    "error": str(exc),
+                    "amount_usd": amount_usd,
+                    "note": "signing HTTP unreachable — fail-closed",
+                }
+        else:
+            node = build_signing_node(
+                policy_path=self.policy_path,
+                safety_dir=self.safety_dir,
+                policy_raw=self.policy_raw,
+                require_live_signer=False,
+            )
+            code, result = node.sign(body, headers)
+            if code >= 400:
+                return {
+                    "status": "denied",
+                    "error": result,
+                    "amount_usd": amount_usd,
+                    "asset": asset,
+                }
+
         return {
             "status": result.get("status", "signed"),
             "tx_hash": result.get("signature", ""),
@@ -290,10 +315,13 @@ class SigningNodeWithdrawalAdapter(WithdrawalAdapter):
 def get_withdrawal_adapter(name: str, **kwargs: Any) -> WithdrawalAdapter:
     if name == "mock":
         return MockWithdrawalAdapter()
-    if name in ("trezor_signing", "signing_node", "live", "trezor"):
+    if name in ("trezor_signing", "signing_node", "live", "trezor", "in_process"):
         return SigningNodeWithdrawalAdapter(
-            endpoint=str(kwargs.get("endpoint", "http://127.0.0.1:19010")),
+            endpoint=str(kwargs.get("endpoint", "") or ""),
             safety_dir=kwargs.get("safety_dir"),
+            mode=str(kwargs.get("mode", "in_process") or "in_process"),
+            policy_path=kwargs.get("policy_path"),
+            policy_raw=kwargs.get("policy_raw"),
         )
     raise ValueError(f"Unknown withdrawal adapter: {name}")
 

@@ -338,7 +338,7 @@ leak, funds are gone instantly and irreversibly. There is no "call the bank."
 ### Signing isolation (the safe in the back room)
 
 All money-moving transactions are approved on the isolated **signing node**
-(`:19010`). The trading programs send a request; the signing node checks it and
+(in-process inside `titan-safety`). The trading programs call gate sign; SigningNode checks the receipt and
 signs — and it will **refuse to "blind sign"** (approve something it can't
 verify). If the signing environment looks compromised, it halts all signing. This
 means even a fully hacked AI can't drain the wallet directly.
@@ -829,7 +829,7 @@ honestly.
 - [ ] Quantum features dormant; related skills archived.
 
 **Security**
-- [ ] Money-signing is isolated on `:19010`; blind-signing is refused.
+- [ ] Money-signing is in-process in `titan-safety` (not the agent); blind-signing is refused.
 - [ ] Withdrawal keys are NOT accessible to the trading programs; exchange keys are
       trade-only with withdrawals disabled.
 - [ ] You've drilled the software, remote (signed), and hardware kill switches.

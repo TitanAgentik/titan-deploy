@@ -242,7 +242,7 @@ profile = str(cap.get('capital_profile') or cfg.get('capitalProfile') or cfg.get
 adapter = cap.get('withdrawal_adapter', 'mock')
 if profile == 'live' and adapter == 'mock':
     sys.exit(2)
-if profile == 'live' and adapter not in ('trezor_signing', 'signing_node', 'live', 'trezor'):
+if profile == 'live' and adapter not in ('trezor_signing', 'signing_node', 'live', 'trezor', 'in_process'):
     sys.exit(3)
 " 2>/dev/null && pass "openclaw.json capital section OK" \
     || fail "openclaw.json capital config invalid (live+mock withdrawal forbidden)"
@@ -316,11 +316,15 @@ if profile == 'live':
 fi
 
 # Systemd unit files in output (optional install)
-for svc in titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-status-aggregator titan-allocator titan-tca titan-signing-node titan-portfolio-risk titan-security-ops trench-ops-edge llama-server-tier1 llama-server-tier2 llama-server-embedder cuda-mps; do
+# titan-signing-node is LEGACY optional — not required when signing.mode=in_process
+for svc in titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-status-aggregator titan-allocator titan-tca titan-portfolio-risk titan-security-ops trench-ops-edge llama-server-tier1 llama-server-tier2 llama-server-embedder cuda-mps; do
   if [[ -f "$PROJECT_ROOT/output/systemd/${svc}.service" ]] || [[ -f "$PROJECT_ROOT/templates/systemd/${svc}.service" ]]; then
     pass "systemd unit template: ${svc}.service"
   fi
 done
+if [[ -f "$PROJECT_ROOT/templates/systemd/titan-signing-node.service" ]]; then
+  pass "systemd unit template (legacy optional): titan-signing-node.service"
+fi
 
 # Infra specs (power, signing, GPU schedule)
 INFRA_DIR="$OPENCLAW_HOME/infra"
@@ -389,7 +393,7 @@ if [[ -f "$OPENCLAW_HOME/risk_kernel/policy.yaml" ]]; then
   fi
 fi
 
-# Signing isolation + edge mesh full_mesh in openclaw.json
+# Signing isolation (in-process) + edge mesh full_mesh in openclaw.json
 if [[ -f "$OPENCLAW_HOME/openclaw.json" ]] && command -v python3 &>/dev/null; then
   python3 -c "
 import json, sys
@@ -398,7 +402,10 @@ sn = cfg.get('signingNode', {})
 em = cfg.get('edgeMesh', {})
 if not sn.get('enabled'):
     sys.exit(1)
-if not sn.get('endpoint'):
+mode = str(sn.get('mode') or 'in_process').lower()
+if mode not in ('in_process', 'http', 'legacy'):
+    sys.exit(2)
+if mode == 'http' and not sn.get('endpoint'):
     sys.exit(2)
 if not sn.get('requireGateReceipt', True):
     sys.exit(5)
@@ -411,7 +418,7 @@ if not em.get('paperLatencyFaithful', False):
     sys.exit(6)
 if em.get('defaultPop') != 'EDGE-FRA':
     sys.exit(7)
-" 2>/dev/null && pass "openclaw.json signingNode + edgeMesh full_mesh OK" \
+" 2>/dev/null && pass "openclaw.json signingNode (in_process) + edgeMesh full_mesh OK" \
     || fail "openclaw.json missing signingNode or edgeMesh full_mesh config"
 fi
 

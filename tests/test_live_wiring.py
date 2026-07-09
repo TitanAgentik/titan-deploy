@@ -94,11 +94,30 @@ def test_flatten_from_policy_builds_signing_node_closer(tmp_path: Path) -> None:
     policy = load_policy(
         _write_policy(
             tmp_path,
-            flatten={"closer": "signing_node", "signing_endpoint": "http://127.0.0.1:19010"},
+            flatten={"closer": "signing_node"},
+            signing={"mode": "in_process"},
         )
     )
     executor = FlattenExecutor.from_policy(policy, tmp_path)
     assert isinstance(executor.closer, SigningNodeCloser)
+    assert executor.closer.mode == "in_process"
+
+
+def test_flatten_from_policy_http_legacy_closer(tmp_path: Path) -> None:
+    policy = load_policy(
+        _write_policy(
+            tmp_path,
+            flatten={
+                "closer": "signing_node",
+                "signing_endpoint": "http://127.0.0.1:19010",
+                "signing_mode": "http",
+            },
+            signing={"mode": "http"},
+        )
+    )
+    executor = FlattenExecutor.from_policy(policy, tmp_path)
+    assert isinstance(executor.closer, SigningNodeCloser)
+    assert executor.closer.mode == "http"
 
 
 def test_flatten_from_policy_defaults_to_mock(tmp_path: Path) -> None:

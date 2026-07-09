@@ -281,7 +281,7 @@ CLI: `titan-safety memecoin filter|evaluate --mint-json '…'` · `memecoin sim 
 - Infra: `infra/solana_memecoin.yaml` (Geyser + PumpSwap migration + Jito + EDGE-FRA)  
 - Config: `openclaw.json` → `memecoinTrench.enabled` (default false)  
 - Policy: `memecoin_trench:` block + live venues when ready  
-- Agents: PREDATOR (scan) → GUARDIAN/kernel → TRENCH-OPS (Jito) → signing_node  
+- Agents: PREDATOR (scan) → GUARDIAN/kernel → TRENCH-OPS (Jito) → in-process SigningNode  
 - Adapters: `solana_recon.py`, `jito_submit.py` (NotConfigured until live)
 
 ## Capital envelope
@@ -320,7 +320,7 @@ def agent_routing_table() -> str:
 
 | Agent | Tier | Role |
 |-------|------|------|
-| TRENCH-OPS | :30000 | Trade execution → signing_node (isolated) |
+| TRENCH-OPS | :30000 | Trade execution → in-process SigningNode |
 | LAMARCK | :30001 | Post-trade learning / MGPO |
 | DARWIN_GODEL | :30001 | Auto-research / HyEvo / DGM-H (shadow) |
 
@@ -384,7 +384,7 @@ def titanspark_doc() -> str:
 
 - ASUS GX10 — Qwen3-30B utility (:30002)
 - Telegram gateway failover when Mac Mini unavailable
-- Evolution/training offload (off-peak); does not host signing_node
+- Evolution/training offload (off-peak); does not host signing
 - UPS recommended for live capital (utility tier failover path)
 """
 
@@ -417,7 +417,7 @@ def macmini_vault_doc() -> str:
 - NOT primary compute — TITANHOME hosts Tier 1/2 inference + safety services
 - Vault core: encrypted key management, Trezor sweep signing ceremonies
 - Bitcoin SPV node, governance scanner, portfolio analytics preprocessor
-- Signing **execution** routes to isolated signing_node; vault holds metadata only
+- Signing **execution** is in-process on TITANHOME (`titan-safety`); vault holds metadata only
 - UPS REQUIRED for live capital (power-protected with signing isolation)
 """
 

@@ -211,7 +211,7 @@ def write_keys_detail() -> None:
     body += """## Principles
 
 1. Never store session keys or seeds in agent memory / workspace markdown.
-2. Signing only via isolated signing node `:19010` with fresh `X-Titan-Gate-Receipt`.
+2. Signing only via in-process `titan_safety.SigningNode` with fresh `X-Titan-Gate-Receipt`.
 3. Mac Mini vault = metadata + Trezor ceremonies; not the live signer.
 4. Live capital: `withdrawal_adapter: trezor_signing` (not mock).
 5. Control-plane HMAC secret: `~/.openclaw/safety/control_plane.secret` mode 0600.
@@ -225,7 +225,7 @@ def write_keys_detail() -> None:
 ## Operator checklist
 
 - [ ] Trezor / hardware wallet provisioned
-- [ ] Signing node systemd unit healthy (`curl :19010/health`)
+- [ ] In-process signing OK (`signingNode.mode: in_process`; do not require `:19010`)
 - [ ] Gate receipt required (`requireGateReceipt: true`)
 - [ ] Exchange API keys: trade-only, withdrawal disabled where possible
 """

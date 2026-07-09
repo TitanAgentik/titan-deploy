@@ -56,28 +56,34 @@ class MockPositionCloser(PositionCloser):
 
 
 class SigningNodeCloser(PositionCloser):
-    """Closes positions by submitting close orders to the signing node.
+    """Closes positions via in-process SigningNode (default) or legacy HTTP.
 
     Each close order gets a fresh gate receipt (issued locally — the flatten
     path is the emergency exit, so it must not depend on recon/kernel being
-    healthy), then POSTs to the signing node which enforces the receipt.
+    healthy), then signs in-process. Set mode=http + endpoint for legacy :19010.
     """
 
     def __init__(
         self,
-        endpoint: str = "http://127.0.0.1:19010",
+        endpoint: str = "",
         safety_dir: Path | None = None,
         timeout: float = 10.0,
+        mode: str = "in_process",
+        policy_path: Path | None = None,
+        policy_raw: dict[str, Any] | None = None,
     ) -> None:
-        self.endpoint = endpoint.rstrip("/")
+        self.endpoint = (endpoint or "").rstrip("/")
         self.safety_dir = safety_dir
         self.timeout = timeout
+        self.mode = mode
+        self.policy_path = policy_path
+        self.policy_raw = policy_raw or {}
 
     def close(self, order: FlattenOrder) -> dict[str, Any]:
-        import urllib.request
         import uuid
 
         from .gate_receipt import RECEIPT_HEADER, issue_gate_receipt
+        from .signing_service import build_signing_node
 
         trade = {
             "trade_id": f"flatten-{uuid.uuid4().hex[:12]}",
@@ -90,17 +96,32 @@ class SigningNodeCloser(PositionCloser):
             "worst_price": 0.0,
         }
         receipt = issue_gate_receipt(trade, self.safety_dir)
-        req = urllib.request.Request(
-            f"{self.endpoint}/v1/sign",
-            data=json.dumps({"trade": trade, "reduce_only": True}).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                RECEIPT_HEADER: receipt.token,
-            },
-            method="POST",
+        body = {"trade": trade, "reduce_only": True, "gate_receipt": receipt.token}
+        headers = {RECEIPT_HEADER: receipt.token}
+
+        if self.mode == "http" and self.endpoint:
+            import urllib.request
+
+            req = urllib.request.Request(
+                f"{self.endpoint}/v1/sign",
+                data=json.dumps(body).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    RECEIPT_HEADER: receipt.token,
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+            return {"status": payload.get("status", "submitted"), **payload}
+
+        node = build_signing_node(
+            policy_path=self.policy_path,
+            safety_dir=self.safety_dir,
+            policy_raw=self.policy_raw,
+            require_live_signer=False,
         )
-        with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
+        _code, payload = node.sign(body, headers)
         return {"status": payload.get("status", "submitted"), **payload}
 
 
@@ -136,8 +157,8 @@ def validate_flatten_config_for_live(policy: Any) -> None:
     revoker = str(cfg.get("revoker", "mock")).lower()
     if closer == "mock":
         raise ValueError(
-            "capital_profile=live requires flatten.closer (signing_node or "
-            "module:attr) — mock closer banned for live"
+            "capital_profile=live requires flatten.closer (signing_node / "
+            "in_process or module:attr) — mock closer banned for live"
         )
     if revoker == "mock":
         raise ValueError(
@@ -153,21 +174,35 @@ class FlattenExecutor:
     def from_policy(cls, policy: Any, safety_dir: Path | None = None) -> "FlattenExecutor":
         """Build closer/revoker from policy `flatten:` section.
 
-        closer: mock | signing_node | "module.path:ClassOrFactory"
+        closer: mock | signing_node | in_process | "module.path:ClassOrFactory"
         revoker: mock | "module.path:ClassOrFactory"
         """
         from .policy_loader import load_component
+        from .signing_service import resolve_signing_mode
 
         cfg = (policy.raw or {}).get("flatten", {}) if getattr(policy, "raw", None) else {}
         closer_spec = str(cfg.get("closer", "mock"))
         revoker_spec = str(cfg.get("revoker", "mock"))
+        raw = getattr(policy, "raw", None) or {}
+        mode = resolve_signing_mode(raw)
+        if str(cfg.get("signing_mode", "")).strip().lower() in ("http", "legacy"):
+            mode = "http"
 
         closer: PositionCloser
         if closer_spec.lower() == "mock":
             closer = MockPositionCloser()
-        elif closer_spec.lower() == "signing_node":
-            endpoint = str(cfg.get("signing_endpoint", "http://127.0.0.1:19010"))
-            closer = SigningNodeCloser(endpoint=endpoint, safety_dir=safety_dir)
+        elif closer_spec.lower() in ("signing_node", "in_process"):
+            endpoint = str(cfg.get("signing_endpoint", "") or "")
+            use_mode = "http" if mode == "http" else "in_process"
+            if use_mode == "http" and not endpoint:
+                endpoint = "http://127.0.0.1:19010"
+            closer = SigningNodeCloser(
+                endpoint=endpoint,
+                safety_dir=safety_dir,
+                mode=use_mode,
+                policy_path=getattr(policy, "source_path", None),
+                policy_raw=raw,
+            )
         else:
             loaded = load_component(closer_spec)
             closer = loaded() if isinstance(loaded, type) else loaded

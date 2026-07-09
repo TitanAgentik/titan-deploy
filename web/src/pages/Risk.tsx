@@ -136,7 +136,7 @@ export function Risk() {
                   {latencyBudget.hotPathGateP95Ms}ms p95
                 </li>
                 <li>Flash-loan live → promotion YES + typed_data signing</li>
-                <li>ExecutionGate: recon → kernel → gate receipt → signing_node</li>
+                <li>ExecutionGate: recon → kernel → gate receipt → in-process SigningNode</li>
                 {draft.showVelocity ? (
                   <li>
                     Velocity: ${drawdownPolicy.velocityHalt60s}/60s · $

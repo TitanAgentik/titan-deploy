@@ -191,7 +191,7 @@ export function Capital() {
               <li>Starting capital + biweekly injections tracked as <strong>deposits</strong></li>
               <li>Withdrawals require <span className="kbd">--confirm-yes</span></li>
               <li>
-                Live withdrawals via signing_node (
+                Live withdrawals via in-process SigningNode (
                 <button type="button" className="kbd" onClick={() => setTab("withdraw")}>
                   change adapter
                 </button>
@@ -335,7 +335,7 @@ export function Capital() {
             <div className="field">
               <label>Adapter</label>
               <select value={adapter} onChange={(e) => setAdapter(e.target.value as typeof adapter)}>
-                <option value="trezor_signing">trezor_signing / signing_node (:19010)</option>
+                <option value="trezor_signing">trezor_signing / in-process SigningNode</option>
               </select>
             </div>
             <div className="field" style={{ minWidth: 220 }}>
@@ -528,7 +528,7 @@ export function Capital() {
                 { label: "Device", value: "Trezor Safe 7" },
                 { label: "Cold balance", value: "$0.00 · awaiting first harvest" },
                 { label: "Last ceremony", value: "— · not yet" },
-                { label: "Path", value: "UPS signing_node · cold separate" },
+                { label: "Path", value: "UPS TITANHOME in-process · cold separate" },
               ]}
             />
             <div style={{ marginTop: 12 }}>

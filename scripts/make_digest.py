@@ -36,7 +36,7 @@ HEADER = """# TITAN Spec Digest (navigation map)
   equity require explicit human YES. TIMEOUT = HOLD/de-risk, never promote.
 - Out-of-process risk kernel `:19001` and portfolio risk `:19004` DENY is
   authoritative; agent votes are advisory.
-- Signing node `:19010` refuses to sign without a fresh `X-Titan-Gate-Receipt`
+- In-process SigningNode refuses to sign without a fresh `X-Titan-Gate-Receipt`
   (max 30 s). Mock signer / mock flatten adapters are banned at startup when
   `capital_profile: live`.
 - Kill switch deactivation requires an HMAC-signed RESUME. Mutating safety

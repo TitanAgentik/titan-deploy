@@ -49,8 +49,8 @@ box and the signing/power path — not on breadth.
 
 ### 1.3 Signing node [HARD GATE for live capital]
 - **Physically/logically isolated** host or hardened VM whose only job is tx
-  signing at `:19010`. **No evolution workloads, no agent runtime, no inbound
-  internet.** Spec: `~/.openclaw/infra/signing_node.yaml`.
+  signing in-process via `titan-safety` SigningNode. **No evolution workloads, no agent runtime, no inbound
+  internet.** Spec: `~/.openclaw/infra/signing_node.yaml`. Optional legacy `:19010` not required.
 - Blind-signing rejected; every payload human-verifiable or policy-bounded.
 
 ### 1.4 Key-custody node — "The Vault" [REQUIRED]
@@ -194,8 +194,8 @@ config. **Do not proceed on any FAIL.**
   from any agent write path.
 
 ### 5.2 Signing isolation [HARD GATE]
-- TRENCH-OPS routes all signing to `signingNode.endpoint` (`:19010`). Verified by
-  `--verify` (`signingNode.enabled` + `endpoint`). Blind-sign rejected;
+- TRENCH-OPS signs via `titan-safety gate sign` (`signingNode.mode: in_process`). Verified by
+  `--verify` (`signingNode.enabled` + `mode`). Blind-sign rejected;
   `on_env_compromised: halt_all_signing`.
 
 ### 5.3 Host hardening [REQUIRED]
@@ -531,7 +531,7 @@ curl -s -X POST http://127.0.0.1:19007/v1/scorecard -d '{"pipeline_id":"P29"}'
 - [ ] Quantum dormant; `quantum_*` skills archived.
 
 **Security**
-- [ ] Signing isolated (`:19010`), blind-sign rejected.
+- [ ] Signing in-process (`titan-safety`), blind-sign rejected.
 - [ ] Withdrawal keys off the agent runtime; exchange keys trade-only, no withdraw.
 - [ ] Global/portfolio/pipeline kill switches drilled; signed remote HALT works;
       BusKill installed.

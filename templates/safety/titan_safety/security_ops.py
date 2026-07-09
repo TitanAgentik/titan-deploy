@@ -28,7 +28,7 @@ LAYER_PROBE_TIMEOUT_S = 0.2
 
 LAYERS = [
     {"id": "L1", "name": "risk_kernel", "port": ":19001"},
-    {"id": "L2", "name": "signing_node", "port": ":19010"},
+    {"id": "L2", "name": "signing_in_process", "port": "in_process"},
     {"id": "L3", "name": "netns_policy", "port": "netns"},
     {"id": "L4", "name": "pcr_codeql", "port": "T2"},
     {"id": "L5", "name": "dead_mans_switch", "port": ":19005"},
@@ -183,9 +183,14 @@ class SecurityOps:
                 continue
             entry = {**layer}
             port_num = _parse_localhost_port(str(layer["port"]))
-            if layer["id"] == "L2" and self.signing_halted():
-                entry["status"] = "halted"
-                entry["reachability"] = "halted"
+            if layer["id"] == "L2":
+                # In-process signing — armed unless SIGNING_HALTED (no :19010 probe).
+                if self.signing_halted():
+                    entry["status"] = "halted"
+                    entry["reachability"] = "halted"
+                else:
+                    entry["status"] = "armed"
+                    entry["reachability"] = "in_process"
             elif port_num is not None:
                 up = _probe_localhost(port_num)
                 entry["status"] = "UP" if up else "DOWN"

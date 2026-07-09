@@ -6,5 +6,5 @@
 - NOT primary compute — TITANHOME hosts Tier 1/2 inference + safety services
 - Vault core: encrypted key management, Trezor sweep signing ceremonies
 - Bitcoin SPV node, governance scanner, portfolio analytics preprocessor
-- Signing **execution** routes to isolated signing_node; vault holds metadata only
+- Signing **execution** is in-process on TITANHOME (`titan-safety`); vault holds metadata only
 - UPS REQUIRED for live capital (power-protected with signing isolation)

@@ -283,14 +283,14 @@ infrastructure:
   macmini_vault:
     role: encrypted_key_metadata_trezor_ceremonies
     hardware: "Mac Mini 2018 — i7 6-core, 64GB DDR4"
-    note: "Key custody + profit workloads; signing routed to signing_node"
+    note: "Key custody + profit workloads; signing via in-process titan-safety on TITANHOME"
   power_requirements: ~/.openclaw/infra/power_requirements.yaml
   gpu_schedule: ~/.openclaw/infra/gpu_schedule.yaml
   signing_node: ~/.openclaw/infra/signing_node.yaml
 
 signing_node:
   enabled: true
-  endpoint: http://127.0.0.1:19010
+  endpoint: ""  # unused when mode=in_process
   host: localhost
   port: 19010
   isolated: true
@@ -412,7 +412,7 @@ capital:
       ],
       "bftThreshold": 2,
       "bftAboveEquityPct": 1.0,
-      "note": "Agents verify + sign via signing_node \u2014 no human on trade path; kernel DENY is authoritative"
+      "note": "Agents verify + sign via in-process titan-safety SigningNode \u2014 no human on trade path; kernel DENY is authoritative"
     },
     "definitions": [
       {
@@ -703,7 +703,7 @@ capital:
     "allocator": "http://127.0.0.1:19006/health",
     "tca": "http://127.0.0.1:19007/health",
     "securityOps": "http://127.0.0.1:19008/health",
-    "signingNode": "http://127.0.0.1:19010/health",
+    "signing": "in_process",
     "allocatorPlanUrl": "http://127.0.0.1:19006/v1/plan",
     "tcaIngestUrl": "http://127.0.0.1:19007/v1/ingest",
     "tcaScorecardUrl": "http://127.0.0.1:19007/v1/scorecard",
@@ -938,7 +938,7 @@ capital:
     "macminiVault": {
       "role": "encrypted_key_metadata_trezor_ceremonies",
       "hardware": "Mac Mini 2018 \u2014 i7 6-core, 64GB DDR4",
-      "note": "Key custody + profit workloads; signing execution via signingNode"
+      "note": "Key custody + profit workloads; signing execution via in-process titan-safety on TITANHOME"
     },
     "powerRequirementsPath": "~/.openclaw/infra/power_requirements.yaml",
     "gpuSchedulePath": "~/.openclaw/infra/gpu_schedule.yaml",
@@ -950,7 +950,8 @@ capital:
   },
   "signingNode": {
     "enabled": true,
-    "endpoint": "http://127.0.0.1:19010",
+    "mode": "in_process",
+    "endpoint": "",
     "host": "localhost",
     "port": 19010,
     "isolated": true,
@@ -1064,7 +1065,7 @@ position_limits:
   new_pipeline_requires_approval: true
 
 # Agent-autonomous sign/verify — replaces human approval on the trade path.
-# Safety retained: reconciliation → risk kernel → confidence → BFT → gate receipt → signing_node.
+# Safety retained: reconciliation → risk kernel → confidence → BFT → gate receipt → in-process sign.
 autonomous_signing:
   enabled: true
   min_confidence_reduced: 0.50
@@ -1272,8 +1273,9 @@ power_loss:
   note: "Power-loss = HALT — no discretionary signing during outage"
 
 signing:
-  isolated_node_required: true
-  endpoint: http://127.0.0.1:19010
+  mode: in_process
+  isolated_module_required: true
+  endpoint: ""  # unused when mode=in_process
   config_ref: ~/.openclaw/infra/signing_node.yaml
   blind_sign_rejected: true
   require_gate_receipt: true
@@ -1283,9 +1285,9 @@ signing:
 
 # Flatten adapters — live profile (mock banned at startup)
 flatten:
-  closer: signing_node
+  closer: in_process
   revoker: "titan_safety.adapters.live_bundle:LiveKeyRevoker"
-  signing_endpoint: http://127.0.0.1:19010
+  signing_endpoint: ""  # unused when mode=in_process
 
 # Evolution freeze — set freeze_during_live true; CLI: titan-safety evolution freeze
 evolution:
@@ -1305,7 +1307,7 @@ security_ops:
   pillars:
     impenetrable:
       owner: SENTINEL
-      layers: [L1_risk_kernel, L2_signing_node, L3_netns, L4_pcr_codeql, L5_dms, L6_closed_model_ban]
+      layers: [L1_risk_kernel, L2_signing_in_process, L3_netns, L4_pcr_codeql, L5_dms, L6_closed_model_ban]
     evasion:
       owner: TRENCH-OPS
       controls: [mev_shield_intents, edge_rtt, nostr_nip44, fingerprint_rotate, traffic_jitter, airgap_vault]
@@ -1414,11 +1416,14 @@ service:
 version: "1.0"
 enabled: true
 
+mode: in_process
 endpoint:
-  host: localhost  # override to dedicated host FQDN when physically separated
+  optional_legacy: true
+  host: localhost
   port: 19010
   url: http://127.0.0.1:19010
   health: http://127.0.0.1:19010/health
+  note: "Only when signing.mode=http"
 
 isolation:
   minimal_os: true
@@ -1468,7 +1473,7 @@ hardware_options:
 
 macmini_vault:
   role: "Trezor ceremony + cold key metadata; signing requests proxied via NATS"
-  not_a_substitute_for: "isolated signing daemon — vault holds metadata, signing_node executes"
+  not_a_substitute_for: "in-process SigningNode on TITANHOME — vault holds metadata, safety stack executes"
 
 # Four-pillar Impenetrable layer L2 — security lockdown sets SIGNING_HALTED
 security_ops:

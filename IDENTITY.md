@@ -22,7 +22,7 @@
 - **TITANSPARK:** ASUS GX10 — utility inference (Qwen3-30B :30002) + operator gateway failover
 - **Mac Mini vault:** Mac Mini 2018 i7 6-core, 64GB DDR4 — key metadata, Trezor ceremonies
 - **Edge mesh:** full 5-PoP (`full_mesh`) — EDGE-FRA, EDGE-TKY, EDGE-SIN, EDGE-USE, EDGE-AMS — paper + live identical routing
-- **Signing node:** isolated endpoint (`signingNode` :19010) — UPS-protected
+- **Signing:** in-process `titan-safety` SigningNode (gate receipt required) — UPS-protected TITANHOME; `:19010` optional legacy only
 - **BOM:** `~/.openclaw/infra/hardware_bom.yaml`
 
 ## Models (ALL LOCAL — 3-Tier + Dual Tier-3 R&D)

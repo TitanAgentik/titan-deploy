@@ -17,7 +17,7 @@
 | **TITANHOME** | Primary compute + orchestrator inference + safety services (risk kernel, REVM) | UPS mandatory |
 | **TITANSPARK** | Utility inference (Qwen3-30B) + operator gateway failover | UPS recommended |
 | **Mac Mini vault** | Key metadata + Trezor ceremonies + profit workloads | UPS mandatory |
-| **Signing node** | Isolated tx signing (`:19010`) — no evolution workloads | UPS mandatory (co-located or dedicated) |
+| **Signing (in-process)** | `titan_safety.SigningNode` after gate ALLOW — no separate `:19010` daemon | UPS mandatory (TITANHOME) |
 | **Edge mesh** | Full 5-PoP: FRA + TKY + SIN + USE + AMS (paper + live, latency-faithful) | Cloud provider redundancy per PoP |
 
 Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_schedule.yaml`
@@ -45,7 +45,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 | Execution-quality / TCA | `tca.py` + HTTP `:19007` | Scorecard + bleeding-lane flag |
 | TCA→allocator profit loop | `profit_loop.py` + `POST /v1/profit_loop` | Auto-defund BLEEDING; refund needs human |
 | Unbypassable execution gate | `execution_gate.py` (recon→kernel→receipt) | DENY if any stage fails / unreachable |
-| Signing node receipt gate | `signing_service.py` `:19010` | 401 without fresh `X-Titan-Gate-Receipt` |
+| Signing receipt gate | `signing_service.SigningNode` (in-process) | 401 without fresh `X-Titan-Gate-Receipt` |
 | Flatten / key-revoke executor | `flatten_executor.py` | Enqueues closes + mock revoke + SIGNING_HALTED |
 | DMS → wind-down | `dead_mans_service` → `WindDownController` | 48h derisk / 72h flatten side effects |
 | Evolution freeze | `evolution_freeze.py` + CLI | Blocks live promotions while frozen |
@@ -73,7 +73,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 | Observability | JSON logs, `/health`, `/metrics`, status aggregator `:19003` | Degraded status |
 | Power-loss halt | `policy.yaml` → `power_loss` + UPS spec | **HALT** on mains loss |
 | Chaos harness | `tests/chaos/chaos_harness.py` | CI/regression |
-| Signing isolation | `signing_node.yaml` + openclaw.json `signingNode` | Route to isolated endpoint |
+| Signing isolation | `signing_node.yaml` + openclaw.json `signingNode.mode: in_process` | In-process module; never agent runtime |
 | GPU schedule | `gpu_schedule.yaml` — P2 inference never preempted | Kill off-peak jobs on violation |
 
 ---
@@ -90,7 +90,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 7. **Operator heartbeat:** Dead-man's switch tested; heartbeat cron or manual `titan-safety heartbeat` scheduled.
 8. **Live infrastructure:** NATS, inference endpoints, Erigon on EDGE-FRA (Phase 1 single PoP), Solana feeds — production SLOs met.
 9. **UPS installed and tested:** ≥3000VA, ≥15 min runtime on TITANHOME + signing path; power-loss drill → HALT confirmed.
-10. **Signing isolation:** TRENCH-OPS routes to `signingNode.endpoint`; no signing in agent runtime; `signing_node.yaml` deployed.
+10. **Signing isolation:** TRENCH-OPS uses `titan-safety gate sign` (in-process); no signing in agent runtime; `signing_node.yaml` deployed; `:19010` not required.
 11. **Exchange/wallet keys:** Provisioned with least privilege; withdrawal disabled; separate from agent write paths.
 12. **Capital module smoke-tested:** `titan-safety capital deposit|withdraw|balance` and audit verify pass; Trezor/on-chain adapter still `mock` until ops wiring.
 13. **Residual risk review:** Operator reads and accepts risks in the next section.
@@ -101,7 +101,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 ## What Still Requires Human / Operational Steps
 
 - **Real exchange and wallet API keys** — not included; mock/paper adapter only in this bundle.
-- **Capital execution adapter** — `withdrawal_adapter: mock` in config; wire Trezor Safe 7 + `signing_node` for live sweeps/withdrawals.
+- **Capital execution adapter** — `withdrawal_adapter: mock` in config; wire Trezor Safe 7 + in-process SigningNode for live sweeps/withdrawals.
 - **Paper + shadow trading duration** — software gates exist; calendar time and performance evidence do not.
 - **Production infra** — GPU inference on TITANHOME (P2 never preempted), NATS, chain nodes, firewall, **UPS on all signing paths**.
 - **Edge mesh** — full 5-PoP from paper; bootstrap via `edge_pop_bootstrap.sh` per PoP after WireGuard.
@@ -139,7 +139,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 
 ### Phase 0 — Infrastructure + Paper (2 Days)
 
-- Deploy bundle; enable all safety systemd units (`19001`–`19008`, signing `:19010`)
+- Deploy bundle; enable safety systemd units (`19001`–`19008`; signing is in-process — no `:19010` required)
 - Complete BOOTSTRAP.md checklist including UPS drill
 - Run `./deploy.sh --verify` and adversarial harness PASS
 - Paper trade all candidate pipelines; zero live keys

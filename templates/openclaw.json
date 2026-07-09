@@ -37,7 +37,7 @@
       "bftVoters": ["AUGUR", "PREDATOR", "ATLAS"],
       "bftThreshold": 2,
       "bftAboveEquityPct": 1.0,
-      "note": "Agents verify + sign via signing_node — no human on trade path; kernel DENY is authoritative"
+      "note": "Agents verify + sign via in-process titan-safety SigningNode — no human on trade path; kernel DENY is authoritative"
     },
     "definitions": [
       {"id": "ARCHON", "tier": "orchestrator", "endpoint": "http://localhost:30001", "model": "Qwen/Qwen3-Coder-Next-80B-A3B-Instruct"},
@@ -211,7 +211,7 @@
     "allocator": "http://127.0.0.1:19006/health",
     "tca": "http://127.0.0.1:19007/health",
     "securityOps": "http://127.0.0.1:19008/health",
-    "signingNode": "http://127.0.0.1:19010/health",
+    "signing": "in_process",
     "allocatorPlanUrl": "http://127.0.0.1:19006/v1/plan",
     "tcaIngestUrl": "http://127.0.0.1:19007/v1/ingest",
     "tcaScorecardUrl": "http://127.0.0.1:19007/v1/scorecard",
@@ -413,7 +413,7 @@
     "macminiVault": {
       "role": "encrypted_key_metadata_trezor_ceremonies",
       "hardware": "Mac Mini 2018 — i7 6-core, 64GB DDR4",
-      "note": "Key custody + profit workloads; signing execution via signingNode"
+      "note": "Key custody + profit workloads; signing execution via in-process titan-safety on TITANHOME"
     },
     "powerRequirementsPath": "~/.openclaw/infra/power_requirements.yaml",
     "gpuSchedulePath": "~/.openclaw/infra/gpu_schedule.yaml",
@@ -425,14 +425,16 @@
   },
   "signingNode": {
     "enabled": true,
-    "endpoint": "http://127.0.0.1:19010",
+    "mode": "in_process",
+    "endpoint": "",
     "host": "localhost",
     "port": 19010,
     "isolated": true,
     "requireGateReceipt": true,
     "maxReceiptAgeSeconds": 10,
     "routeAgents": ["TRENCH-OPS", "LAMARCK"],
-    "note": "Logically isolated signing — refuses POST /v1/sign without fresh X-Titan-Gate-Receipt"
+    "cli": "titan-safety gate sign",
+    "note": "In-process SigningNode in titan-safety — refuses sign without fresh X-Titan-Gate-Receipt; :19010 HTTP is optional legacy only"
   },
   "augur": {
     "regimeFeed": "stub",

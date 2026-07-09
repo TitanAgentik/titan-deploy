@@ -44,7 +44,7 @@ position_limits:
   new_pipeline_requires_approval: true
 
 # Agent-autonomous sign/verify — replaces human approval on the trade path.
-# Safety retained: reconciliation → risk kernel → confidence → BFT → gate receipt → signing_node.
+# Safety retained: reconciliation → risk kernel → confidence → BFT → gate receipt → in-process sign.
 autonomous_signing:
   enabled: true
   min_confidence_reduced: 0.50
@@ -252,8 +252,9 @@ power_loss:
   note: "Power-loss = HALT — no discretionary signing during outage"
 
 signing:
-  isolated_node_required: true
-  endpoint: http://127.0.0.1:19010
+  mode: in_process  # default — SigningNode library in titan-safety (no :19010 hop)
+  isolated_module_required: true  # logical isolation in titan_safety; not a separate daemon
+  endpoint: ""  # legacy HTTP only when mode=http
   config_ref: ~/.openclaw/infra/signing_node.yaml
   blind_sign_rejected: true
   require_gate_receipt: true
@@ -263,9 +264,9 @@ signing:
 
 # Flatten adapters — live profile (mock banned at startup)
 flatten:
-  closer: signing_node
+  closer: in_process  # alias: signing_node (same in-process SigningNode)
   revoker: "titan_safety.adapters.live_bundle:LiveKeyRevoker"
-  signing_endpoint: http://127.0.0.1:19010
+  signing_endpoint: ""  # unused when signing.mode=in_process
 
 # Evolution freeze — set freeze_during_live true; CLI: titan-safety evolution freeze
 evolution:
@@ -285,7 +286,7 @@ security_ops:
   pillars:
     impenetrable:
       owner: SENTINEL
-      layers: [L1_risk_kernel, L2_signing_node, L3_netns, L4_pcr_codeql, L5_dms, L6_closed_model_ban]
+      layers: [L1_risk_kernel, L2_signing_in_process, L3_netns, L4_pcr_codeql, L5_dms, L6_closed_model_ban]
     evasion:
       owner: TRENCH-OPS
       controls: [mev_shield_intents, edge_rtt, nostr_nip44, fingerprint_rotate, traffic_jitter, airgap_vault]
@@ -429,4 +430,5 @@ service:
   allocator_port: 19006
   tca_port: 19007
   security_ops_port: 19008
+  # signing_node_port retained for optional legacy HTTP mode only (not required)
   signing_node_port: 19010

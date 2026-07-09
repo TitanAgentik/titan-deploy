@@ -14,14 +14,14 @@
 - [ ] Copy `~/.openclaw/infra/live.env.example` → `~/.openclaw/.env` and fill secrets
 - [ ] Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_USER_ID`
 - [ ] Set `TITAN_RECON_FETCHER_URL` or exchange API keys (recon fail-closed until wired)
-- [ ] Set `TITAN_LIVE_SIGNING_READY=1` only after Trezor bridge + `:19010` health OK
+- [ ] Set `TITAN_LIVE_SIGNING_READY=1` only after Trezor bridge + in-process signing health OK (`titan-safety` / status aggregator `signing`)
 - [ ] Set `HERMES_HOME=~/.hermes`
 - [ ] Verify `capital_profile: live` in policy + openclaw; `paper` venue remains for shadow lanes
 
 ## Autonomous sign/verify (no human on trade path)
 
 - [ ] Confirm `autonomous_signing.enabled: true` in `~/.openclaw/risk_kernel/policy.yaml`
-- [ ] TRENCH-OPS uses `titan-safety gate sign` or gate check → receipt → signing_node
+- [ ] TRENCH-OPS uses `titan-safety gate sign` (in-process SigningNode after gate ALLOW)
 - [ ] Live venues: every sign request includes EIP-712 `typed_data` or `calldata`
 - [ ] Trades >1% equity: attach 2-of-3 BFT votes (`titan-safety bft vote` from AUGUR/PREDATOR/ATLAS)
 - [ ] Human gates still required: promotion Phase 5, evolution deploy, leverage, flash-loan live, >20% withdraw
@@ -59,8 +59,8 @@
 - [ ] Deploy infra specs: `~/.openclaw/infra/` (hardware_bom, power_requirements, signing_node, gpu_schedule)
 - [ ] **UPS installed and tested** — ≥3000VA, ≥15 min runtime (REQUIRED before live capital)
 - [ ] Power-loss drill: mains disconnect → trading HALT + CRITICAL alert
-- [ ] Signing node endpoint reachable: `curl http://127.0.0.1:19010/health`
-- [ ] Confirm TRENCH-OPS routes signing to signing_node (not agent runtime)
+- [ ] Confirm in-process signing: `signingNode.mode: in_process` / `titan-safety gate sign` (do not require `:19010`)
+- [ ] Confirm TRENCH-OPS never signs in agent runtime (titan-safety only)
 
 ## Agent Verification
 
@@ -107,7 +107,7 @@
 
 - [ ] Policy `capital_profile: live`; `paper` venue enabled for unpromoted/shadow lanes
 - [ ] `~/.openclaw/.env` filled from `live.env.example`
-- [ ] Agent-autonomous signing verified: confidence + BFT → gate receipt → signing_node
+- [ ] Agent-autonomous signing verified: confidence + BFT → gate receipt → in-process SigningNode
 - [ ] 48h reconciliation zero-divergence after creds wired
 - [ ] Micro-live ≤0.1% equity with kill switch armed
 - [ ] Phase 5 explicit operator YES for each funded lane promotion
@@ -161,4 +161,4 @@
 ## Completion
 
 - [ ] All checks pass → delete this BOOTSTRAP.md file
-- [ ] Enable systemd: `systemctl --user enable --now llama-server-tier1 llama-server-tier2 titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-portfolio-risk titan-status-aggregator titan-allocator titan-tca titan-security-ops titan-signing-node openclaw-gateway hermes-gateway`
+- [ ] Enable systemd: `systemctl --user enable --now llama-server-tier1 llama-server-tier2 titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-portfolio-risk titan-status-aggregator titan-allocator titan-tca titan-security-ops openclaw-gateway hermes-gateway` (titan-signing-node optional legacy only)

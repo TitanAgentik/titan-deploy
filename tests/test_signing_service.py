@@ -12,7 +12,11 @@ from titan_safety.gate_receipt import (
     verify_gate_receipt,
 )
 from titan_safety.kernel import TradeRequest
-from titan_safety.signing_service import SigningNode
+from titan_safety.signing_service import (
+    SigningNode,
+    build_signing_node,
+    resolve_signing_mode,
+)
 
 
 def _trade(**kwargs) -> TradeRequest:
@@ -150,3 +154,21 @@ def test_http_signing_service(tmp_path: Path) -> None:
             assert body["decision"] == "ALLOW"
     finally:
         srv.stop()
+
+
+def test_build_signing_node_in_process(tmp_path: Path) -> None:
+    trade = _trade()
+    receipt = issue_gate_receipt(trade, tmp_path)
+    node = build_signing_node(safety_dir=tmp_path, require_live_signer=False)
+    code, body = node.sign(
+        {"trade": trade.__dict__},
+        {RECEIPT_HEADER: receipt.token},
+    )
+    assert code == 200
+    assert body["decision"] == "ALLOW"
+    assert node.health()["mode"] == "in_process"
+
+
+def test_resolve_signing_mode_default() -> None:
+    assert resolve_signing_mode({}) == "in_process"
+    assert resolve_signing_mode({"signing": {"mode": "http"}}) == "http"

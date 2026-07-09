@@ -22,10 +22,13 @@ Out-of-process risk kernel (`:19001`) and portfolio risk (`:19004`) enforce pre-
 
 ## Signing Isolation
 
-TRENCH-OPS and LAMARCK route all transaction signing to **signing_node**
-(`signingNode.endpoint` in openclaw.json — default `http://127.0.0.1:19010`).
-Logically isolated: minimal OS, no evolution workloads, UPS-protected.
-Mac Mini vault retains key metadata + Trezor ceremonies; signing execution on signing_node.
+TRENCH-OPS and LAMARCK route all transaction signing to **in-process**
+`titan_safety.SigningNode` via `titan-safety gate sign` (default
+`signingNode.mode: in_process` in openclaw.json). No separate `:19010` daemon
+on the hot path. Logically isolated: deterministic safety process only — no LLM,
+no evolution workloads. Mac Mini vault retains key metadata + Trezor ceremonies;
+signing execution colocated on TITANHOME with the gate (zero extra network hop).
+Optional legacy HTTP (`signing.mode=http` / `titan-signing-node.service`) is not required.
 
 ## Trade Voting Honesty (Survivability)
 
@@ -116,7 +119,7 @@ Four pillars always armed: **Impenetrable** (baseline) + **Evasion** (Ghost — 
 ### Coding / execution / research tier (3 agents — Tier 1 execution + Tier 2 research)  
 | Agent | Role | Model |  
 | --- | --- | --- |  
-| TRENCH-OPS | Trade execution + signing (via signing_node) | Tier 1 `:30000` Qwen3-30B FP8 |  
+| TRENCH-OPS | Trade execution + signing (in-process titan-safety) | Tier 1 `:30000` Qwen3-30B FP8 |  
 | LAMARCK | Post-trade learning / OPD / GEPA | Tier 2 `:30001` Qwen3-Coder-80B |  
 | DARWIN_GODEL | Auto-research / DGM-H (shadow) | Tier 3a `:30005` DeepSeek V4 Pro (primary); GLM-5.2 `:30003` secondary; never live critical path |
 

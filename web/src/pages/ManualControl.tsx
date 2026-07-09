@@ -728,7 +728,7 @@ export function ManualControl() {
       >
         <SectionHead
           icon={Cpu}
-          title="Model tiers · edge PoP · signing_node · control plane"
+          title="Model tiers · edge PoP · in-process signing · control plane"
           hint="Tier 1/2 critical path · Tier 3 offline R&D · 5-PoP mesh"
         />
         <div className="grid grid-2" style={{ marginBottom: 12 }}>
@@ -828,9 +828,9 @@ export function ManualControl() {
               </Link>
             </div>
             <p className="muted small" style={{ marginBottom: 0, marginTop: 8 }}>
-              <Radio size={12} style={{ verticalAlign: "-1px" }} /> signing_node ·{" "}
-              <span className="mono">http://127.0.0.1:19010</span> ·{" "}
-              <KeyRound size={12} style={{ verticalAlign: "-1px" }} /> isolated
+              <Radio size={12} style={{ verticalAlign: "-1px" }} /> signing ·{" "}
+              <span className="mono">titan-safety in-process</span> ·{" "}
+              <KeyRound size={12} style={{ verticalAlign: "-1px" }} /> gate receipt required
             </p>
           </div>
         </div>

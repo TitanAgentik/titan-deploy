@@ -1,11 +1,14 @@
 [Unit]
-Description=TITAN Signing Node (gate-receipt required)
+Description=TITAN Signing (LEGACY HTTP — optional; prefer in-process titan-safety gate sign)
+Documentation=file://%h/.openclaw/infra/signing_node.yaml
 After=network.target titan-risk-kernel.service
+# Not required for deploy. Enable only if signing.mode=http.
 
 [Service]
 Type=simple
 Environment=TITAN_POLICY_PATH=%h/.openclaw/risk_kernel/policy.yaml
 Environment=TITAN_SAFETY_DIR=%h/.openclaw/safety
+Environment=TITAN_SIGNING_MODE=http
 Environment=PYTHONPATH=%h/.openclaw/safety
 ExecStart=/usr/bin/python3 -m titan_safety.signing_service
 Restart=on-failure

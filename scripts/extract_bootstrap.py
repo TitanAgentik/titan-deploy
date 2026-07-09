@@ -210,10 +210,13 @@ def patch_agents_survivability(content: str) -> str:
         signing_note = """
 ## Signing Isolation
 
-TRENCH-OPS and LAMARCK route all transaction signing to **signing_node**
-(`signingNode.endpoint` in openclaw.json — default `http://127.0.0.1:19010`).
-Logically isolated: minimal OS, no evolution workloads, UPS-protected.
-Mac Mini vault retains key metadata + Trezor ceremonies; signing execution on signing_node.
+TRENCH-OPS and LAMARCK route all transaction signing to **in-process**
+`titan_safety.SigningNode` via `titan-safety gate sign` (default
+`signingNode.mode: in_process` in openclaw.json). No separate `:19010` daemon
+on the hot path. Logically isolated: deterministic safety process only — no LLM,
+no evolution workloads. Mac Mini vault retains key metadata + Trezor ceremonies;
+signing execution colocated on TITANHOME with the gate (zero extra network hop).
+Optional legacy HTTP (`signing.mode=http` / `titan-signing-node.service`) is not required.
 
 """
         if "## BFT Honesty" in content:
@@ -318,7 +321,7 @@ Four pillars (Impenetrable baseline; Evasion/Stalking/Predatory on demand). No :
     )
     content = re.sub(
         r"tx signing on workstation",
-        "tx signing via signing_node (isolated endpoint)",
+        "tx signing via in-process titan-safety SigningNode",
         content,
     )
     content = re.sub(
@@ -358,7 +361,7 @@ def patch_model_tiers(content: str) -> str:
         ),
         (
             r"\| TRENCH-OPS \| Trade execution[^|]+\| `Qwen3-30B-A3B` FP8 :30000 GGUF Q4_K_M[^|]+\|",
-            "| TRENCH-OPS | Trade execution + signing (via signing_node) | Tier 1 `:30000` Qwen3-30B FP8 |",
+            "| TRENCH-OPS | Trade execution + signing (in-process titan-safety) | Tier 1 `:30000` Qwen3-30B FP8 |",
         ),
         (
             r"\| CORTEX \| Meta-cognitive[^|]+\| GPU TP=2 \([^|]+\|",
@@ -394,7 +397,7 @@ def patch_model_tiers(content: str) -> str:
         ),
         (
             r"\| TRENCH-OPS \| Trade execution[^|]+\| `zai-org/GLM-5\.2`[^|]*\|",
-            "| TRENCH-OPS | Trade execution + signing (via signing_node) | Tier 1 `:30000` Qwen3-30B FP8 |",
+            "| TRENCH-OPS | Trade execution + signing (in-process titan-safety) | Tier 1 `:30000` Qwen3-30B FP8 |",
         ),
         (
             r"\| LAMARCK \| Post-trade learning[^|]+\| `zai-org/GLM-5\.2`[^|]*\|",
@@ -729,12 +732,12 @@ Deterministic NON-LLM guard — agents cannot bypass. Policy: `~/.openclaw/risk_
 
 ## Signing Isolation (TRENCH-OPS)
 
-Transaction signing routes to the **signing_node** — logically isolated, UPS-protected.
-Config: `~/.openclaw/infra/signing_node.yaml` | Endpoint: `http://127.0.0.1:19010` (host configurable)
+Transaction signing runs **in-process** via `titan_safety.SigningNode` — logically isolated, UPS-protected TITANHOME.
+Config: `~/.openclaw/infra/signing_node.yaml` | Mode: `in_process` (no `:19010` hop)
 
-- TRENCH-OPS / LAMARCK submit signing requests via `signingNode.endpoint` — never sign in agent runtime
+- TRENCH-OPS / LAMARCK use `titan-safety gate sign` (in-process) — never sign in agent runtime
 - Minimal OS, no evolution workloads (DGM-H, GEPA, fuzzing) on signing partition
-- Mac Mini vault holds key metadata + Trezor ceremonies; signing execution on signing_node
+- Mac Mini vault holds key metadata + Trezor ceremonies; signing execution on TITANHOME in-process
 - Pre-sign gates: GUARDIAN + risk kernel + EIP-712 typed data only
 
 """
@@ -790,7 +793,7 @@ def build_identity(text: str) -> str:
 - **TITANSPARK:** ASUS GX10 — utility inference (Qwen3-30B :30002) + operator gateway failover
 - **Mac Mini vault:** Mac Mini 2018 i7 6-core, 64GB DDR4 — key metadata, Trezor ceremonies
 - **Edge mesh:** full 5-PoP (`full_mesh`) — EDGE-FRA, EDGE-TKY, EDGE-SIN, EDGE-USE, EDGE-AMS — paper + live identical routing
-- **Signing node:** isolated endpoint (`signingNode` :19010) — UPS-protected
+- **Signing:** in-process `titan-safety` SigningNode — UPS-protected TITANHOME
 - **BOM:** `~/.openclaw/infra/hardware_bom.yaml`
 
 ## Models (ALL LOCAL — 3-Tier + Dual Tier-3 R&D)
@@ -913,14 +916,14 @@ def build_bootstrap() -> str:
 - [ ] Copy `~/.openclaw/infra/live.env.example` → `~/.openclaw/.env` and fill secrets
 - [ ] Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_USER_ID`
 - [ ] Set `TITAN_RECON_FETCHER_URL` or exchange API keys (recon fail-closed until wired)
-- [ ] Set `TITAN_LIVE_SIGNING_READY=1` only after Trezor bridge + `:19010` health OK
+- [ ] Set `TITAN_LIVE_SIGNING_READY=1` only after Trezor bridge + in-process signing health OK
 - [ ] Set `HERMES_HOME=~/.hermes`
 - [ ] Verify `capital_profile: live` in policy + openclaw; `paper` venue remains for shadow lanes
 
 ## Autonomous sign/verify (no human on trade path)
 
 - [ ] Confirm `autonomous_signing.enabled: true` in `~/.openclaw/risk_kernel/policy.yaml`
-- [ ] TRENCH-OPS uses `titan-safety gate sign` or gate check → receipt → signing_node
+- [ ] TRENCH-OPS uses `titan-safety gate sign` (in-process SigningNode after gate ALLOW)
 - [ ] Live venues: every sign request includes EIP-712 `typed_data` or `calldata`
 - [ ] Trades >1% equity: attach 2-of-3 BFT votes (`titan-safety bft vote` from AUGUR/PREDATOR/ATLAS)
 - [ ] Human gates still required: promotion Phase 5, evolution deploy, leverage, flash-loan live, >20% withdraw
@@ -958,8 +961,8 @@ def build_bootstrap() -> str:
 - [ ] Deploy infra specs: `~/.openclaw/infra/` (hardware_bom, power_requirements, signing_node, gpu_schedule)
 - [ ] **UPS installed and tested** — ≥3000VA, ≥15 min runtime (REQUIRED before live capital)
 - [ ] Power-loss drill: mains disconnect → trading HALT + CRITICAL alert
-- [ ] Signing node endpoint reachable: `curl http://127.0.0.1:19010/health`
-- [ ] Confirm TRENCH-OPS routes signing to signing_node (not agent runtime)
+- [ ] Confirm in-process signing: `signingNode.mode: in_process` (do not require `:19010`)
+- [ ] Confirm TRENCH-OPS never signs in agent runtime (titan-safety only)
 
 ## Agent Verification
 
@@ -1006,7 +1009,7 @@ def build_bootstrap() -> str:
 
 - [ ] Policy `capital_profile: live`; `paper` venue enabled for unpromoted/shadow lanes
 - [ ] `~/.openclaw/.env` filled from `live.env.example`
-- [ ] Agent-autonomous signing verified: confidence + BFT → gate receipt → signing_node
+- [ ] Agent-autonomous signing verified: confidence + BFT → gate receipt → in-process SigningNode
 - [ ] 48h reconciliation zero-divergence after creds wired
 - [ ] Micro-live ≤0.1% equity with kill switch armed
 - [ ] Phase 5 explicit operator YES for each funded lane promotion
@@ -1060,7 +1063,7 @@ def build_bootstrap() -> str:
 ## Completion
 
 - [ ] All checks pass → delete this BOOTSTRAP.md file
-- [ ] Enable systemd: `systemctl --user enable --now llama-server-tier1 llama-server-tier2 titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-portfolio-risk titan-status-aggregator titan-allocator titan-tca titan-security-ops titan-signing-node openclaw-gateway hermes-gateway`
+- [ ] Enable systemd: `systemctl --user enable --now llama-server-tier1 llama-server-tier2 titan-risk-kernel titan-reconciliation titan-dead-mans-switch titan-portfolio-risk titan-status-aggregator titan-allocator titan-tca titan-security-ops openclaw-gateway hermes-gateway` (titan-signing-node optional legacy only)
 """
 
 
@@ -1070,7 +1073,7 @@ def build_boot() -> str:
 
 Keep short. Runs on gateway restart when internal hooks are enabled.
 
-1. Confirm safety services healthy: `:19001`–`:19007`, `:19010` (`curl …/health`)
+1. Confirm safety services healthy: `:19001`–`:19008` (`curl …/health`); signing is in-process — do not require `:19010`
 2. Confirm kill switch inactive: `titan-safety kill status`
 3. Confirm evolution freeze if live capital: `titan-safety evolution status`
 4. Confirm inference tiers up: `:30000` (critical), `:30001` (reasoning)

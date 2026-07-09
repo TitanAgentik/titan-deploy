@@ -29,7 +29,7 @@ CLI: `titan-safety memecoin filter|evaluate --mint-json '…'` · `memecoin sim 
 - Infra: `infra/solana_memecoin.yaml` (Geyser + PumpSwap migration + Jito + EDGE-FRA)  
 - Config: `openclaw.json` → `memecoinTrench.enabled` (default false)  
 - Policy: `memecoin_trench:` block + live venues when ready  
-- Agents: PREDATOR (scan) → GUARDIAN/kernel → TRENCH-OPS (Jito) → signing_node  
+- Agents: PREDATOR (scan) → GUARDIAN/kernel → TRENCH-OPS (Jito) → in-process SigningNode  
 - Adapters: `solana_recon.py`, `jito_submit.py` (NotConfigured until live)
 
 ## Capital envelope

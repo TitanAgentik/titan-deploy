@@ -68,7 +68,7 @@ export function OpsCenter() {
         <Metric label="Capital profile" value={portfolio.capitalProfile.toUpperCase()} />
         <Metric label="Regime" value={portfolio.regime} />
         <Metric label="Max active pipelines" value="4" delta="allocator cap" />
-        <Metric label="Gate receipt TTL" value="30s" delta="signing_node" />
+        <Metric label="Gate receipt TTL" value="30s" delta="in-process" />
       </div>
 
       <div className="grid grid-2" style={{ marginBottom: 14 }}>
@@ -128,7 +128,7 @@ export function OpsCenter() {
             <li>POST /v1/sign with receipt ≤30s</li>
           </ol>
           <p className="mono small" style={{ marginTop: 14 }}>
-            endpoint · http://127.0.0.1:19010
+            mode · in-process (titan-safety)
           </p>
         </Card>
       </div>

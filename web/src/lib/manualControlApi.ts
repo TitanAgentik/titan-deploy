@@ -1,6 +1,6 @@
 /**
  * Thin control-plane stubs for Manual Control.
- * Mirrors titan-safety CLI / HTTP surfaces (:19001, :19008, :19010).
+ * Mirrors titan-safety CLI / HTTP surfaces (:19001, :19008) + in-process signing.
  * Demo mode returns structured results when backends are unreachable.
  */
 

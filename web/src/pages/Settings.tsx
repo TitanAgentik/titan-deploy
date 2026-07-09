@@ -198,7 +198,7 @@ export function Settings() {
                 ["/api/allocator", ":19006"],
                 ["/api/tca", ":19007"],
                 ["/api/security", ":19008"],
-                ["/api/sign", ":19010"],
+                ["/api/sign", "in-process"],
               ].map(([a, b]) => (
                 <tr key={a}>
                   <td>{a}</td>

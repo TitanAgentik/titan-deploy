@@ -133,7 +133,7 @@ See: https://hermes-agent.nousresearch.com/docs/user-guide/features/context-file
 ## Safety
 
 - Out-of-process risk kernel `:19001` — fail-closed
-- Execution gate + signing receipt `:19010`
+- Execution gate + in-process signing (gate receipt)
 - Kill switch / dead-man's switch / evolution freeze via `titan-safety` CLI
 
 ## Do not
@@ -294,7 +294,7 @@ def regenerate_configs_detail() -> None:
 ## Notes
 
 - Paper default: `reconciliation.adapter: mock`, `capital.withdrawal_adapter: mock`.
-- Live: `adapter: live` + fetcher; `withdrawal_adapter: trezor_signing`; gate receipts on `:19010`.
+- Live: `adapter: live` + fetcher; `withdrawal_adapter: trezor_signing`; in-process SigningNode + gate receipts.
 - Mutating safety POSTs need `X-Titan-Auth` (`titan-safety auth sign`).
 - Edit `templates/*` or regenerate bootstrap via `python3 scripts/build.py` — this file refreshes automatically.
 """

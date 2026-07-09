@@ -23,7 +23,7 @@
 
 | Agent | Tier | Role |
 |-------|------|------|
-| TRENCH-OPS | :30000 | Trade execution → signing_node (isolated) |
+| TRENCH-OPS | :30000 | Trade execution → in-process SigningNode |
 | LAMARCK | :30001 | Post-trade learning / MGPO |
 | DARWIN_GODEL | :30001 | Auto-research / HyEvo / DGM-H (shadow) |
 

@@ -341,7 +341,6 @@ export const services = [
   { name: "allocator", port: 19006, ok: true },
   { name: "tca", port: 19007, ok: true },
   { name: "security-ops", port: 19008, ok: true },
-  { name: "signing-node", port: 19010, ok: true },
 ];
 
 export const promotions = [
@@ -1176,7 +1175,7 @@ export const capitalLedger = {
 export const wallets = [
   {
     id: "hot-ops",
-    label: "Hot ops (signing_node)",
+    label: "Hot ops (in-process signing)",
     kind: "hot" as const,
     chain: "multi",
     address: "0x7a…c4e2",
@@ -1225,7 +1224,7 @@ export const walletTracker = {
   accounts: [
     {
       id: "hot-ops",
-      label: "Hot ops · signing_node",
+      label: "Hot ops · in-process signing",
       group: "Trading",
       kind: "hot" as const,
       chains: ["ethereum", "arbitrum", "base"],
@@ -1238,7 +1237,7 @@ export const walletTracker = {
       status: "synced" as const,
       lastTxTs: "2026-07-09T12:38:11Z",
       role: "TRENCH-OPS execution · session keys only",
-      signingPath: "127.0.0.1:19010",
+      signingPath: "titan-safety in-process",
       holdings: [
         { symbol: "USDC", name: "USD Coin", amount: 8420.12, usd: 8420.12, chain: "arbitrum", pct: 69.5 },
         { symbol: "ETH", name: "Ether", amount: 1.42, usd: 2840.0, chain: "ethereum", pct: 23.4 },
@@ -1538,7 +1537,7 @@ export const latencyCenter = {
     segments: [
       { id: "gate_combined", label: "Gate · fast_validate", endpoint: "POST /v1/fast_validate", budgetP95Ms: 15, liveP50Ms: 8.2, liveP95Ms: 12.1, status: "ok" as LatencySegmentStatus },
       { id: "gate_receipt", label: "Gate receipt issue", endpoint: "localhost", budgetP95Ms: 2, liveP50Ms: 0.9, liveP95Ms: 1.4, status: "ok" as LatencySegmentStatus },
-      { id: "signing_verify", label: "Signing verify", endpoint: ":19010 signing_node", budgetP95Ms: 5, liveP50Ms: 2.1, liveP95Ms: 3.8, status: "ok" as LatencySegmentStatus },
+      { id: "signing_verify", label: "Signing verify", endpoint: "in-process SigningNode", budgetP95Ms: 2, liveP50Ms: 0.4, liveP95Ms: 0.9, status: "ok" as LatencySegmentStatus },
       { id: "nostr_dispatch", label: "Nostr dispatch", endpoint: "Kind 1059 → edge", budgetP95Ms: 3, liveP50Ms: 1.2, liveP95Ms: 2.4, status: "ok" as LatencySegmentStatus },
       { id: "home_to_edge", label: "Home → edge (WG)", endpoint: "TITANHOME → PoP", budgetP95Ms: 25, liveP50Ms: 16.4, liveP95Ms: 21.8, status: "ok" as LatencySegmentStatus },
       { id: "edge_to_jito", label: "Edge → Jito BE", endpoint: "EDGE-FRA colo", budgetP95Ms: 5, liveP50Ms: 1.8, liveP95Ms: 3.6, status: "ok" as LatencySegmentStatus },
@@ -1659,7 +1658,7 @@ export const latencyCenter = {
   dispatchSteps: [
     { step: 1, hop: "PREDATOR / rules", latency: "0–2 ms", note: "Geyser / mempool signal (pre-validated)" },
     { step: 2, hop: "POST /v1/fast_validate", latency: "≤15 ms p95", note: "Recon + risk kernel single hop" },
-    { step: 3, hop: "signing_node :19010", latency: "≤5 ms p95", note: "TPM-SPI session verify" },
+    { step: 3, hop: "in-process SigningNode", latency: "≤1 ms p95", note: "Same process as gate — receipt + TPM-SPI session verify" },
     { step: 4, hop: "Nostr NIP-44 Kind 1059", latency: "≤3 ms", note: "TITANHOME → edge worker" },
     { step: 5, hop: "Edge PoP broadcast", latency: "≤1 ms", note: "Same-AZ to DEX / sequencer / builder" },
     { step: 6, hop: "DEX ack / bundle", latency: "≤50 ms E2E", note: "Excludes block inclusion time" },
@@ -1960,10 +1959,10 @@ export const impenetrableLayers = [
   },
   {
     id: "L2",
-    name: "Signing node isolation",
-    port: ":19010",
+    name: "Signing in-process isolation",
+    port: "titan-safety",
     status: "armed" as const,
-    detail: "Minimal OS · no evolution workloads · UPS · TPM-SPI PCR",
+    detail: "SigningNode module · no LLM · UPS TITANHOME · TPM-SPI PCR",
   },
   {
     id: "L3",
@@ -2185,7 +2184,6 @@ const SERVICE_PORT: Record<string, number> = {
   allocator: 19006,
   tca: 19007,
   security_ops: 19008,
-  signing_node: 19010,
 };
 
 function displayName(apiKey: string): string {
@@ -2513,7 +2511,7 @@ export const powerStatus = {
   },
   protectedOutlets: [
     { id: "titanhome_workstation", status: "protected" as const },
-    { id: "signing_node", status: "protected" as const },
+    { id: "signing_in_process", status: "protected" as const },
     { id: "titanspark_gx10", status: "protected" as const },
     { id: "macmini_vault", status: "protected" as const },
     { id: "network_core_switch", status: "protected" as const },
@@ -2568,7 +2566,7 @@ export const verifyChecklist = {
         { id: "alloc", label: "allocator :19006", status: "pass" as VerifyCheckStatus, port: 19006 },
         { id: "tca", label: "tca :19007", status: "pass" as VerifyCheckStatus, port: 19007 },
         { id: "sec", label: "security_ops :19008", status: "pass" as VerifyCheckStatus, port: 19008 },
-        { id: "sign", label: "signing_node :19010", status: "pass" as VerifyCheckStatus, port: 19010 },
+        { id: "sign", label: "signing in-process (titan-safety)", status: "pass" as VerifyCheckStatus },
       ],
     },
     {

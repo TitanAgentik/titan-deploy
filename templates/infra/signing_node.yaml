@@ -1,42 +1,53 @@
-# TITAN Signing Node — logically isolated transaction signing
+# TITAN Signing — in-process module (titan_safety.SigningNode)
 # Deploy target: ~/.openclaw/infra/signing_node.yaml
-# May be co-located on TITANHOME hardware but MUST be logically isolated from evolution workloads.
+#
+# Default: signing runs in-process inside titan-safety (gate sign / flatten /
+# capital) after a fresh ExecutionGate ALLOW receipt — no separate :19010 daemon.
+# Mac Mini vault retains key metadata + Trezor ceremonies; signing execution is
+# colocated on TITANHOME in the deterministic safety process (not agent/LLM).
 
-version: "1.0"
+version: "1.1"
 enabled: true
+mode: in_process  # in_process (default) | http (legacy optional)
 
+# Legacy HTTP listener — optional; not required for deploy or verify.sh
 endpoint:
-  host: localhost  # override to dedicated host FQDN when physically separated
+  optional_legacy: true
+  host: localhost
   port: 19010
   url: http://127.0.0.1:19010
   health: http://127.0.0.1:19010/health
+  note: "Only when signing.mode=http / TITAN_SIGNING_MODE=http"
 
 isolation:
-  minimal_os: true
+  in_process_module: titan_safety.signing_service.SigningNode
   no_evolution_workloads: true
   no_llm_inference: true
-  no_agent_runtime: true
-  power_protected: true  # UPS-backed per power_requirements.yaml
-  cgroup: openclaw-signing
+  no_agent_runtime: true  # never sign inside agent/LLM process
+  power_protected: true  # UPS-backed TITANHOME per power_requirements.yaml
+  cgroup: openclaw-safety
   allowed_processes:
+    - titan-safety
     - openclaw-trezor-bridge
-    - openclaw-signing-daemon
     - tpm-pcr-watch
-  forbidden_on_node:
+  forbidden_in_signer_process:
     - dgm-h
     - gepa
     - hyevo
     - skill_evolution
     - cuquantum
     - cudev_fuzzing
+    - llama-server
+    - agent runtime
 
 routing:
   agents:
     - TRENCH-OPS
     - LAMARCK
+  cli: titan-safety gate sign
   pre_sign_gates:
     - guardian_risk_validation
-    - execution_gate_allow_receipt  # X-Titan-Gate-Receipt required on POST /v1/sign
+    - execution_gate_allow_receipt  # X-Titan-Gate-Receipt required
     - risk_kernel_pre_trade
     - tenderly_simulation  # bridge txs
     - eip712_typed_data_only
@@ -50,16 +61,16 @@ routing:
     file_flag: ~/.openclaw/safety/SIGNING_HALTED
 
 hardware_options:
-  co_located:
-    description: "Dedicated VM or cgroup on TITANHOME; separate from GPU MPS partitions"
-    acceptable_for_phase1: true
-  dedicated_host:
-    description: "Minimal Ubuntu on separate NUC/RPi with USB to Trezor"
-    recommended_for_phase3_plus: true
+  colocated_in_process:
+    description: "SigningNode library inside titan-safety on TITANHOME; same machine as gate — zero extra network hop"
+    default: true
+  legacy_http_daemon:
+    description: "Optional python -m titan_safety.signing_service on :19010 — compatibility only"
+    required: false
 
 macmini_vault:
-  role: "Trezor ceremony + cold key metadata; signing requests proxied via NATS"
-  not_a_substitute_for: "isolated signing daemon — vault holds metadata, signing_node executes"
+  role: "Trezor ceremony + cold key metadata"
+  not_a_substitute_for: "in-process SigningNode on TITANHOME — vault holds metadata, safety stack executes"
 
 # Four-pillar Impenetrable layer L2 — security lockdown sets SIGNING_HALTED
 security_ops:

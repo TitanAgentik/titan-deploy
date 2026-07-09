@@ -14,8 +14,8 @@ export function Signing() {
   return (
     <>
       <PageHeader
-        title="Signing Node"
-        subtitle="Isolated signing at :19010 — refuses POST /v1/sign without fresh X-Titan-Gate-Receipt (max 30s)."
+        title="Signing"
+        subtitle="In-process titan-safety SigningNode — refuses to sign without fresh X-Titan-Gate-Receipt (max 30s). No :19010 daemon required."
         actions={
           <Btn
             variant={draft.showKeys ? "primary" : "ghost"}
@@ -38,7 +38,7 @@ export function Signing() {
       />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
-        <Metric label="Endpoint" value=":19010" />
+        <Metric label="Mode" value="in-process" delta="titan-safety" />
         <Metric label="Receipt TTL" value="30s" />
         <Metric label="Blind sign" value="REJECTED" />
         <Metric label="Live signer" value="REQUIRED" delta="capital_profile=live" />
