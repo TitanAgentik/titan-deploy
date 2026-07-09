@@ -927,23 +927,42 @@ table.data tr:hover td {
   opacity: 0.65;
 }
 
-.cockpit-save-bar-actions .btn.primary {
+/* Match dark cockpit primary: teal fill + near-black label (max contrast) */
+.cockpit-save-bar-actions .btn.primary,
+.cockpit-save-bar-actions button.btn.primary {
   background: linear-gradient(135deg, #34e0b4 0%, #23b7a0 100%);
-  color: #03130e;
+  color: #02140f;
   border-color: transparent;
-  box-shadow: 0 2px 12px rgba(3, 19, 14, 0.35);
-  font-weight: 650;
+  box-shadow: 0 2px 14px rgba(52, 224, 180, 0.35);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
 }
 
-.cockpit-save-bar-actions .btn.primary:hover:not(:disabled) {
+.cockpit-save-bar-actions .btn.primary:hover:not(:disabled),
+.cockpit-save-bar-actions button.btn.primary:hover:not(:disabled) {
   background: linear-gradient(135deg, #4ceabf 0%, #27c7ad 100%);
-  color: #03130e;
+  color: #02140f;
+  box-shadow: 0 4px 18px rgba(52, 224, 180, 0.45);
 }
 
-.cockpit-save-bar-actions .btn.primary:disabled {
-  color: #03130e;
-  opacity: 0.55;
+.cockpit-save-bar-actions .btn.primary:active:not(:disabled),
+.cockpit-save-bar-actions button.btn.primary:active:not(:disabled) {
+  background: linear-gradient(135deg, #2bc9a0 0%, #1fa890 100%);
+  color: #02140f;
+}
+
+.cockpit-save-bar-actions .btn.primary:disabled,
+.cockpit-save-bar-actions button.btn.primary:disabled {
+  color: #02140f;
+  opacity: 0.72;
   background: linear-gradient(135deg, #2bb896 0%, #1e9a86 100%);
+  box-shadow: none;
+}
+
+.cockpit-save-bar-actions .btn.primary svg {
+  color: inherit;
+  stroke: currentColor;
 }
 
 .mono { font-family: var(--mono); }
