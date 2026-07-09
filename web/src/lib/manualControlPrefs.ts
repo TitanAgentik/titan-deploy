@@ -1,6 +1,6 @@
 /**
- * Cockpit-local persistence for Manual Control selections.
- * Not live API state — survives navigation until backend wiring exists.
+ * Manual Control form prefs — stored under titan.cockpit.v1 → sections.manualControl.
+ * Migrates legacy titan.manualControl.v1 on first read.
  */
 
 import {
@@ -10,8 +10,14 @@ import {
   type PipelineRunState,
   type WindDownMode,
 } from "@/lib/data";
+import {
+  clearSection,
+  fingerprint,
+  loadSection,
+  saveSection,
+} from "@/lib/cockpitPersist";
 
-export const MANUAL_CONTROL_STORAGE_KEY = "titan.manualControl.v1";
+export const MANUAL_CONTROL_LEGACY_KEY = "titan.manualControl.v1";
 
 export type ManualControlPrefs = {
   v: 1;
@@ -104,63 +110,81 @@ export function formToPrefs(form: ManualControlFormState): ManualControlPrefs {
 
 /** Stable compare payload (excludes savedAt). */
 export function prefsFingerprint(prefs: ManualControlPrefs): string {
-  const { savedAt: _s, ...rest } = prefs;
-  return JSON.stringify(rest);
+  return fingerprint(prefs);
 }
 
-export function loadManualControlPrefs(): ManualControlPrefs | null {
+function parsePrefs(parsed: Partial<ManualControlPrefs>): ManualControlPrefs | null {
+  if (parsed.v !== 1 || typeof parsed !== "object" || parsed === null) return null;
+  if (!isWindDown(parsed.windDownMode) || !isHerald(parsed.heraldAlertLevel)) {
+    return null;
+  }
+  if (typeof parsed.selectedEdgePop !== "string") return null;
+  if (typeof parsed.maxActivePipelines !== "number") return null;
+  if (!Array.isArray(parsed.pipelines)) return null;
+
+  const pipelines = parsed.pipelines
+    .filter(
+      (p): p is ManualControlPrefs["pipelines"][number] =>
+        Boolean(p) &&
+        typeof p.id === "string" &&
+        typeof p.advisoryEnabled === "boolean" &&
+        isRunState(p.runState),
+    )
+    .map((p) => ({
+      id: p.id,
+      advisoryEnabled: p.advisoryEnabled,
+      runState: p.runState,
+    }));
+
+  return {
+    v: 1,
+    savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : new Date(0).toISOString(),
+    tradingHalted: Boolean(parsed.tradingHalted),
+    killActive: Boolean(parsed.killActive),
+    signingHalted: Boolean(parsed.signingHalted),
+    windDownMode: parsed.windDownMode,
+    evolutionFrozen: Boolean(parsed.evolutionFrozen),
+    honeypotArmed: Boolean(parsed.honeypotArmed),
+    promotionHold: Boolean(parsed.promotionHold),
+    selectedEdgePop: parsed.selectedEdgePop,
+    heraldAlertLevel: parsed.heraldAlertLevel,
+    maxActivePipelines: Math.max(1, Math.min(12, Math.round(parsed.maxActivePipelines))),
+    pipelines,
+  };
+}
+
+function migrateLegacy(): ManualControlPrefs | null {
   try {
-    const raw = localStorage.getItem(MANUAL_CONTROL_STORAGE_KEY);
+    const raw = localStorage.getItem(MANUAL_CONTROL_LEGACY_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<ManualControlPrefs>;
-    if (parsed.v !== 1 || typeof parsed !== "object" || parsed === null) return null;
-    if (!isWindDown(parsed.windDownMode) || !isHerald(parsed.heraldAlertLevel)) {
-      return null;
+    const parsed = parsePrefs(JSON.parse(raw) as Partial<ManualControlPrefs>);
+    if (parsed) {
+      saveSection("manualControl", parsed);
+      localStorage.removeItem(MANUAL_CONTROL_LEGACY_KEY);
     }
-    if (typeof parsed.selectedEdgePop !== "string") return null;
-    if (typeof parsed.maxActivePipelines !== "number") return null;
-    if (!Array.isArray(parsed.pipelines)) return null;
-
-    const pipelines = parsed.pipelines
-      .filter(
-        (p): p is ManualControlPrefs["pipelines"][number] =>
-          Boolean(p) &&
-          typeof p.id === "string" &&
-          typeof p.advisoryEnabled === "boolean" &&
-          isRunState(p.runState),
-      )
-      .map((p) => ({
-        id: p.id,
-        advisoryEnabled: p.advisoryEnabled,
-        runState: p.runState,
-      }));
-
-    return {
-      v: 1,
-      savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : new Date(0).toISOString(),
-      tradingHalted: Boolean(parsed.tradingHalted),
-      killActive: Boolean(parsed.killActive),
-      signingHalted: Boolean(parsed.signingHalted),
-      windDownMode: parsed.windDownMode,
-      evolutionFrozen: Boolean(parsed.evolutionFrozen),
-      honeypotArmed: Boolean(parsed.honeypotArmed),
-      promotionHold: Boolean(parsed.promotionHold),
-      selectedEdgePop: parsed.selectedEdgePop,
-      heraldAlertLevel: parsed.heraldAlertLevel,
-      maxActivePipelines: Math.max(1, Math.min(12, Math.round(parsed.maxActivePipelines))),
-      pipelines,
-    };
+    return parsed;
   } catch {
     return null;
   }
 }
 
+export function loadManualControlPrefs(): ManualControlPrefs | null {
+  const fromStore = loadSection<Partial<ManualControlPrefs>>("manualControl");
+  if (fromStore) {
+    const parsed = parsePrefs(fromStore);
+    if (parsed) return parsed;
+  }
+  return migrateLegacy();
+}
+
 export function saveManualControlPrefs(prefs: ManualControlPrefs): void {
-  localStorage.setItem(MANUAL_CONTROL_STORAGE_KEY, JSON.stringify(prefs));
+  saveSection("manualControl", prefs);
+  localStorage.removeItem(MANUAL_CONTROL_LEGACY_KEY);
 }
 
 export function clearManualControlPrefs(): void {
-  localStorage.removeItem(MANUAL_CONTROL_STORAGE_KEY);
+  clearSection("manualControl");
+  localStorage.removeItem(MANUAL_CONTROL_LEGACY_KEY);
 }
 
 export function hydrateFormState(

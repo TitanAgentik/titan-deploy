@@ -1,10 +1,17 @@
 import { PageHeader, Card, Metric, Tag, Btn } from "@/components/ui";
+import { SaveBar } from "@/components/SaveBar";
 import { ToastStack, useToasts } from "@/components/interactive";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 import { flashLoanRouter } from "@/lib/data";
+
+const FLASH_LOANS_DEFAULTS = { showPaperOnly: false };
 
 export function FlashLoans() {
   const { toasts, push, dismiss } = useToasts();
+  const { draft, update, dirty, lastSavedAt, save, discard, resetDefaults } =
+    useCockpitDraft("flashLoans", FLASH_LOANS_DEFAULTS);
   const fl = flashLoanRouter;
+  const composes = fl.recentComposes;
 
   return (
     <>
@@ -13,6 +20,12 @@ export function FlashLoans() {
         subtitle="§FL multi-source routing — ALCHEMY composes, TRENCH-OPS executes. Live requires promotion YES + typed_data signing."
         actions={
           <>
+            <Btn
+              variant={draft.showPaperOnly ? "primary" : "ghost"}
+              onClick={() => update({ showPaperOnly: !draft.showPaperOnly })}
+            >
+              {draft.showPaperOnly ? "All composes" : "Paper only"}
+            </Btn>
             <Btn onClick={() => push("Paper sim queued (demo)", "ok")}>Run paper sim</Btn>
             <Btn
               variant="primary"
@@ -23,6 +36,17 @@ export function FlashLoans() {
             </Btn>
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
@@ -74,7 +98,7 @@ export function FlashLoans() {
         </div>
       </Card>
 
-      <Card title="Recent paper composes" style={{ marginTop: 14 }}>
+      <Card title={draft.showPaperOnly ? "Recent paper composes" : "Recent composes (all)"} style={{ marginTop: 14 }}>
         <div className="table-wrap">
           <table className="data">
             <thead>
@@ -88,7 +112,7 @@ export function FlashLoans() {
               </tr>
             </thead>
             <tbody>
-              {fl.recentComposes.map((c) => (
+              {composes.map((c) => (
                 <tr key={c.ts}>
                   <td className="mono small">{c.ts.replace("T", " ").slice(0, 19)}</td>
                   <td>{c.chain}</td>

@@ -8,12 +8,27 @@ import {
   useToasts,
 } from "@/components/interactive";
 import { promotions } from "@/lib/data";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type Promo = (typeof promotions)[number];
 
 export function Promotions() {
   const { toasts, push, dismiss } = useToasts();
-  const [selected, setSelected] = useState<Promo | null>(promotions[0] ?? null);
+  const {
+    draft: promoPrefs,
+    update: updatePromo,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("promotions", {
+    selectedId: (promotions[0]?.id ?? null) as string | null,
+  });
+  const selected =
+    promotions.find((p) => p.id === promoPrefs.selectedId) ?? promotions[0] ?? null;
+  const setSelected = (p: Promo | null) => updatePromo({ selectedId: p?.id ?? null });
   const [drawer, setDrawer] = useState<Promo | null>(null);
 
   const decide = (p: Promo, action: "YES" | "HOLD" | "NO") => {
@@ -55,6 +70,18 @@ export function Promotions() {
           </>
         }
       />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
+      />
+
       <Card title="Queue · click to select · ⋯ for details">
         <div className="table-wrap">
           <table className="data">

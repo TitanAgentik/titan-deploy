@@ -1,15 +1,30 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { PageHeader, Card, Metric, Tag, Btn } from "@/components/ui";
+import { SaveBar } from "@/components/SaveBar";
 import { ToastStack, useToasts } from "@/components/interactive";
 import { quantumInspired, strategyDisplay } from "@/lib/data";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type LaneView = "sa" | "kelly" | "compare";
 
+type QiPrefs = {
+  laneView: LaneView;
+  scenarioIdx: number;
+};
+
+const DEFAULTS: QiPrefs = { laneView: "compare", scenarioIdx: 0 };
+
 export function QuantumInspired() {
   const { toasts, push, dismiss } = useToasts();
-  const [laneView, setLaneView] = useState<LaneView>("compare");
-  const [scenarioIdx, setScenarioIdx] = useState(0);
+  const { draft, update, dirty, lastSavedAt, save, discard, resetDefaults } =
+    useCockpitDraft("qiOptimizer", DEFAULTS);
+
+  const laneView = draft.laneView;
+  const scenarioIdx = Math.min(
+    Math.max(0, draft.scenarioIdx),
+    Math.max(0, quantumInspired.altScenarios.length - 1),
+  );
 
   const qi = quantumInspired;
   const scenario = qi.altScenarios[scenarioIdx];
@@ -53,6 +68,17 @@ export function QuantumInspired() {
         }
       />
 
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("QI view saved locally", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
+      />
+
       <div className="alert-banner">
         <strong>Advisory only</strong> — live_path=false · backend=classical_sa · quantum.enabled unchanged ·
         QCC/QSA/QRP dormant. SA output does not gate execution; risk kernel DENY remains authoritative.
@@ -75,7 +101,7 @@ export function QuantumInspired() {
             key={v.id}
             type="button"
             className={`btn${laneView === v.id ? " primary" : ""}`}
-            onClick={() => setLaneView(v.id)}
+            onClick={() => update({ laneView: v.id })}
           >
             {v.label}
           </button>
@@ -211,7 +237,7 @@ export function QuantumInspired() {
                   key={s.label}
                   type="button"
                   className={`btn small${scenarioIdx === i ? " primary" : ""}`}
-                  onClick={() => setScenarioIdx(i)}
+                  onClick={() => update({ scenarioIdx: i })}
                 >
                   {s.label}
                 </button>

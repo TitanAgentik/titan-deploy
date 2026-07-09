@@ -12,6 +12,8 @@ import {
 import { PageHeader, Card, Tag, Btn, Metric } from "@/components/ui";
 import { Drawer, ToastStack, useToasts } from "@/components/interactive";
 import { cryptoTwitter } from "@/lib/data";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type Post = (typeof cryptoTwitter.posts)[number];
 type ListId = (typeof cryptoTwitter.lists)[number]["id"];
@@ -41,9 +43,26 @@ function formatViews(n: number): string {
 export function CryptoTwitter() {
   const ct = cryptoTwitter;
   const { toasts, push, dismiss } = useToasts();
-  const [list, setList] = useState<ListId>("all");
-  const [query, setQuery] = useState("");
-  const [paused, setPaused] = useState(false);
+  const {
+    draft: twPrefs,
+    update: updateTw,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("cryptoTwitter", {
+    list: "all" as ListId,
+    query: "",
+    paused: false,
+  });
+  const list = twPrefs.list;
+  const query = twPrefs.query;
+  const paused = twPrefs.paused;
+  const setList = (v: ListId) => updateTw({ list: v });
+  const setQuery = (v: string) => updateTw({ query: v });
+  const setPaused = (v: boolean | ((p: boolean) => boolean)) =>
+    updateTw({ paused: typeof v === "function" ? v(paused) : v });
   const [selected, setSelected] = useState<Post | null>(null);
 
   const posts = useMemo(() => {
@@ -88,6 +107,17 @@ export function CryptoTwitter() {
             </Btn>
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>

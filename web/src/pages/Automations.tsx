@@ -1,12 +1,35 @@
-import { useState } from "react";
 import { PageHeader, Card, Tag, Btn } from "@/components/ui";
 import { automations } from "@/lib/data";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
+import { ToastStack, useToasts } from "@/components/interactive";
+
+const AUTOMATION_DEFAULTS = {
+  enabled: Object.fromEntries(automations.map((a) => [a.id, a.enabled])) as Record<string, boolean>,
+};
 
 export function Automations() {
-  const [rows, setRows] = useState(automations);
+  const { toasts, push, dismiss } = useToasts();
+  const {
+    draft,
+    setDraft,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("automations", AUTOMATION_DEFAULTS);
+
+  const rows = automations.map((a) => ({
+    ...a,
+    enabled: draft.enabled[a.id] ?? a.enabled,
+  }));
 
   const toggle = (id: string) =>
-    setRows((r) => r.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a)));
+    setDraft((d) => ({
+      ...d,
+      enabled: { ...d.enabled, [id]: !(d.enabled[id] ?? true) },
+    }));
 
   return (
     <>
@@ -14,6 +37,17 @@ export function Automations() {
         title="Automations"
         subtitle="Scheduled and event-driven control loops — profit sweep, DMS, TCA defund, evolution freeze."
         actions={<Btn variant="primary">New automation</Btn>}
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
       <Card>
         <div className="table-wrap">
@@ -47,6 +81,7 @@ export function Automations() {
           </table>
         </div>
       </Card>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </>
   );
 }

@@ -9,11 +9,29 @@ import {
   useToasts,
 } from "@/components/interactive";
 import { portfolio } from "@/lib/data";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
+
+const COMMAND_DEFAULTS = {
+  kill: portfolio.killActive,
+  frozen: portfolio.evolutionFrozen,
+};
 
 export function CommandCenter() {
   const { toasts, push: toast, dismiss } = useToasts();
-  const [kill, setKill] = useState(portfolio.killActive);
-  const [frozen, setFrozen] = useState(portfolio.evolutionFrozen);
+  const {
+    draft: cmdPrefs,
+    update: updateCmd,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("commandCenter", COMMAND_DEFAULTS);
+  const kill = cmdPrefs.kill;
+  const frozen = cmdPrefs.frozen;
+  const setKill = (v: boolean) => updateCmd({ kill: v });
+  const setFrozen = (v: boolean) => updateCmd({ frozen: v });
   const [log, setLog] = useState<string[]>([]);
   const [killModal, setKillModal] = useState(false);
   const [resumeModal, setResumeModal] = useState(false);
@@ -49,6 +67,17 @@ export function CommandCenter() {
             />
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          toast("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="grid grid-3" style={{ marginBottom: 14 }}>

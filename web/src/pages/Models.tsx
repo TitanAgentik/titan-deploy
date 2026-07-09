@@ -1,13 +1,48 @@
-import { PageHeader, Card, Tag } from "@/components/ui";
+import { useMemo } from "react";
+import { PageHeader, Card, Tag, Btn } from "@/components/ui";
+import { SaveBar } from "@/components/SaveBar";
+import { ToastStack, useToasts } from "@/components/interactive";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 import { modelTiers } from "@/lib/data";
 
+const MODELS_DEFAULTS = { liveOnly: false };
+
 export function Models() {
+  const { toasts, push, dismiss } = useToasts();
+  const { draft, update, dirty, lastSavedAt, save, discard, resetDefaults } =
+    useCockpitDraft("models", MODELS_DEFAULTS);
+
+  const rows = useMemo(
+    () => (draft.liveOnly ? modelTiers.filter((m) => m.live) : modelTiers),
+    [draft.liveOnly],
+  );
+
   return (
     <>
       <PageHeader
         title="Model Tiers"
         subtitle="Local open-weights only on the live path. No Claude / GPT / Gemini on TRENCH-OPS, GUARDIAN, or EXECUTOR."
+        actions={
+          <Btn
+            variant={draft.liveOnly ? "primary" : "ghost"}
+            onClick={() => update({ liveOnly: !draft.liveOnly })}
+          >
+            {draft.liveOnly ? "Show all tiers" : "Live path only"}
+          </Btn>
+        }
       />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
+      />
+
       <Card>
         <div className="table-wrap">
           <table className="data">
@@ -21,7 +56,7 @@ export function Models() {
               </tr>
             </thead>
             <tbody>
-              {modelTiers.map((m) => (
+              {rows.map((m) => (
                 <tr key={m.tier}>
                   <td>{m.tier}</td>
                   <td>{m.port}</td>
@@ -46,6 +81,8 @@ export function Models() {
           <li>Trade votes AUGUR + PREDATOR + ATLAS — advisory; risk kernel DENY wins</li>
         </ul>
       </Card>
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </>
   );
 }

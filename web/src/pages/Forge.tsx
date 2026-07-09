@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
 import { PageHeader, Card, Tag, Btn } from "@/components/ui";
+import { SaveBar } from "@/components/SaveBar";
+import { ToastStack, useToasts } from "@/components/interactive";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 import { edgePops, latencyBudget, services } from "@/lib/data";
 
 const CORE_HOSTS = [
@@ -8,13 +11,20 @@ const CORE_HOSTS = [
   { host: "signing_node", role: "Isolated signing :19010", gpu: "—", status: "healthy" },
 ];
 
+const FORGE_DEFAULTS = { showEdge: true };
+
 export function Forge() {
+  const { toasts, push, dismiss } = useToasts();
+  const { draft, update, dirty, lastSavedAt, save, discard, resetDefaults } =
+    useCockpitDraft("forge", FORGE_DEFAULTS);
+
   const edgeHosts = edgePops.map((e) => ({
     host: e.id,
     role: e.targets,
     gpu: "—",
     status: e.status,
   }));
+  const hosts = draft.showEdge ? [...CORE_HOSTS, ...edgeHosts] : CORE_HOSTS;
 
   return (
     <>
@@ -23,12 +33,29 @@ export function Forge() {
         subtitle="Infrastructure health, inference tiers, full 5-PoP edge mesh, and ms hot-path latency — FORGE agent surface."
         actions={
           <>
+            <Btn
+              variant={draft.showEdge ? "primary" : "ghost"}
+              onClick={() => update({ showEdge: !draft.showEdge })}
+            >
+              {draft.showEdge ? "Hide" : "Show"} edge hosts
+            </Btn>
             <Link className="btn" to="/latency">
               Latency
             </Link>
             <Btn variant="primary">Run health sweep</Btn>
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
@@ -67,7 +94,7 @@ export function Forge() {
       </div>
 
       <div className="grid grid-2">
-        <Card title="Hosts · core + edge mesh">
+        <Card title={draft.showEdge ? "Hosts · core + edge mesh" : "Hosts · core only"}>
           <div className="table-wrap">
             <table className="data">
               <thead>
@@ -79,7 +106,7 @@ export function Forge() {
                 </tr>
               </thead>
               <tbody>
-                {[...CORE_HOSTS, ...edgeHosts].map((h) => (
+                {hosts.map((h) => (
                   <tr key={h.host}>
                     <td>{h.host}</td>
                     <td>{h.role}</td>
@@ -119,6 +146,8 @@ export function Forge() {
           </div>
         </Card>
       </div>
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </>
   );
 }

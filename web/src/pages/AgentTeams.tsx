@@ -9,6 +9,8 @@ import {
   useToasts,
 } from "@/components/interactive";
 import { agents } from "@/lib/data";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type Agent = (typeof agents)[number];
 
@@ -16,8 +18,22 @@ export function AgentTeams() {
   const { toasts, push, dismiss } = useToasts();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [spawn, setSpawn] = useState(false);
-  const [parent, setParent] = useState("ARCHON");
-  const [task, setTask] = useState("Investigate P12 WATCH lane");
+  const {
+    draft: agentPrefs,
+    update: updateAgent,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("agentTeams", {
+    parent: "ARCHON",
+    task: "Investigate P12 WATCH lane",
+  });
+  const parent = agentPrefs.parent;
+  const task = agentPrefs.task;
+  const setParent = (v: string) => updateAgent({ parent: v });
+  const setTask = (v: string) => updateAgent({ task: v });
 
   return (
     <>
@@ -29,6 +45,17 @@ export function AgentTeams() {
             Spawn sub-agent…
           </Btn>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
       <div className="grid grid-3">
         {agents.map((a) => (

@@ -1,8 +1,33 @@
 import { Link } from "react-router-dom";
 import { PageHeader, Card, Btn, Metric, Tag } from "@/components/ui";
+import { SaveBar } from "@/components/SaveBar";
+import { ToastStack, useToasts } from "@/components/interactive";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 import { formatPnl, lanes, pnl, portfolio, capitalLedger } from "@/lib/data";
 
+type Range = "wtd" | "mtd" | "ytd";
+
+const REPORTS_DEFAULTS = { range: "wtd" as Range };
+
+const RANGE_TABS: { id: Range; label: string }[] = [
+  { id: "wtd", label: "WTD" },
+  { id: "mtd", label: "MTD" },
+  { id: "ytd", label: "YTD" },
+];
+
 export function Reports() {
+  const { toasts, push, dismiss } = useToasts();
+  const { draft, update, dirty, lastSavedAt, save, discard, resetDefaults } =
+    useCockpitDraft("reports", REPORTS_DEFAULTS);
+
+  const rangeLabel = draft.range.toUpperCase();
+  const pnlValue =
+    draft.range === "wtd"
+      ? formatPnl(pnl.weeklyUsd)
+      : draft.range === "mtd"
+        ? formatPnl(pnl.mtdUsd)
+        : formatPnl(pnl.tradingPnlUsd, false);
+
   return (
     <>
       <PageHeader
@@ -18,8 +43,33 @@ export function Reports() {
           </>
         }
       />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
+      />
+
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+        {RANGE_TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`btn${draft.range === t.id ? " primary" : ""}`}
+            onClick={() => update({ range: t.id })}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
-        <Metric label="WTD PnL" value={formatPnl(pnl.weeklyUsd)} deltaDir="up" delta="trading" />
+        <Metric label={`${rangeLabel} PnL`} value={pnlValue} deltaDir="up" delta="trading" />
         <Metric label="MTD PnL" value={formatPnl(pnl.mtdUsd)} deltaDir="up" delta="trading" />
         <Metric label="Deposits YTD" value={`$${portfolio.depositedUsd.toLocaleString()}`} delta="ledger ≠ PnL" />
         <Metric
@@ -32,34 +82,37 @@ export function Reports() {
           }
         />
       </div>
-      <Card title="PnL by lane (WTD)" style={{ marginBottom: 14 }}>
+      <Card title={`PnL by lane (${rangeLabel})`} style={{ marginBottom: 14 }}>
         <div className="table-wrap">
           <table className="data">
             <thead>
               <tr>
                 <th>Lane</th>
-                <th>WTD PnL</th>
+                <th>{rangeLabel} PnL</th>
                 <th>MTD PnL</th>
                 <th>Net bps</th>
                 <th>Health</th>
               </tr>
             </thead>
             <tbody>
-              {lanes.map((l) => (
-                <tr key={l.id}>
-                  <td>
-                    {l.id} · {l.name}
-                  </td>
-                  <td>
-                    <Tag kind={l.pnlWtdUsd >= 0 ? "healthy" : "bleeding"}>
-                      {formatPnl(l.pnlWtdUsd)}
-                    </Tag>
-                  </td>
-                  <td className="mono">{formatPnl(l.pnlMtdUsd)}</td>
-                  <td>{l.netBps.toFixed(1)}</td>
-                  <td>{l.health}</td>
-                </tr>
-              ))}
+              {lanes.map((l) => {
+                const periodPnl = draft.range === "mtd" ? l.pnlMtdUsd : l.pnlWtdUsd;
+                return (
+                  <tr key={l.id}>
+                    <td>
+                      {l.id} · {l.name}
+                    </td>
+                    <td>
+                      <Tag kind={periodPnl >= 0 ? "healthy" : "bleeding"}>
+                        {formatPnl(periodPnl)}
+                      </Tag>
+                    </td>
+                    <td className="mono">{formatPnl(l.pnlMtdUsd)}</td>
+                    <td>{l.netBps.toFixed(1)}</td>
+                    <td>{l.health}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -78,10 +131,13 @@ export function Reports() {
             <li>decision_log.jsonl excerpt (last 100)</li>
             <li>Kill / flatten / promotion audit</li>
             <li>TCA by lane + allocator exclusions</li>
-            <li>Gate receipt + signing audit hashes</li>
+            <li>Drawdown tier notifications</li>
+            <li>Capital ledger vs PnL reconciliation</li>
           </ul>
         </Card>
       </div>
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </>
   );
 }

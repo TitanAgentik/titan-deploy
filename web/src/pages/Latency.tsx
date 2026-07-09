@@ -25,6 +25,8 @@ import {
   latencySegmentStatus,
   type LatencySegmentStatus,
 } from "@/lib/data";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type HotSegment = (typeof latencyCenter.hotPath.segments)[number];
 type VenueRtt = (typeof latencyCenter.venueRtt)[number];
@@ -47,7 +49,17 @@ function pathClassTag(pathClass: PipelineClass["pathClass"]) {
 
 export function Latency() {
   const { toasts, push, dismiss } = useToasts();
-  const [tab, setTab] = useState<Tab>("overview");
+  const {
+    draft: latPrefs,
+    update: updateLat,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("latency", { tab: "overview" as Tab });
+  const tab = latPrefs.tab;
+  const setTab = (v: Tab) => updateLat({ tab: v });
   const [segment, setSegment] = useState<HotSegment | null>(null);
   const [venue, setVenue] = useState<VenueRtt | null>(null);
   const [event, setEvent] = useState<LatencyEvent | null>(null);
@@ -91,6 +103,17 @@ export function Latency() {
             </Link>
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>

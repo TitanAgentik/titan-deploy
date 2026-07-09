@@ -1,8 +1,17 @@
 import { Link } from "react-router-dom";
 import { PageHeader, Card, Tag, Metric } from "@/components/ui";
+import { SaveBar } from "@/components/SaveBar";
+import { ToastStack, useToasts } from "@/components/interactive";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 import { edgeMesh, edgePops, edgeStrategyRouting, latencyBudget } from "@/lib/data";
 
+const EDGE_DEFAULTS = { preferredPop: edgeMesh.defaultPop };
+
 export function EdgeMesh() {
+  const { toasts, push, dismiss } = useToasts();
+  const { draft, update, dirty, lastSavedAt, save, discard, resetDefaults } =
+    useCockpitDraft("edge", EDGE_DEFAULTS);
+
   return (
     <>
       <PageHeader
@@ -15,12 +24,41 @@ export function EdgeMesh() {
         }
       />
 
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
+      />
+
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
         <Metric label="Mode" value={edgeMesh.mode.replace("_", " ").toUpperCase()} />
         <Metric label="Active PoPs" value={String(edgeMesh.activePops)} />
         <Metric label="Default PoP" value={edgeMesh.defaultPop} />
         <Metric label="Paper routing" value={edgeMesh.paperLatencyFaithful ? "FAITHFUL" : "OFF"} />
       </div>
+
+      <Card title="Preferred PoP" style={{ marginBottom: 14 }}>
+        <p className="muted small" style={{ marginTop: 0 }}>
+          Operator override for routing preview — live dispatch still uses lowest p50 RTT.
+        </p>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+          {edgePops.map((e) => (
+            <button
+              key={e.id}
+              type="button"
+              className={`btn${draft.preferredPop === e.id ? " primary" : ""}`}
+              onClick={() => update({ preferredPop: e.id })}
+            >
+              {e.id}
+            </button>
+          ))}
+        </div>
+      </Card>
 
       <Card title="PoP inventory">
         <div className="table-wrap">
@@ -37,8 +75,22 @@ export function EdgeMesh() {
             </thead>
             <tbody>
               {edgePops.map((e) => (
-                <tr key={e.id}>
-                  <td>{e.id}</td>
+                <tr
+                  key={e.id}
+                  style={
+                    draft.preferredPop === e.id
+                      ? { background: "rgba(6, 182, 212, 0.08)" }
+                      : undefined
+                  }
+                >
+                  <td>
+                    {e.id}
+                    {draft.preferredPop === e.id ? (
+                      <span style={{ marginLeft: 6 }}>
+                        <Tag kind="info">preferred</Tag>
+                      </span>
+                    ) : null}
+                  </td>
                   <td>{e.region}</td>
                   <td className="mono small">{e.wg}</td>
                   <td style={{ fontFamily: "var(--font)" }}>{e.targets}</td>
@@ -103,6 +155,8 @@ export function EdgeMesh() {
           <span className="mono">POP=EDGE-* bash edge_pop_bootstrap.sh</span>
         </p>
       </Card>
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </>
   );
 }

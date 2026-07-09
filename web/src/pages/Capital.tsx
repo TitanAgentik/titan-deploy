@@ -16,6 +16,8 @@ import {
   portfolio,
   wallets,
 } from "@/lib/data";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type Tab = "overview" | "deposit" | "withdraw" | "wallets" | "sweep";
 type Wallet = (typeof wallets)[number];
@@ -25,12 +27,35 @@ const PRESETS = ["500", "1000", "2500", "5000"];
 
 export function Capital() {
   const { toasts, push: toast, dismiss } = useToasts();
-  const [tab, setTab] = useState<Tab>("overview");
-  const [amount, setAmount] = useState("2500");
-  const [asset, setAsset] = useState("USDC");
+  const {
+    draft: capPrefs,
+    update: updateCap,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("capital", {
+    tab: "overview" as Tab,
+    amount: "2500",
+    asset: "USDC",
+    address: "trezor:safe-7",
+    note: "Biweekly injection",
+    adapter: capitalLedger.withdrawalAdapter,
+  });
+  const tab = capPrefs.tab;
+  const amount = capPrefs.amount;
+  const asset = capPrefs.asset;
+  const address = capPrefs.address;
+  const note = capPrefs.note;
+  const adapter = capPrefs.adapter;
+  const setTab = (v: Tab) => updateCap({ tab: v });
+  const setAmount = (v: string) => updateCap({ amount: v });
+  const setAsset = (v: string) => updateCap({ asset: v });
+  const setAddress = (v: string) => updateCap({ address: v });
+  const setNote = (v: string) => updateCap({ note: v });
+  const setAdapter = (v: typeof capitalLedger.withdrawalAdapter) => updateCap({ adapter: v });
   const [confirmYes, setConfirmYes] = useState(false);
-  const [address, setAddress] = useState("trezor:safe-7");
-  const [note, setNote] = useState("Biweekly injection");
   const [log, setLog] = useState<string[]>([]);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [txn, setTxn] = useState<Txn | null>(null);
@@ -38,7 +63,6 @@ export function Capital() {
   const [withdrawConfirm, setWithdrawConfirm] = useState(false);
   const [sweepModal, setSweepModal] = useState(false);
   const [ceremony, setCeremony] = useState(false);
-  const [adapter, setAdapter] = useState(capitalLedger.withdrawalAdapter);
 
   const toUnlock = Math.max(0, capitalLedger.sweepThresholdUsd - portfolio.equityUsd);
   const progress = Math.min(
@@ -74,17 +98,35 @@ export function Capital() {
               Wallet Tracker
             </Link>
             <ActionMenu
-            label="Quick actions"
-            variant="primary"
-            items={[
-              { label: "New deposit", onClick: () => setTab("deposit") },
-              { label: "New withdraw", onClick: () => setTab("withdraw") },
-              { label: "Open Safe 7 sweep", onClick: () => setTab("sweep") },
-              { label: "Copy CLI deposit", hint: "clipboard", onClick: () => push("Copied: titan-safety capital deposit --amount 2500 --asset USDC") },
-            ]}
-          />
+              label="Quick actions"
+              variant="primary"
+              items={[
+                { label: "New deposit", onClick: () => setTab("deposit") },
+                { label: "New withdraw", onClick: () => setTab("withdraw") },
+                { label: "Open Safe 7 sweep", onClick: () => setTab("sweep") },
+                {
+                  label: "Copy CLI deposit",
+                  hint: "clipboard",
+                  onClick: () =>
+                    push(
+                      "Copied: titan-safety capital deposit --amount 2500 --asset USDC",
+                    ),
+                },
+              ]}
+            />
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          toast("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="alert-banner">

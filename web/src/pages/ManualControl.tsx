@@ -17,6 +17,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageHeader, Card, Tag, Btn, Metric } from "@/components/ui";
+import { SaveBar } from "@/components/SaveBar";
 import {
   ActionMenu,
   DetailGrid,
@@ -340,28 +341,14 @@ export function ManualControl() {
         }
       />
 
-      <div className={`cockpit-save-bar${dirty ? " dirty" : ""}`}>
-        <div className="cockpit-save-bar-meta">
-          <span className={`chip ${dirty ? "warn" : "ok"}`}>
-            {dirty ? "Unsaved changes" : "Saved locally (cockpit)"}
-          </span>
-          <span className="muted small">
-            Browser localStorage · not live API
-            {lastSavedAt ? ` · last save ${lastSavedAt.slice(11, 19)}Z` : " · no save yet"}
-          </span>
-        </div>
-        <div className="cockpit-save-bar-actions">
-          <Btn variant="ghost" disabled={!dirty || busy} onClick={discardUnsaved}>
-            Discard
-          </Btn>
-          <Btn variant="ghost" disabled={busy} onClick={resetToDefaults}>
-            Reset defaults
-          </Btn>
-          <Btn variant="primary" disabled={!dirty || busy} onClick={saveLocal}>
-            <Save size={14} /> Save
-          </Btn>
-        </div>
-      </div>
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        disabled={busy}
+        onSave={saveLocal}
+        onDiscard={discardUnsaved}
+        onResetDefaults={resetToDefaults}
+      />
 
       {/* System posture strip */}
       <div

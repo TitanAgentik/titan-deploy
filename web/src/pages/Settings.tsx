@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { PageHeader, Card, Btn, Tag } from "@/components/ui";
+import { ToastStack, useToasts } from "@/components/interactive";
 import {
   clearHmacToken,
   getHmacToken,
   setHmacToken,
 } from "@/lib/auth";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type ThemeId = "light" | "dark";
 
@@ -16,7 +19,18 @@ function readTheme(): ThemeId {
 }
 
 export function Settings() {
-  const [bind, setBind] = useState("0.0.0.0");
+  const { toasts, push, dismiss } = useToasts();
+  const {
+    draft: settingsPrefs,
+    update: updateSettings,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("settings", { bind: "0.0.0.0" });
+  const bind = settingsPrefs.bind;
+  const setBind = (v: string) => updateSettings({ bind: v });
   const [token, setToken] = useState("");
   const [hmacSaved, setHmacSaved] = useState(() => Boolean(getHmacToken()));
   const [theme, setTheme] = useState<ThemeId>(readTheme);
@@ -36,6 +50,17 @@ export function Settings() {
         eyebrow="Governance"
         title="Settings"
         subtitle="Remote access, auth, appearance, and Agentik connectivity. Prefer Tailscale / SSH tunnel — never expose unsigned admin UI publicly."
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="grid grid-2" style={{ marginBottom: 14 }}>
@@ -184,6 +209,7 @@ export function Settings() {
           </table>
         </div>
       </Card>
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </>
   );
 }

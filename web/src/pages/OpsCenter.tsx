@@ -1,13 +1,54 @@
-import { PageHeader, Card, Tag, Metric } from "@/components/ui";
+import { PageHeader, Card, Tag, Metric, Btn } from "@/components/ui";
+import { SaveBar } from "@/components/SaveBar";
+import { ToastStack, useToasts } from "@/components/interactive";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 import { lanes, portfolio } from "@/lib/data";
 
+type Focus = "recon" | "tca" | "allocator";
+
+const OPS_DEFAULTS = { focus: "recon" as Focus };
+
+const FOCUS_TABS: { id: Focus; label: string }[] = [
+  { id: "recon", label: "Reconciliation" },
+  { id: "tca", label: "TCA lanes" },
+  { id: "allocator", label: "Allocator" },
+];
+
 export function OpsCenter() {
+  const { toasts, push, dismiss } = useToasts();
+  const { draft, update, dirty, lastSavedAt, save, discard, resetDefaults } =
+    useCockpitDraft("ops", OPS_DEFAULTS);
+
   return (
     <>
       <PageHeader
         title="Ops Center"
         subtitle="Live execution ops: reconciliation, TCA lanes, allocator concentration, and signing gate."
       />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
+      />
+
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+        {FOCUS_TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`btn${draft.focus === t.id ? " primary" : ""}`}
+            onClick={() => update({ focus: t.id })}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
         <Metric label="Capital profile" value={portfolio.capitalProfile.toUpperCase()} />
@@ -17,7 +58,10 @@ export function OpsCenter() {
       </div>
 
       <div className="grid grid-2" style={{ marginBottom: 14 }}>
-        <Card title="Reconciliation">
+        <Card
+          title="Reconciliation"
+          style={draft.focus === "recon" ? { outline: "2px solid var(--accent)" } : undefined}
+        >
           <p className="muted small" style={{ marginTop: 0 }}>
             Believed vs DEX / on-chain. Mock adapter banned when capital_profile=live. Strict DEX-only (R02 / R46).
           </p>
@@ -75,7 +119,10 @@ export function OpsCenter() {
         </Card>
       </div>
 
-      <Card title="TCA → allocator profit loop">
+      <Card
+        title="TCA → allocator profit loop"
+        style={draft.focus === "tca" || draft.focus === "allocator" ? { outline: "2px solid var(--accent)" } : undefined}
+      >
         <div className="table-wrap">
           <table className="data">
             <thead>
@@ -108,7 +155,14 @@ export function OpsCenter() {
             </tbody>
           </table>
         </div>
+        {draft.focus === "allocator" ? (
+          <p className="muted small" style={{ marginBottom: 0, marginTop: 12 }}>
+            Concentration cap: ≤4 funded HEALTHY lanes via allocator — soft-highlight active.
+          </p>
+        ) : null}
       </Card>
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </>
   );
 }

@@ -1,12 +1,40 @@
-import { PageHeader, Card, Tag } from "@/components/ui";
+import { PageHeader, Card, Tag, Btn } from "@/components/ui";
+import { SaveBar } from "@/components/SaveBar";
+import { ToastStack, useToasts } from "@/components/interactive";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 import { autonomyMatrix } from "@/lib/data";
 
+const IDENTITY_DEFAULTS = { showMatrix: true };
+
 export function Identity() {
+  const { toasts, push, dismiss } = useToasts();
+  const { draft, update, dirty, lastSavedAt, save, discard, resetDefaults } =
+    useCockpitDraft("identity", IDENTITY_DEFAULTS);
+
   return (
     <>
       <PageHeader
         title="Identity"
         subtitle="Operator + system identity — SOUL / IDENTITY bootstrap, bounded autonomy matrix, signing isolation."
+        actions={
+          <Btn
+            variant={draft.showMatrix ? "primary" : "ghost"}
+            onClick={() => update({ showMatrix: !draft.showMatrix })}
+          >
+            {draft.showMatrix ? "Hide" : "Show"} autonomy matrix
+          </Btn>
+        }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="grid grid-2" style={{ marginBottom: 14 }}>
@@ -36,34 +64,38 @@ export function Identity() {
         </Card>
       </div>
 
-      <Card title="Bounded autonomy matrix (enforced)">
-        <div className="table-wrap">
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Action</th>
-                <th>Auto-execute</th>
-                <th>Human YES</th>
-              </tr>
-            </thead>
-            <tbody>
-              {autonomyMatrix.map((row) => (
-                <tr key={row.action}>
-                  <td>{row.action}</td>
-                  <td>
-                    <Tag kind={row.auto ? "healthy" : "neutral"}>{row.auto ? "YES" : "—"}</Tag>
-                  </td>
-                  <td>
-                    <Tag kind={!row.auto ? "watch" : "neutral"}>
-                      {row.note ?? (!row.auto ? "YES" : "—")}
-                    </Tag>
-                  </td>
+      {draft.showMatrix ? (
+        <Card title="Bounded autonomy matrix (enforced)">
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Auto-execute</th>
+                  <th>Human YES</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody>
+                {autonomyMatrix.map((row) => (
+                  <tr key={row.action}>
+                    <td>{row.action}</td>
+                    <td>
+                      <Tag kind={row.auto ? "healthy" : "neutral"}>{row.auto ? "YES" : "—"}</Tag>
+                    </td>
+                    <td>
+                      <Tag kind={!row.auto ? "watch" : "neutral"}>
+                        {row.note ?? (!row.auto ? "YES" : "—")}
+                      </Tag>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : null}
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
     </>
   );
 }

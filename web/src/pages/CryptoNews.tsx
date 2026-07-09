@@ -19,6 +19,8 @@ import {
   type NewsCategory,
   type NewsImpact,
 } from "@/lib/data";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type Article = (typeof cryptoNews.articles)[number];
 type CategoryId = (typeof cryptoNews.categories)[number]["id"];
@@ -60,10 +62,30 @@ function sourceTierLabel(tier: Article["source"]["tier"]): string {
 export function CryptoNews() {
   const cn = cryptoNews;
   const { toasts, push, dismiss } = useToasts();
-  const [category, setCategory] = useState<CategoryId>("all");
-  const [query, setQuery] = useState("");
+  const {
+    draft: newsPrefs,
+    update: updateNews,
+    setDraft: setNewsDraft,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("cryptoNews", {
+    category: "all" as CategoryId,
+    query: "",
+    savedIds: [] as string[],
+  });
+  const category = newsPrefs.category;
+  const query = newsPrefs.query;
+  const setCategory = (v: CategoryId) => updateNews({ category: v });
+  const setQuery = (v: string) => updateNews({ query: v });
+  const saved = useMemo(() => new Set(newsPrefs.savedIds), [newsPrefs.savedIds]);
+  const setSaved = (updater: Set<string> | ((prev: Set<string>) => Set<string>)) => {
+    const next = typeof updater === "function" ? updater(saved) : updater;
+    updateNews({ savedIds: Array.from(next) });
+  };
   const [selected, setSelected] = useState<Article | null>(null);
-  const [saved, setSaved] = useState<Set<string>>(new Set());
 
   const featured = useMemo(
     () => cn.articles.filter((a) => cn.featuredIds.includes(a.id)),
@@ -117,6 +139,17 @@ export function CryptoNews() {
             </Btn>
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>

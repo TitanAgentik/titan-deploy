@@ -30,6 +30,8 @@ import {
   type TrackerAccount,
   type WatchCategory,
 } from "@/lib/walletWatchlist";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type Flow = (typeof walletTracker.recentFlows)[number];
 type View = "portfolio" | "watchlist";
@@ -70,10 +72,28 @@ const EMPTY_ADD: AddWalletInput = {
 export function WalletTracker() {
   const wt = walletTracker;
   const { toasts, push, dismiss } = useToasts();
-  const [view, setView] = useState<View>("portfolio");
-  const [selfFilter, setSelfFilter] = useState<SelfFilter>("all");
-  const [watchFilter, setWatchFilter] = useState<WatchFilter>("all");
-  const [query, setQuery] = useState("");
+  const {
+    draft: wtPrefs,
+    update: updateWt,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("walletTracker", {
+    view: "portfolio" as View,
+    selfFilter: "all" as SelfFilter,
+    watchFilter: "all" as WatchFilter,
+    query: "",
+  });
+  const view = wtPrefs.view;
+  const selfFilter = wtPrefs.selfFilter;
+  const watchFilter = wtPrefs.watchFilter;
+  const query = wtPrefs.query;
+  const setView = (v: View) => updateWt({ view: v });
+  const setSelfFilter = (v: SelfFilter) => updateWt({ selfFilter: v });
+  const setWatchFilter = (v: WatchFilter) => updateWt({ watchFilter: v });
+  const setQuery = (v: string) => updateWt({ query: v });
   const [selected, setSelected] = useState<TrackerAccount | null>(null);
   const [flow, setFlow] = useState<Flow | null>(null);
   const [customWallets, setCustomWallets] = useState<CustomWatchedWallet[]>([]);
@@ -208,6 +228,17 @@ export function WalletTracker() {
             </Btn>
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>

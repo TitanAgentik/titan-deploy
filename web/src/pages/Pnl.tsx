@@ -26,6 +26,8 @@ import {
   recentTradesPnl,
   strategyCategoryLabels,
 } from "@/lib/data";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type Trade = (typeof recentTradesPnl)[number];
 type Strategy = (typeof pnlByStrategy)[number];
@@ -36,7 +38,17 @@ export function Pnl() {
   const { toasts, push, dismiss } = useToasts();
   const [selected, setSelected] = useState<Trade | null>(null);
   const [strategy, setStrategy] = useState<Strategy | null>(null);
-  const [chartMode, setChartMode] = useState<"cumulative" | "daily">("cumulative");
+  const {
+    draft: pnlPrefs,
+    update: updatePnl,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("pnl", { chartMode: "cumulative" as "cumulative" | "daily" });
+  const chartMode = pnlPrefs.chartMode;
+  const setChartMode = (v: "cumulative" | "daily") => updatePnl({ chartMode: v });
 
   const chartData =
     chartMode === "cumulative"
@@ -82,6 +94,17 @@ export function Pnl() {
             </Link>
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>

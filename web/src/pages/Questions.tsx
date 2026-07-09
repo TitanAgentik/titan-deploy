@@ -8,14 +8,39 @@ import {
   useToasts,
 } from "@/components/interactive";
 import { questions } from "@/lib/data";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type Q = (typeof questions)[number];
 
+const QUESTIONS_DEFAULTS: {
+  draft: string;
+  target: string;
+  selectedId: string | null;
+} = {
+  draft: "",
+  target: "CORTEX",
+  selectedId: questions[0]?.id ?? null,
+};
+
 export function Questions() {
   const { toasts, push, dismiss } = useToasts();
-  const [draft, setDraft] = useState("");
-  const [target, setTarget] = useState("CORTEX");
-  const [selected, setSelected] = useState<Q | null>(null);
+  const {
+    draft: qPrefs,
+    update: updateQ,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("questions", QUESTIONS_DEFAULTS);
+  const draft = qPrefs.draft;
+  const target = qPrefs.target;
+  const setDraft = (v: string) => updateQ({ draft: v });
+  const setTarget = (v: string) => updateQ({ target: v });
+  const selected =
+    questions.find((q) => q.id === qPrefs.selectedId) ?? null;
+  const setSelected = (q: Q | null) => updateQ({ selectedId: q?.id ?? null });
   const [drawer, setDrawer] = useState<Q | null>(null);
 
   const answer = (q: Q, action: string) => {
@@ -28,6 +53,17 @@ export function Questions() {
       <PageHeader
         title="Questions"
         subtitle="Click a question for full context and reply options. Ask Titan Agentik with a target agent."
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="grid grid-2" style={{ marginBottom: 14 }}>

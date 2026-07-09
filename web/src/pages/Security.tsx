@@ -10,6 +10,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { PageHeader, Card, Tag, Btn, Metric } from "@/components/ui";
+import { SaveBar } from "@/components/SaveBar";
 import {
   ActionMenu,
   DetailGrid,
@@ -18,6 +19,7 @@ import {
   ToastStack,
   useToasts,
 } from "@/components/interactive";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 import {
   evasionControls,
   impenetrableLayers,
@@ -82,16 +84,42 @@ function statusKind(s: Stalk["status"]): "bleeding" | "watch" | "healthy" | "neu
   return "neutral";
 }
 
+type SecurityPrefs = {
+  pillar: Pillar;
+  huntMode: boolean;
+  honeypotArmed: boolean;
+};
+
+const SECURITY_DEFAULTS: SecurityPrefs = {
+  pillar: "impenetrable",
+  huntMode: true,
+  honeypotArmed: true,
+};
+
 export function Security() {
   const { toasts, push, dismiss } = useToasts();
-  const [pillar, setPillar] = useState<Pillar>("impenetrable");
+  const {
+    draft: prefs,
+    update: updatePrefs,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("security", SECURITY_DEFAULTS);
+  const pillar = prefs.pillar;
+  const huntMode = prefs.huntMode;
+  const honeypotArmed = prefs.honeypotArmed;
+  const setPillar = (p: Pillar) => updatePrefs({ pillar: p });
+  const setHuntMode = (v: boolean | ((prev: boolean) => boolean)) =>
+    updatePrefs({ huntMode: typeof v === "function" ? v(huntMode) : v });
+  const setHoneypotArmed = (v: boolean | ((prev: boolean) => boolean)) =>
+    updatePrefs({ honeypotArmed: typeof v === "function" ? v(honeypotArmed) : v });
   const [target, setTarget] = useState<Stalk | null>(null);
   const [layer, setLayer] = useState<Layer | null>(null);
   const [pred, setPred] = useState<Pred | null>(null);
   const [lockdown, setLockdown] = useState(false);
   const [lockdownBusy, setLockdownBusy] = useState(false);
-  const [huntMode, setHuntMode] = useState(true);
-  const [honeypotArmed, setHoneypotArmed] = useState(true);
   const [live, setLive] = useState<LiveSecurityPosture | null>(null);
 
   const isLive = Boolean(live?.live);
@@ -222,6 +250,16 @@ export function Security() {
               <Lock size={14} /> Security lockdown…
             </Btn>
             <Btn
+              variant="ghost"
+              onClick={() => {
+                save();
+                push("Saved locally (cockpit)", "ok");
+              }}
+              disabled={!dirty}
+            >
+              Save prefs
+            </Btn>
+            <Btn
               variant="primary"
               onClick={() => void refreshLive()}
             >
@@ -229,6 +267,17 @@ export function Security() {
             </Btn>
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>

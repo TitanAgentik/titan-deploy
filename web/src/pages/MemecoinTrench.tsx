@@ -1,15 +1,30 @@
 import { useState } from "react";
 import { PageHeader, Card, Metric, Tag, Btn } from "@/components/ui";
 import { Drawer, ToastStack, useToasts } from "@/components/interactive";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 import { memecoinTrench } from "@/lib/data";
 
 type Candidate = (typeof memecoinTrench.recentCandidates)[number];
 
+function candidateId(c: Candidate): string {
+  return `${c.ts}|${c.mint}`;
+}
+
+const MEMECOIN_DEFAULTS = { selectedId: null as string | null };
+
 export function MemecoinTrench() {
   const { toasts, push, dismiss } = useToasts();
   const mc = memecoinTrench;
-  const [selected, setSelected] = useState<Candidate | null>(null);
+  const { draft, update, dirty, lastSavedAt, save, discard, resetDefaults } =
+    useCockpitDraft("memecoin", MEMECOIN_DEFAULTS);
+  const [drawer, setDrawer] = useState<Candidate | null>(null);
   const solPct = Math.min(100, (mc.dailySolUsed / mc.dailySolCap) * 100);
+
+  const openCandidate = (c: Candidate) => {
+    update({ selectedId: candidateId(c) });
+    setDrawer(c);
+  };
 
   return (
     <>
@@ -30,6 +45,17 @@ export function MemecoinTrench() {
             </Btn>
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
@@ -119,7 +145,12 @@ export function MemecoinTrench() {
                   <tr
                     key={c.ts + c.mint}
                     className="row-click"
-                    onClick={() => setSelected(c)}
+                    style={
+                      draft.selectedId === candidateId(c)
+                        ? { background: "rgba(6, 182, 212, 0.08)" }
+                        : undefined
+                    }
+                    onClick={() => openCandidate(c)}
                   >
                     <td className="mono small">{c.ts.replace("T", " ").slice(11, 19)}</td>
                     <td className="mono">{c.mint}</td>
@@ -203,17 +234,17 @@ export function MemecoinTrench() {
       </Card>
 
       <Drawer
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        title={selected?.mint ?? ""}
-        subtitle={selected ? `${selected.strategy} · conf ${selected.confidence.toFixed(2)}` : ""}
+        open={!!drawer}
+        onClose={() => setDrawer(null)}
+        title={drawer?.mint ?? ""}
+        subtitle={drawer ? `${drawer.strategy} · conf ${drawer.confidence.toFixed(2)}` : ""}
         footer={
           <>
-            <Btn variant="ghost" onClick={() => setSelected(null)}>
+            <Btn variant="ghost" onClick={() => setDrawer(null)}>
               Close
             </Btn>
-            {selected?.passed ? (
-              <Btn variant="primary" onClick={() => push(`Paper buy queued · ${selected.mint}`, "ok")}>
+            {drawer?.passed ? (
+              <Btn variant="primary" onClick={() => push(`Paper buy queued · ${drawer.mint}`, "ok")}>
                 Paper buy
               </Btn>
             ) : (
@@ -222,7 +253,7 @@ export function MemecoinTrench() {
           </>
         }
       >
-        {selected ? (
+        {drawer ? (
           <div className="table-wrap">
             <table className="data">
               <thead>
@@ -232,7 +263,7 @@ export function MemecoinTrench() {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(selected.gates).map(([gate, result]) => (
+                {Object.entries(drawer.gates).map(([gate, result]) => (
                   <tr key={gate}>
                     <td className="mono small">{gate}</td>
                     <td>
@@ -244,9 +275,9 @@ export function MemecoinTrench() {
                 ))}
               </tbody>
             </table>
-            {"rejectReason" in selected && selected.rejectReason ? (
+            {"rejectReason" in drawer && drawer.rejectReason ? (
               <p className="muted small" style={{ marginTop: 12 }}>
-                Reject: {selected.rejectReason}
+                Reject: {drawer.rejectReason}
               </p>
             ) : null}
           </div>

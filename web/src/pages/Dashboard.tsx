@@ -35,6 +35,8 @@ import {
   type HealthOverall,
   type HealthProbeResult,
 } from "@/lib/data";
+import { SaveBar } from "@/components/SaveBar";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
 
 type Lane = (typeof lanes)[number];
 type Promo = (typeof promotions)[number];
@@ -60,8 +62,19 @@ export function Dashboard() {
   const [svc, setSvc] = useState<Svc | null>(null);
   const [metric, setMetric] = useState<"equity" | "pnl" | "available" | "deposits" | "dd" | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
-  const [range, setRange] = useState("7d");
-  const [chartMode, setChartMode] = useState<"equity" | "pnl">("equity");
+  const {
+    draft: dashPrefs,
+    update: updateDash,
+    dirty,
+    lastSavedAt,
+    save,
+    discard,
+    resetDefaults,
+  } = useCockpitDraft("dashboard", { range: "7d" as string, chartMode: "equity" as "equity" | "pnl" });
+  const range = dashPrefs.range;
+  const chartMode = dashPrefs.chartMode;
+  const setRange = (v: string) => updateDash({ range: v });
+  const setChartMode = (v: "equity" | "pnl") => updateDash({ chartMode: v });
   const [health, setHealth] = useState<HealthProbeResult | null>(null);
 
   const refreshHealth = useCallback(async () => {
@@ -103,6 +116,7 @@ export function Dashboard() {
                 { label: "Compliance PDF", hint: "Reports", onClick: () => push("Queued compliance PDF", "warn") },
               ]}
             />
+
             <ActionMenu
               label={<>Range · {range}</>}
               items={[
@@ -129,6 +143,17 @@ export function Dashboard() {
             </Btn>
           </>
         }
+      />
+
+      <SaveBar
+        dirty={dirty}
+        lastSavedAt={lastSavedAt}
+        onSave={() => {
+          save();
+          push("Saved locally (cockpit)", "ok");
+        }}
+        onDiscard={discard}
+        onResetDefaults={resetDefaults}
       />
 
       {portfolio.evolutionFrozen ? (
