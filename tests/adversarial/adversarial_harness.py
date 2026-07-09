@@ -258,6 +258,47 @@ def scenario_stalk_posture_pillars() -> None:
             str(pillars),
         )
         check("six_impenetrable_layers", len(st.get("layers") or []) == 6)
+        check("ghost_evasion_posture", bool(st.get("ghost_evasion")))
+        check("predatory_ops_posture", bool(st.get("predatory_ops")))
+        check("stealth_doctrine", st.get("doctrine") == "invisible_to_them_visible_to_us")
+
+
+def scenario_stealth_public_rpc_deny() -> None:
+    """Live capital must DENY public RPC paths — fail-closed evasion."""
+    from titan_safety.kernel import RiskKernel, TradeRequest
+    from titan_safety.policy_loader import load_policy
+
+    with tempfile.TemporaryDirectory() as td:
+        policy_path = Path(td) / "policy.yaml"
+        policy_path.write_text(
+            """
+version: "2.1"
+mode: enforce
+capital_profile: live
+trading_limits:
+  equity_usd: 2500
+  max_notional_usd_per_trade: 500
+allowed_venues: [paper, public_rpc, jito]
+ghost_evasion:
+  enabled: true
+  require_shielded_path_live: true
+  shielded_venues: [jito]
+""",
+            encoding="utf-8",
+        )
+        kernel = RiskKernel(load_policy(policy_path))
+        result = kernel.validate_trade(
+            TradeRequest(
+                trade_id="adv1",
+                venue="public_rpc",
+                contract="0xabc",
+                side="buy",
+                notional_usd=5.0,
+                confidence=0.9,
+            )
+        )
+        check("public_rpc_stealth_deny", result.decision == "DENY")
+        check("public_rpc_code", result.code == "STEALTH_PUBLIC_PATH", result.code)
 
 
 def scenario_memecoin_honeypot_filter() -> None:
@@ -402,6 +443,7 @@ def main() -> int:
     scenario_security_lockdown_halts_signing()
     scenario_honeypot_default_armed()
     scenario_stalk_posture_pillars()
+    scenario_stealth_public_rpc_deny()
     scenario_memecoin_honeypot_filter()
     scenario_autonomous_low_confidence_deny()
     scenario_autonomous_bft_required()

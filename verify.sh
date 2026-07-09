@@ -497,10 +497,20 @@ if [[ -f "$PROJECT_ROOT/templates/safety/titan_safety/memecoin_filter.py" ]]; th
 else
   fail "Missing memecoin_filter.py"
 fi
+if grep -q "cmd_memecoin_evaluate" "$PROJECT_ROOT/templates/safety/titan_safety/cli.py" 2>/dev/null; then
+  pass "CLI: memecoin evaluate registered"
+else
+  fail "Missing memecoin evaluate CLI"
+fi
 if [[ -f "$PROJECT_ROOT/templates/infra/solana_memecoin.yaml" ]]; then
   pass "infra/solana_memecoin.yaml present"
 else
   fail "Missing solana_memecoin.yaml"
+fi
+if grep -q "pump_swap_migration\|PumpSwap\|pumpswap" "$PROJECT_ROOT/templates/infra/solana_memecoin.yaml" 2>/dev/null; then
+  pass "solana_memecoin.yaml: PumpSwap migration markers"
+else
+  fail "solana_memecoin.yaml missing PumpSwap migration"
 fi
 _mc_mem=""
 for _mc in \
@@ -689,6 +699,34 @@ if [[ -f "$OPENCLAW_HOME/risk_kernel/policy.yaml" ]]; then
   else
     fail "risk_kernel/policy.yaml missing security CBs"
   fi
+fi
+
+if [[ -f "$PROJECT_ROOT/templates/infra/ghost_evasion.yaml" ]] \
+   || [[ -f "$OPENCLAW_HOME/infra/ghost_evasion.yaml" ]]; then
+  pass "ghost_evasion.yaml infra spec present"
+else
+  fail "Missing infra/ghost_evasion.yaml"
+fi
+
+if [[ -f "$OPENCLAW_HOME/risk_kernel/policy.yaml" ]]; then
+  if grep -q "ghost_evasion:" "$OPENCLAW_HOME/risk_kernel/policy.yaml" 2>/dev/null; then
+    pass "policy.yaml: ghost_evasion block"
+  else
+    fail "risk_kernel/policy.yaml missing ghost_evasion block"
+  fi
+  if grep -q "CB_STEALTH_PUBLIC_PATH\|CB_STEALTH_UNSHIELDED_VENUE" \
+       "$OPENCLAW_HOME/risk_kernel/policy.yaml" 2>/dev/null; then
+    pass "policy.yaml: stealth circuit breakers"
+  else
+    fail "risk_kernel/policy.yaml missing stealth CBs"
+  fi
+fi
+
+if [[ -f "$OPENCLAW_HOME/safety/titan_safety/stealth_predatory.py" ]] \
+   || [[ -f "$PROJECT_ROOT/templates/safety/titan_safety/stealth_predatory.py" ]]; then
+  pass "stealth_predatory module present"
+else
+  fail "Missing titan_safety/stealth_predatory.py"
 fi
 
 for skill in sentinel_security predator_scanner; do

@@ -21,6 +21,13 @@ phases:
       - evolution_deploy
       - phase5_go_nogo
       - memecoin_p22_activation
+    memecoin_p22:
+      note: "High-toxicity lane — require six-gate filter dry-run ≥48h + memecoin sim + Geyser/Jito wired before YES"
+      prerequisites:
+        - titan-safety memecoin sim --count 100
+        - titan-safety memecoin filter (honeypot expect DENY)
+        - infra/solana_memecoin.yaml configured
+        - capital_profile live only after paper≥3d
 
 constitutional_blocks:
   - SOUL.md

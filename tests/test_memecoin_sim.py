@@ -19,3 +19,12 @@ def test_sim_deterministic_seed() -> None:
     b = run_simulation(count=20, seed=99)
     assert a["passed"] == b["passed"]
     assert a["rejected"] == b["rejected"]
+
+
+def test_sim_rejects_majority_rugs() -> None:
+    r = run_simulation(count=80, seed=3, equity_usd=5000.0)
+    assert r["pipeline_id"] == "P22"
+    assert r["pass_rate"] < 0.95  # six-gate rejects most synthetic rugs
+    assert "scorecard" in r
+    if r["fills"] > 0:
+        assert isinstance(r["scorecard"], dict)

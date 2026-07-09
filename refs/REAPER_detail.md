@@ -45,11 +45,22 @@ titan-safety security lockdown --dry-run --operator YOU --reason "drill"
 
 ## Operator note
 
-**Mention ≠ mandate.** Predatory modules (honeypots, poison fills, full lockdown) are optional escalation — not always-on. Prefer observe/stalk before disrupt.
+**Core posture is always on:** Evasion (Ghost), Stalking (hunt_mode), and Predatory (honeypot lattice) default armed per `security_ops` + `ghost_evasion` policy. PREDATOR classifies adversaries continuously; TRENCH-OPS routes live capital only through shielded venues. Escalation modules (full lockdown, poison fills >1% equity) still require operator YES or kernel gates.
+
+**Mention ≠ mandate** for *optional* catalog modules beyond the core four pillars.
+
+## P22 Memecoin trench (defensive)
+
+PREDATOR six-gate filter + lifecycle classifier for Pump.fun / PumpSwap. **Defensive only** — no launch bundler dumps, honeypot construction, or rug tooling.
+
+- Filter/sim: `titan-safety memecoin filter|evaluate|sim`
+- Infra: `infra/solana_memecoin.yaml` · skill `memecoin_trench` · playbook `memecoin_trench.yaml`
+- Live: promotion YES + `memecoinTrench.enabled` + `capital_profile: live`
+- CBs: `CB_MEMECOIN_*` in policy `memecoin_circuit_breakers`
 
 ## See also
 
-- Skill: `predator_scanner`, `sentinel_security`
-- Playbook: `security_lockdown.yaml`
-- Titan Agentik: `/security`
+- Skill: `predator_scanner`, `sentinel_security`, `memecoin_trench`
+- Playbook: `security_lockdown.yaml`, `memecoin_trench.yaml`
+- Titan Agentik: `/security`, `/memecoin`
 - P44 AGENT_HUNT (TITAN.reconciled)

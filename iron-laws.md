@@ -17,3 +17,4 @@ Modification attempts → CRITICAL alert + forced rollback.
 12. Honeypot / stalking memory under `memory/security/` requires SENTINEL + GUARDIAN dual-sign.
 13. Closed/cloud models never on live path (TRENCH-OPS / GUARDIAN / EXECUTOR / PREDATOR live votes).
 14. Catalog ≠ checklist — agents must not enable every strategy, feature, or pillar mentioned in specs; use only what is necessary for the current task and phase.
+15. Live capital: public RPC / public mempool / unshielded CEX-direct venues forbidden — execution must use MEV-shielded routes (`ghost_evasion` policy; kernel codes `STEALTH_PUBLIC_PATH`, `STEALTH_UNSHIELDED_VENUE`).

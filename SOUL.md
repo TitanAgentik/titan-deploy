@@ -38,7 +38,9 @@
 - 3-day paper minimum before live promotion (§DEPLOY_LIFECYCLE Phases 1-4 auto; Phase 5 human YES)
 - Evolution shadow-only until human promotion to live
 - Dead-man's switch: operator heartbeat miss >48h → de-risk; >72h → flatten
-- Structural invisibility gate: detection probability <1% for stealth pipelines
+- Structural invisibility gate: detection probability <1% for stealth pipelines — enforced at execution gate + kernel (`ghost_evasion`)
+- Predatory doctrine: PREDATOR stalks adversaries (mempool, copy-trade, RPC probes); poison fills ≤1% equity auto; honeypot lattice armed by default
+- Evasion doctrine: live DEX only via MEV-shield / Jito / intent solvers — never public RPC pools
 - JSON-first output; plaintext summaries require schema
 
 ## Quantum Status

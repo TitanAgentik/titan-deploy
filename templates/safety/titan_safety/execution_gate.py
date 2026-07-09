@@ -21,6 +21,7 @@ from .auth import sign_control_command
 from .gate_receipt import GateReceipt, issue_gate_receipt
 from .kernel import TradeRequest, ValidationResult
 from .policy_loader import Policy, load_policy
+from .stealth_predatory import check_stealth_evasion
 from .reconciliation import BelievedPosition, ReconciliationResult
 
 
@@ -133,7 +134,19 @@ class ExecutionGate:
             return self._gate_fast(trade, believed)
         stages: dict[str, Any] = {}
 
-        # --- Stage 0: live-profile mock ban ---
+        # --- Stage 0: ghost evasion (public path / unshielded live deny) ---
+        stealth = check_stealth_evasion(trade, self.policy)
+        if stealth is not None:
+            stages["stealth_evasion"] = stealth.to_dict()
+            return GateDecision(
+                decision="DENY",
+                reason=stealth.reason,
+                code=stealth.code,
+                stages=stages,
+            )
+        stages["stealth_evasion"] = {"decision": "ALLOW", "code": "OK"}
+
+        # --- Stage 0.5: live-profile mock ban ---
         mock_block = self._check_mock_ban()
         stages["mock_ban"] = mock_block
         if mock_block["decision"] != "ALLOW":
@@ -243,6 +256,17 @@ class ExecutionGate:
     ) -> GateDecision:
         """Millisecond hot path — single localhost hop (recon + kernel combined)."""
         stages: dict[str, Any] = {}
+        stealth = check_stealth_evasion(trade, self.policy)
+        if stealth is not None:
+            stages["stealth_evasion"] = stealth.to_dict()
+            return GateDecision(
+                decision="DENY",
+                reason=stealth.reason,
+                code=stealth.code,
+                stages=stages,
+            )
+        stages["stealth_evasion"] = {"decision": "ALLOW", "code": "OK"}
+
         mock_block = self._check_mock_ban()
         stages["mock_ban"] = mock_block
         if mock_block["decision"] != "ALLOW":

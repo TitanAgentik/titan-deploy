@@ -24,9 +24,10 @@ That is a **catalog**, not a requirement to run everything.
 
 1. Enable only what current capital, phase, and operator intent need.
 2. Allocator `max_active_pipelines` (default **4**) is the hard concentration cap.
-3. Security: Impenetrable baseline always; other pillars on demand.
+3. Security: **Impenetrable always**; **Evasion + Stalking + Predatory armed by default** (`ghost_evasion` + `security_ops`). Live DEX only via shielded routes — public RPC forbidden.
 4. New pipeline / skill / PoP = human YES (or promotion gate) — never auto-expand the set.
 5. Prefer fewer HEALTHY lanes over many marginal ones.
+6. **P22 Memecoin Trench** requires human YES + live profile + `memecoinTrench.enabled` — never auto-activate from catalog mention.
 
 ## See
 
@@ -35,6 +36,7 @@ That is a **catalog**, not a requirement to run everything.
 - USER.md Preferences
 - `risk_kernel/policy.yaml` allocator.selective_activation
 - `openclaw.json` autonomy.selectiveActivation
+- `memory/strategies/memecoin-trench.md`
 """
 
 
@@ -140,6 +142,12 @@ MEMECOIN_CBS = [
     "CB_MEMECOIN_TIP_BLEED",
 ]
 
+STEALTH_CBS = [
+    "CB_STEALTH_PUBLIC_PATH",
+    "CB_STEALTH_UNSHIELDED_VENUE",
+    "CB_STALK_SEVERITY_HIGH",
+]
+
 
 def extract_critical_cbs(text: str) -> str:
     text = unescape_markdown(text)
@@ -165,6 +173,12 @@ def extract_critical_cbs(text: str) -> str:
     lines.append("## P22 Memecoin trench")
     lines.append("")
     for cb in MEMECOIN_CBS:
+        lines.append(f"- `{cb}`")
+        seen.add(cb)
+    lines.append("")
+    lines.append("## Stealth / predatory")
+    lines.append("")
+    for cb in STEALTH_CBS:
         lines.append(f"- `{cb}`")
         seen.add(cb)
     lines.append("")
@@ -198,6 +212,43 @@ Gate: `CB_ENDGAME_PHASE_GATE`
 """
 
 
+def security_posture_doc() -> str:
+    return """# Security Posture — Stealth + Predatory (Always On)
+
+> Doctrine: **invisible to them, visible to us.** Detect adversaries; profit from their mistakes via shielded execution only.
+
+## Four pillars (default armed)
+
+| Pillar | Owner | Posture |
+|--------|-------|---------|
+| Impenetrable | SENTINEL | L1–L6 layers armed |
+| Evasion | TRENCH-OPS | Ghost — MEV-shield, edge RTT, Nostr, fingerprint rotate |
+| Stalking | PREDATOR | hunt_mode — mempool, copy-trade, RPC probes |
+| Predatory | PREDATOR | honeypot lattice engaged; poison fills ≤1% equity auto |
+
+## Runtime enforcement
+
+- Policy: `risk_kernel/policy.yaml` → `ghost_evasion` + `security_ops`
+- Infra: `infra/ghost_evasion.yaml`
+- Gate: execution_gate stage `stealth_evasion` + kernel `STEALTH_*` codes
+- CLI: `titan-safety security status`
+
+## Live capital rules (iron-laws §15)
+
+- DENY `public_rpc`, `public_mempool`, unshielded CEX-direct
+- Live DEX must use shielded venues (Jito, Flashbots, intent solvers, etc.)
+- Stealth pipelines P22/P29/P12/P30 require pipeline-specific routes
+
+## CBs
+
+- `CB_STEALTH_PUBLIC_PATH` · `CB_STEALTH_UNSHIELDED_VENUE`
+- `CB_STALK_SEVERITY_HIGH` · `CB_DARKINT_HONEYPOT` · `CB_HYDRA_HONEYPOT`
+
+Refs: `refs/GHOST_detail.md`, `refs/REAPER_detail.md`, `refs/MEV_detail.md`
+Skills: `predator_scanner`, `sentinel_security`
+"""
+
+
 def memecoin_trench_doc() -> str:
     return """# P22 — Solana Memecoin Trench (Pump.fun Lifecycle)
 
@@ -223,18 +274,20 @@ def memecoin_trench_doc() -> str:
 5. Curve alive  
 6. Sell sim OK  
 
-CLI: `titan-safety memecoin filter --mint-json '…'`
+CLI: `titan-safety memecoin filter|evaluate --mint-json '…'` · `memecoin sim --count N`
 
 ## Real Solana wiring
 
-- Infra: `infra/solana_memecoin.yaml` (Geyser + Jito + EDGE-FRA)  
+- Infra: `infra/solana_memecoin.yaml` (Geyser + PumpSwap migration + Jito + EDGE-FRA)  
 - Config: `openclaw.json` → `memecoinTrench.enabled` (default false)  
 - Policy: `memecoin_trench:` block + live venues when ready  
 - Agents: PREDATOR (scan) → GUARDIAN/kernel → TRENCH-OPS (Jito) → signing_node  
+- Adapters: `solana_recon.py`, `jito_submit.py` (NotConfigured until live)
 
 ## Capital envelope
 
 $100–$2,000 lane; daily SOL cap (default 2 SOL); correlation group `memecoin_trench`.
+**Requires human YES** — see `selective-activation.md` rule 6.
 
 Playbook: `playbooks/memecoin_trench.yaml`
 Skill: `memecoin_trench`
@@ -387,6 +440,7 @@ def main() -> int:
         "strategies/signal-catalog.md": signal_catalog_doc(),
         "strategies/endgame.md": endgame_strategies_doc(),
         "strategies/memecoin-trench.md": memecoin_trench_doc(),
+        "security/posture.md": security_posture_doc(),
         "risk/circuit-breakers.md": extract_critical_cbs(text),
         "agents/routing-table.md": agent_routing_table(),
         "hardware/workstation.md": workstation_doc(),

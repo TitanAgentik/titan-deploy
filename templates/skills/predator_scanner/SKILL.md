@@ -26,10 +26,16 @@ Owner: **PREDATOR** (Tier 1 `:30000` — critical path, never cloud models).
 
 ## Hunt loop (60s when `hunt_mode=true`)
 
-1. Ingest edge shred / mempool streams (TKY/SIN/FRA/USE/AMS)  
-2. Classify adversarial patterns → stalk target JSON  
+1. Ingest edge shred / mempool streams (TKY/SIN/FRA/USE/AMS) — **we see them; they do not see us** (Ghost evasion on our execution path)  
+2. Classify adversarial patterns → stalk target JSON (`memory/security/stalk_targets.jsonl`)  
 3. Severity high → escalate ARCHON + HERALD CRITICAL  
-4. Optional: sized decoy / poison fill if &lt;1% equity and policy allows  
+4. Optional: sized decoy / poison fill if &lt;1% equity and policy allows — profit from adversary mistakes  
+
+## Stealth coupling
+
+- All live trades: TRENCH-OPS must use shielded venue (kernel DENY on `public_rpc` / unshielded)  
+- P22 memecoin: Jito bundle + EDGE-FRA only (`STEALTH_PIPELINE_ROUTE`)  
+- Fingerprint rotate every 168h; traffic jitter on edge heartbeats  
 
 ## Output schema
 

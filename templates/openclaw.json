@@ -173,6 +173,7 @@
   "securityOps": {
     "enabled": true,
     "pillars": ["impenetrable", "evasion", "stalking", "predatory"],
+    "doctrine": "invisible_to_them_visible_to_us",
     "cli": "titan-safety security",
     "playbook": "~/.openclaw/playbooks/security_lockdown.yaml",
     "honeypotDir": "~/.openclaw/safety/honeypots",
@@ -181,8 +182,28 @@
     "refs": ["AEGIS", "FORTRESS", "GHOST", "MEV", "REAPER"],
     "cockpitPath": "/security",
     "requireHmacForLockdown": true,
+    "huntModeDefault": true,
+    "honeypotArmedDefault": true,
     "servicePort": 19008,
     "healthUrl": "http://127.0.0.1:19008/health"
+  },
+  "ghostEvasion": {
+    "enabled": true,
+    "infraSpec": "~/.openclaw/infra/ghost_evasion.yaml",
+    "requireShieldedPathLive": true,
+    "structuralInvisibilityMaxDetectionPct": 1.0,
+    "fingerprintRotateHours": 168,
+    "trafficJitterEnabled": true,
+    "stealthPipelines": ["P22", "P29", "P12", "P30"],
+    "denyPublicRpc": true,
+    "controls": [
+      "mev_shield_intents",
+      "edge_rtt",
+      "nostr_nip44",
+      "fingerprint_rotate",
+      "traffic_jitter",
+      "structural_invisibility_gate"
+    ]
   },
   "safetyServices": {
     "riskKernel": "http://127.0.0.1:19001/health",

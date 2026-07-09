@@ -1,0 +1,114 @@
+# Ghost Protocol — structural invisibility + adversary detection doctrine
+# Deploy: ~/.openclaw/infra/ghost_evasion.yaml
+# Runtime: stealth_predatory.py + execution_gate stage 0.5 + risk kernel validate
+
+version: "1.0"
+enabled: true
+
+doctrine: |
+  Invisible to competitors and bots; fully instrumented against them.
+  Detect adversary patterns (mempool stalk, copy-trade lag, RPC probes);
+  profit from their mistakes via shielded execution only.
+  Never broadcast live DEX via public RPC pools or detectable CEX API fingerprints.
+
+structural_invisibility:
+  max_detection_probability_pct: 1.0
+  gate: SOUL.md operational doctrine
+  stealth_pipelines: [P22, P29, P12, P30]
+
+evasion_controls:
+  mev_shield_intents:
+    enabled: true
+    owner: TRENCH-OPS
+    deny_public_rpc: true
+  edge_rtt:
+    enabled: true
+    mode: full_mesh
+    latency_faithful: true
+  nostr_dispatch:
+    enabled: true
+    kind: 1059
+    encryption: NIP-44
+  fingerprint_rotate:
+    enabled: true
+    interval_hours: 168
+    scope: [hot_wallet_session, edge_probe_identity]
+  traffic_jitter:
+    enabled: true
+    heartbeat_jitter_ms: [80, 400]
+    decoy_probes: true
+  signing_airgap:
+    enabled: true
+    metadata_host: macmini_vault
+    execution_host: signing_node
+
+stalking:
+  owner: PREDATOR
+  hunt_mode_default: true
+  cadence_seconds: 60
+  feeds:
+    - edge_mempool_shred
+    - copy_trade_lag_wallets
+    - rpc_fingerprint_probes
+    - telegram_phishing_handoff
+  escalate_severity: high
+  output: memory/security/stalk_targets.jsonl
+
+predatory:
+  owner: PREDATOR
+  honeypot_armed_default: true
+  modules:
+    - honeypot_lattice
+    - poison_fills
+    - graph_r1_fraud
+    - red_team_gauntlet
+  poison_max_equity_pct_auto: 1.0
+  engage_capital_above_pct_requires_yes: 1.0
+
+forbidden_paths:
+  venues:
+    - public_rpc
+    - public_mempool
+    - eth_public_rpc
+    - solana_public_rpc
+    - alchemy_public
+    - infura_public
+    - quicknode_public
+    - helius_public_unshielded
+    - jupiter_public_api
+    - binance_public
+    - cex_api_direct
+
+shielded_venues:
+  - uniswap_v3
+  - curve
+  - aave_v3
+  - hyperliquid
+  - solana_jupiter
+  - solana_pumpfun
+  - solana_pumpswap
+  - jito
+  - flashbots_protect
+  - intent_solver
+  - cowswap
+  - uniswapx
+  - mev_share
+  - across_intent
+
+pipeline_required_venues:
+  P22: [jito, solana_pumpfun, solana_pumpswap]
+  P29: [flashbots_protect, jito, intent_solver, mev_share]
+  P12: [intent_solver, uniswapx, cowswap, across_intent]
+  P30: [flashbots_protect, intent_solver]
+
+circuit_breakers:
+  - CB_STEALTH_PUBLIC_PATH
+  - CB_STEALTH_UNSHIELDED_VENUE
+  - CB_STALK_SEVERITY_HIGH
+  - CB_DARKINT_HONEYPOT
+  - CB_HYDRA_HONEYPOT
+
+verification:
+  cli: titan-safety security status
+  policy_block: ghost_evasion
+  refs: [GHOST_detail.md, REAPER_detail.md, MEV_detail.md]

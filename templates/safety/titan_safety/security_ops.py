@@ -11,6 +11,7 @@ from typing import Any
 
 from .evolution_freeze import EvolutionFreeze
 from .kill_switch import KillSwitch
+from .stealth_predatory import predatory_posture, stealth_posture
 
 DEFAULT_SAFETY_DIR = Path.home() / ".openclaw" / "safety"
 HONEYPOT_DIR = "honeypots"
@@ -220,6 +221,7 @@ class SecurityOps:
             layers=layers,
             ts=time.time(),
         )
+        policy = self._load_policy_optional()
         out = posture.to_dict()
         out["pillars"] = {
             "impenetrable": "armed",
@@ -227,8 +229,25 @@ class SecurityOps:
             "stalking": "hunt" if posture.hunt_mode else "idle",
             "predatory": "engaged" if posture.honeypot_armed else "idle",
         }
+        out["ghost_evasion"] = stealth_posture(policy)
+        out["predatory_ops"] = predatory_posture(
+            hunt_mode=posture.hunt_mode,
+            honeypot_armed=posture.honeypot_armed,
+        )
+        out["doctrine"] = "invisible_to_them_visible_to_us"
         out["refs"] = ["AEGIS", "FORTRESS", "GHOST", "MEV", "REAPER"]
         return out
+
+    def _load_policy_optional(self) -> Any:
+        try:
+            from .policy_loader import expand_path, load_policy
+
+            path = expand_path("~/.openclaw/risk_kernel/policy.yaml")
+            if path.exists():
+                return load_policy(path)
+        except Exception:
+            pass
+        return None
 
     def _audit(self, event: dict[str, Any]) -> None:
         path = self.safety_dir / LOCKDOWN_AUDIT

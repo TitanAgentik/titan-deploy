@@ -542,16 +542,57 @@ def cmd_promotion_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def _memecoin_candidate_from_json(mint_json: str) -> MintCandidate:
+    raw = json.loads(mint_json)
+    fields = MintCandidate.__dataclass_fields__
+    return MintCandidate(**{k: raw[k] for k in fields if k in raw})
+
+
+def _lifecycle_phase(cand: MintCandidate, strategy: str) -> str:
+    if cand.graduated or strategy == "post_grad_pullback":
+        return "D"
+    if strategy == "graduation" or cand.curve_progress_pct >= 85.0:
+        return "C"
+    if strategy == "curve_climb" or cand.curve_progress_pct >= 15.0:
+        return "B"
+    return "A"
+
+
 def cmd_memecoin_filter(args: argparse.Namespace) -> int:
     policy_path = Path(args.policy) if args.policy else Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"
     policy = load_policy(policy_path)
     cfg = MemecoinFilterConfig.from_raw(policy.raw if policy else {})
     flt = MemecoinFilter(cfg)
-    raw = json.loads(args.mint_json)
-    fields = MintCandidate.__dataclass_fields__
-    cand = MintCandidate(**{k: raw[k] for k in fields if k in raw})
+    cand = _memecoin_candidate_from_json(args.mint_json)
     verdict = flt.evaluate(cand)
     print(json.dumps(verdict.to_dict(), indent=2))
+    return 0 if verdict.passed else 1
+
+
+def cmd_memecoin_evaluate(args: argparse.Namespace) -> int:
+    """Full JSON evaluate: filter verdict + lifecycle phase + capital envelope."""
+    policy_path = Path(args.policy) if args.policy else Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"
+    policy = load_policy(policy_path)
+    cfg = MemecoinFilterConfig.from_raw(policy.raw if policy else {})
+    flt = MemecoinFilter(cfg)
+    cand = _memecoin_candidate_from_json(args.mint_json)
+    verdict = flt.evaluate(cand)
+    out = {
+        "pipeline_id": "P22",
+        "verdict": verdict.to_dict(),
+        "lifecycle_phase": _lifecycle_phase(cand, verdict.recommended_strategy),
+        "capital": {
+            "max_snipe_pct_equity": cfg.max_snipe_pct_equity,
+            "daily_sol_cap": cfg.daily_sol_cap,
+            "envelope_usd": {"min": 100, "max": 2000},
+        },
+        "bft_vote_hint": "ALLOW" if verdict.passed and verdict.confidence >= 0.5 else (
+            "ABSTAIN" if verdict.passed else "DENY"
+        ),
+        "live_gated": True,
+        "note": "Catalog until promotion YES + memecoinTrench.enabled + capital_profile=live",
+    }
+    print(json.dumps(out, indent=2))
     return 0 if verdict.passed else 1
 
 
@@ -987,12 +1028,16 @@ def main(argv: list[str] | None = None) -> int:
     flst.add_argument("--policy", default=None)
     flst.set_defaults(func=cmd_flashloan_status)
 
-    p_mc = sub.add_parser("memecoin", help="P22 memecoin trench filter / sim / status")
+    p_mc = sub.add_parser("memecoin", help="P22 memecoin trench filter / evaluate / sim / status")
     mc_sub = p_mc.add_subparsers(dest="mc_cmd", required=True)
     mcf = mc_sub.add_parser("filter", help="Run six-gate filter on mint JSON")
     mcf.add_argument("--mint-json", required=True, help="JSON MintCandidate fields")
     mcf.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
     mcf.set_defaults(func=cmd_memecoin_filter)
+    mce = mc_sub.add_parser("evaluate", help="Full JSON evaluate: gates + lifecycle + capital envelope")
+    mce.add_argument("--mint-json", required=True, help="JSON MintCandidate fields")
+    mce.add_argument("--policy", default=str(Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"))
+    mce.set_defaults(func=cmd_memecoin_evaluate)
     mcs = mc_sub.add_parser("sim", help="Paper sim: mock events → filter → TCA")
     mcs.add_argument("--count", type=int, default=100)
     mcs.add_argument("--seed", type=int, default=42)

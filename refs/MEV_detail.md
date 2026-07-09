@@ -21,7 +21,18 @@ Erigon archive + CRUSH batch on EDGE-FRA / TITANHOME off-peak.
 - `CB_MEV_TIP_BLEED` — tips &gt;40% of gross MEV → lane BLEEDING
 - `CB_INTENT_SOLVER_TIMEOUT` — fail-closed, no public-mempool fallback for shielded lanes
 
+## P22 Solana / Jito buy path
+
+Memecoin trench buys (when promoted) use **Jito bundles via EDGE-FRA** — not public mempool:
+
+1. PREDATOR six-gate filter PASS  
+2. `gate check --fast` (hot path) → ExecutionGate receipt  
+3. signing_node signs → `JitoSubmitAdapter` / EDGE-FRA broadcast  
+
+Fail-closed: missing receipt, tip bleed (`CB_MEMECOIN_TIP_BLEED`), or filter bypass (`CB_MEMECOIN_FILTER_BYPASS`) → DENY.
+
 ## See also
 
-- `refs/GHOST_detail.md`, AGENTS Intent Solver Routing
-- Skill: `trench_ops_execution`
+- `refs/GHOST_detail.md`, `refs/REAPER_detail.md`, AGENTS Intent Solver Routing
+- Skill: `trench_ops_execution`, `memecoin_trench`
+- Infra: `infra/solana_memecoin.yaml`

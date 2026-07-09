@@ -26,3 +26,11 @@ checks:
     description: P22 honeypot mint fails six-gate filter; real SOL requires live profile + YES
     command: titan-safety memecoin filter --mint-json '{"mint":"x","freeze_authority_revoked":false}'
     expect_exit: 1
+  - id: memecoin_p22_evaluate
+    description: P22 evaluate returns DENY vote hint on freeze-authority honeypot
+    command: titan-safety memecoin evaluate --mint-json '{"mint":"x","freeze_authority_revoked":false}'
+    expect_exit: 1
+  - id: memecoin_p22_sim
+    description: P22 paper sim produces pass+reject mix
+    command: titan-safety memecoin sim --count 20 --seed 7
+    expect_exit: 0

@@ -9,6 +9,19 @@ geyser:
   commitment: processed
   programs:
     pump_fun: "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+    # Pump.fun → PumpSwap migration / Raydium graduation markers (monitor create+migrate ix)
+    pump_swap_migration: "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"
+  subscribe:
+    - mint_create
+    - curve_buy
+    - curve_sell
+    - graduate_migrate
+
+# Graduation / post-grad venues
+migration:
+  target_mcap_usd: 69000
+  post_grad_venues: [pumpswap, raydium]
+  note: "Lifecycle C→D: bonding curve graduate then post-grad pullback / smart-money mirror"
 
 # Jito block engine (EDGE-FRA co-located preferred)
 jito:
@@ -16,11 +29,20 @@ jito:
   tip_lamports_default: 100000
   tip_lamports_hot: 500000
   bundle_only: true
+  tip_policy: "dynamic — raise on first_block_snipe; CB_MEMECOIN_TIP_BLEED if tips >40% gross"
 
 # Edge dispatch
 edge:
   default_pop: EDGE-FRA
   max_rtt_ms: 5
+  failover: [EDGE-AMS, EDGE-TKY]
+
+# Capital envelope (mirrors policy memecoin_trench)
+capital:
+  lane_usd_min: 100
+  lane_usd_max: 2000
+  max_snipe_pct_equity: 0.5
+  daily_sol_cap: 2.0
 
 # Live unlock checklist (operator)
 live_checklist:
@@ -32,3 +54,4 @@ live_checklist:
   - memecoinTrench.enabled: true in openclaw.json
   - daily_sol_cap and max_snipe_pct_equity enforced
   - paper/sim ≥48h filter tuning complete
+  - UPS + GPSDO/E810 healthy (live capital gate)

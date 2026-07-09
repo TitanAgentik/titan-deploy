@@ -71,3 +71,41 @@ def test_graduated_post_grad_strategy() -> None:
     )
     assert v.passed
     assert v.recommended_strategy == "post_grad_pullback"
+
+
+def test_sell_sim_honeypot_rejected() -> None:
+    flt = MemecoinFilter()
+    v = flt.evaluate(
+        MintCandidate(
+            mint="honeypot",
+            mint_authority_revoked=True,
+            freeze_authority_revoked=True,
+            top10_holder_pct=12.0,
+            insider_pct=5.0,
+            curve_progress_pct=40.0,
+            curve_fill_minutes=90.0,
+            sell_sim_ok=False,
+        )
+    )
+    assert not v.passed
+    assert "sell" in v.reject_reason.lower() or "honeypot" in v.reject_reason.lower()
+
+
+def test_first_block_snipe_size_cap() -> None:
+    flt = MemecoinFilter()
+    v = flt.evaluate(
+        MintCandidate(
+            mint="snipe",
+            mint_authority_revoked=True,
+            freeze_authority_revoked=True,
+            top10_holder_pct=10.0,
+            insider_pct=3.0,
+            curve_progress_pct=5.0,
+            curve_fill_minutes=60.0,
+            sell_sim_ok=True,
+        )
+    )
+    assert v.passed
+    assert v.recommended_strategy == "first_block_snipe"
+    assert v.max_notional_pct_equity == 0.5
+    assert v.confidence < 0.5

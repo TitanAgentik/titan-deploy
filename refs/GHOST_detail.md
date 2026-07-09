@@ -20,7 +20,10 @@ Reduce detection surface and adversarial fingerprinting of TITAN execution.
 
 ### Rules
 
+- **Always on:** evasion controls active for all live DEX; stalking hunt_mode default; structural invisibility gate enforced at kernel + execution gate
 - Structural invisibility gate: detection probability &lt;1% for stealth pipelines (SOUL)
+- Live capital DENY on `public_rpc`, `public_mempool`, and unshielded CEX-direct venues (`STEALTH_PUBLIC_PATH`, `STEALTH_UNSHIELDED_VENUE`)
+- Stealth pipelines (P22/P29/P12/P30) require pipeline-specific shielded routes (Jito, Flashbots, intent solvers)
 - R44 Full-Spectrum Stealth (Ghost Protocol v2) — see TITAN.reconciled §GHOST
 - Quantum dispatch DISABLED — classical-only (no quantum fingerprint channel)
 - Never log raw seeds / session keys to agent memory

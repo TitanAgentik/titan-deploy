@@ -312,6 +312,10 @@ security_ops:
       action: critical_alert_optional_pipeline_halt
     - id: CB_STALK_SEVERITY_HIGH
       action: escalate_archon_herald
+    - id: CB_STEALTH_PUBLIC_PATH
+      action: fail_closed_deny
+    - id: CB_STEALTH_UNSHIELDED_VENUE
+      action: fail_closed_deny
     - id: CB_SECURITY_LOCKDOWN
       action: kill_freeze_signing_halt_honeypot_arm
   # ENDGAME CBs — unlock Phase 3+ per openclaw capital.endgame_phase_unlock (documented for memory extract; not all wired yet).
@@ -354,6 +358,50 @@ security_ops:
     - honeypot_arm
     - edge_fail_closed
     - herald_critical
+
+ghost_evasion:
+  enabled: true
+  require_shielded_path_live: true
+  hunt_mode_default: true
+  honeypot_armed_default: true
+  structural_invisibility_max_detection_pct: 1.0
+  fingerprint_rotate_hours: 168
+  traffic_jitter_enabled: true
+  infra_spec: ~/.openclaw/infra/ghost_evasion.yaml
+  forbidden_venues:
+    - public_rpc
+    - public_mempool
+    - eth_public_rpc
+    - solana_public_rpc
+    - alchemy_public
+    - infura_public
+    - quicknode_public
+    - helius_public_unshielded
+    - jupiter_public_api
+    - binance_public
+    - cex_api_direct
+  shielded_venues:
+    - uniswap_v3
+    - curve
+    - aave_v3
+    - hyperliquid
+    - solana_jupiter
+    - solana_pumpfun
+    - solana_pumpswap
+    - jito
+    - flashbots_protect
+    - intent_solver
+    - cowswap
+    - uniswapx
+    - mev_share
+    - across_intent
+  stealth_pipelines: [P22, P29, P12, P30]
+  pipeline_required_venues:
+    P22: [jito, solana_pumpfun, solana_pumpswap]
+    P29: [flashbots_protect, jito, intent_solver, mev_share]
+    P12: [intent_solver, uniswapx, cowswap, across_intent]
+    P30: [flashbots_protect, intent_solver]
+  doctrine: invisible_to_them_visible_to_us
 
 # Millisecond hot path — combined gate validate for latency-critical pipelines
 latency:

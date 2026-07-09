@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .policy_loader import Policy, load_policy
+from .stealth_predatory import check_stealth_evasion
 
 
 @dataclass
@@ -251,6 +252,15 @@ class RiskKernel:
 
         if not self.policy.enforce:
             return self._allow("policy_monitor_mode")
+
+        stealth_deny = check_stealth_evasion(trade, self.policy)
+        if stealth_deny is not None:
+            return ValidationResult(
+                decision=stealth_deny.decision,
+                reason=stealth_deny.reason,
+                code=stealth_deny.code,
+                details=stealth_deny.details,
+            )
 
         limits = self.policy.trading_limits
 

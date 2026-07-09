@@ -43,7 +43,8 @@ Same-family voters = correlated consensus. Distinct families (Qwen3-30B ≠ Qwen
 
 ## Security
 
-Four pillars (Impenetrable baseline; Evasion/Stalking/Predatory on demand). No :19001 bypass. Lockdown=HMAC. Mention≠mandate.
+Four pillars always armed: **Impenetrable** (baseline) + **Evasion** (Ghost — no public RPC live) + **Stalking** (PREDATOR hunt) + **Predatory** (honeypot lattice engaged by default). Detect adversaries; stay invisible; profit via shielded paths only. No :19001 bypass. Lockdown=HMAC. Mention≠mandate for *new* modules — core stealth/predatory posture is on by default (`ghost_evasion` policy + `titan-safety security status`).
+**P22 Memecoin Trench** (Pump.fun lifecycle): catalog until Phase 5 YES + live profile — `memecoin_trench` skill / `titan-safety memecoin *`.
 
 ## Data Handling
 

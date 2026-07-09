@@ -22,6 +22,8 @@ Agents **verify and sign autonomously** — no human approval on the trade path.
 
 **Hot path (P22/P29/P12/P30):** skip TradingAgents debate; use combined `fast_validate` — target **<15ms p95** on localhost.
 
+**Ghost evasion (always on for live):** kernel DENY on `public_rpc` / unshielded venues. Live DEX must use Jito, Flashbots, intent solvers, or other shielded routes from `ghost_evasion.shielded_venues`. P22 requires `venue: jito` (or solana_pumpfun/pumpswap). See `refs/GHOST_detail.md` + `infra/ghost_evasion.yaml`.
+
 ```bash
 # Fast gate (ms hot path — P22 memecoin, P29 MEV)
 titan-safety gate check --fast --trade '{"trade_id":"t1","strategy_id":"P22","venue":"jito",...}'

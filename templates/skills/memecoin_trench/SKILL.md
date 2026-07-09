@@ -37,7 +37,7 @@ Owner: **PREDATOR** (filter/vote) + **TRENCH-OPS** (Jito + signing_node).
 5. Curve progress / liquidity alive  
 6. Sell simulation OK (honeypot block)
 
-CLI: `titan-safety memecoin filter --mint-json '{...}'`
+CLI: `titan-safety memecoin filter|evaluate --mint-json '{...}'` · `memecoin sim --count N`
 
 ## Real Solana path
 
