@@ -107,7 +107,7 @@ export function AppShell() {
         dirty={shellDirty}
         onSaveShell={() => {
           saveShell();
-          push("Saved locally (cockpit)", "ok");
+          push("Saved locally", "ok");
         }}
       />
       <div className="main">

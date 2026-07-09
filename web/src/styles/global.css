@@ -870,25 +870,32 @@ table.data tr:hover td {
 
 .cockpit-save-bar-meta .muted,
 .cockpit-save-bar-meta .small {
-  color: #e8eef6;
+  color: #f4f7fb;
+  opacity: 1;
+  font-weight: 500;
 }
 
+/* High-contrast status chips on slate bar (theme .chip rules must not wash these out) */
 .cockpit-save-bar-meta .chip {
-  color: #f4f7fb;
-  border-color: rgba(232, 238, 246, 0.45);
-  background: rgba(15, 22, 32, 0.28);
+  color: #ffffff;
+  border-color: rgba(244, 247, 251, 0.55);
+  background: rgba(8, 14, 22, 0.45);
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .cockpit-save-bar-meta .chip.ok {
-  color: #b8ffe8;
-  border-color: rgba(52, 224, 180, 0.55);
-  background: rgba(52, 224, 180, 0.22);
+  color: #04140f;
+  border-color: rgba(52, 224, 180, 0.85);
+  background: #34e0b4;
+  font-weight: 700;
 }
 
 .cockpit-save-bar-meta .chip.warn {
-  color: #ffe6a8;
-  border-color: rgba(242, 193, 78, 0.65);
-  background: rgba(242, 193, 78, 0.28);
+  color: #1a1200;
+  border-color: rgba(242, 193, 78, 0.9);
+  background: #f2c14e;
+  font-weight: 700;
 }
 
 .cockpit-save-bar-actions {

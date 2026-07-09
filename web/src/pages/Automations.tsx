@@ -44,7 +44,7 @@ export function Automations() {
         lastSavedAt={lastSavedAt}
         onSave={() => {
           save();
-          push("Saved locally (cockpit)", "ok");
+          push("Saved locally", "ok");
         }}
         onDiscard={discard}
         onResetDefaults={resetDefaults}

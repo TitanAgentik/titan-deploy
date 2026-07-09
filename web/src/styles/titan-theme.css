@@ -995,6 +995,46 @@
   color: var(--text) !important;
 }
 
+/* ---------- Save bar meta/chips (beat [data-theme] .chip / .muted) ---------- */
+
+.cockpit-save-bar-meta .muted,
+.cockpit-save-bar-meta .small,
+[data-theme="dark"] .cockpit-save-bar-meta .muted,
+[data-theme="dark"] .cockpit-save-bar-meta .small,
+[data-theme="light"] .cockpit-save-bar-meta .muted,
+[data-theme="light"] .cockpit-save-bar-meta .small {
+  color: #f4f7fb !important;
+  opacity: 1;
+  font-weight: 500;
+}
+
+.cockpit-save-bar-meta .chip,
+[data-theme="dark"] .cockpit-save-bar-meta .chip,
+[data-theme="light"] .cockpit-save-bar-meta .chip {
+  color: #ffffff !important;
+  border-color: rgba(244, 247, 251, 0.55) !important;
+  background: rgba(8, 14, 22, 0.45) !important;
+  font-weight: 600;
+}
+
+.cockpit-save-bar-meta .chip.ok,
+[data-theme="dark"] .cockpit-save-bar-meta .chip.ok,
+[data-theme="light"] .cockpit-save-bar-meta .chip.ok {
+  color: #04140f !important;
+  border-color: rgba(52, 224, 180, 0.85) !important;
+  background: #34e0b4 !important;
+  font-weight: 700;
+}
+
+.cockpit-save-bar-meta .chip.warn,
+[data-theme="dark"] .cockpit-save-bar-meta .chip.warn,
+[data-theme="light"] .cockpit-save-bar-meta .chip.warn {
+  color: #1a1200 !important;
+  border-color: rgba(242, 193, 78, 0.9) !important;
+  background: #f2c14e !important;
+  font-weight: 700;
+}
+
 /* ---------- Save bar buttons (beat [data-theme] .btn specificity) ---------- */
 
 .cockpit-save-bar-actions .btn,

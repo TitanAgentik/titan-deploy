@@ -123,7 +123,7 @@ export function Capital() {
         lastSavedAt={lastSavedAt}
         onSave={() => {
           save();
-          toast("Saved locally (cockpit)", "ok");
+          toast("Saved locally", "ok");
         }}
         onDiscard={discard}
         onResetDefaults={resetDefaults}
