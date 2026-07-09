@@ -133,7 +133,7 @@ export function Capital() {
                 label="Docs"
                 variant="ghost"
                 items={[
-                  { label: "Open COCKPIT_detail", onClick: () => toast("refs/COCKPIT_detail.md") },
+                  { label: "Open Agentik detail", onClick: () => toast("refs/COCKPIT_detail.md") },
                   { label: "Show Telegram /deposit", onClick: () => toast("/deposit 2500 USDC") },
                 ]}
               />

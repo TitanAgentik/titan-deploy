@@ -1,7 +1,7 @@
 # §AEGIS_detail.md — Impenetrable Defense
 
 > Companion for OpenClaw + Hermes. Runtime truth: `risk_kernel/policy.yaml`,
-> `infra/signing_node.yaml`, `titan_safety`, Cockpit `/security`.
+> `infra/signing_node.yaml`, `titan_safety`, Titan Agentik `/security`.
 
 ## Pillar: Impenetrable
 

@@ -29,7 +29,7 @@ Reduce detection surface and adversarial fingerprinting of TITAN execution.
 
 ```bash
 titan-safety security status   # evasion section
-# Edge health via Cockpit /edge or FORGE heartbeat
+# Edge health via Titan Agentik /edge or FORGE heartbeat
 ```
 
 ### See also

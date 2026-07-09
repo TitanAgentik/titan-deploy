@@ -1,4 +1,4 @@
-/** Demo + live-ready data for TITAN Cockpit. Live endpoints proxied via Vite. */
+/** Demo + live-ready data for Titan Agentik. Live endpoints proxied via Vite. */
 
 export type LaneHealth = "HEALTHY" | "WATCH" | "BLEEDING";
 
@@ -8,6 +8,9 @@ export const portfolio = {
   depositedUsd: 25000,
   weeklyPnlUsd: 842.17,
   drawdownPct: 1.8,
+  drawdownNotifyOnly: true,
+  edgeMeshMode: "full_mesh" as const,
+  paperLatencyFaithful: true,
   regime: "neutral" as const,
   capitalProfile: "live" as const,
   killActive: false,
@@ -40,6 +43,7 @@ export const agents = [
   { id: "PREDATOR", role: "Mempool", tier: "T1 :30000", status: "online", load: 48 },
   { id: "AUGUR", role: "Macro regime", tier: "T1 :30000", status: "online", load: 33 },
   { id: "TRENCH-OPS", role: "Execution", tier: "T1 :30000", status: "online", load: 71 },
+  { id: "ALCHEMY", role: "DeFi / flash compose", tier: "U :30002", status: "online", load: 24 },
   { id: "ATLAS", role: "Portfolio", tier: "U :30002", status: "online", load: 29 },
   { id: "HERALD", role: "Telegram", tier: "U :30002", status: "online", load: 12 },
   { id: "FORGE", role: "Infra health", tier: "U :30002", status: "online", load: 22 },
@@ -61,6 +65,8 @@ export const services = [
 
 export const promotions = [
   { id: "promo-041", strategy: "P34 CLMM 2.0", phase: 5, status: "PENDING_PROMOTION_APPROVAL", score: 0.86 },
+  { id: "promo-p22", strategy: "P22 Memecoin Trench", phase: 5, status: "PENDING_PROMOTION_APPROVAL", score: 0.74 },
+  { id: "fl-promo-01", strategy: "flash_loan_live (global)", phase: 5, status: "PENDING_PROMOTION_APPROVAL", score: 0.81 },
   { id: "promo-038", strategy: "P16 RWA Basis", phase: 4, status: "SCORECARD", score: 0.79 },
   { id: "promo-033", strategy: "P11 Pred Arb", phase: 3, status: "MICRO_LIVE", score: 0.72 },
 ];
@@ -81,11 +87,27 @@ export const questions = [
 
 export const activityFeed = [
   {
+    id: "act-mc",
+    title: "P22 memecoin paper: 12 filters passed",
+    detail: "68% sim pass · 0.85/2 SOL daily cap · EDGE-FRA Jito path",
+    ts: "2026-07-09T11:45:00Z",
+    tsLabel: "5m ago",
+    tone: "ok" as const,
+  },
+  {
     id: "act-0",
+    title: "Flash-loan paper sim complete",
+    detail: "72% pass rate · 100 routes — awaiting flash_loan_live YES",
+    ts: "2026-07-09T11:15:00Z",
+    tsLabel: "12m ago",
+    tone: "info" as const,
+  },
+  {
+    id: "act-0b",
     title: "Security stalk: sandwich cluster",
     detail: "PREDATOR re-tagged adversarial flow on EDGE-FRA — hunting",
     ts: "2026-07-09T06:48:11Z",
-    tsLabel: "3m ago",
+    tsLabel: "4h ago",
     tone: "warn" as const,
   },
   {
@@ -131,9 +153,11 @@ export const activityFeed = [
 ];
 
 export const skills = [
-  { name: "trench_ops_execution", version: "2.4.0", status: "live", owner: "TRENCH-OPS" },
+  { name: "trench_ops_execution", version: "2.5.0", status: "live", owner: "TRENCH-OPS" },
+  { name: "flash_loan_router", version: "1.0.0", status: "catalog", owner: "ALCHEMY" },
+  { name: "memecoin_trench", version: "1.0.0", status: "paper", owner: "PREDATOR" },
   { name: "herald_notify", version: "1.2.1", status: "live", owner: "HERALD" },
-  { name: "forge_infra", version: "1.0.4", status: "live", owner: "FORGE" },
+  { name: "forge_infra", version: "1.1.0", status: "live", owner: "FORGE" },
   { name: "guardian_kelly", version: "0.9.0", status: "staging", owner: "GUARDIAN" },
   { name: "gepa_reflect", version: "0.3.2", status: "shadow", owner: "CORTEX" },
 ];
@@ -237,40 +261,191 @@ export const capitalTxns = [
 ];
 
 export const circuitBreakers = [
-  { pct: 2, action: "alert + size reduce", state: "clear" },
-  { pct: 5, action: "halt new risk", state: "clear" },
-  { pct: 8, action: "derisk / wind-down", state: "clear" },
-  { pct: 10, action: "CRITICAL alert · human required", state: "clear" },
-  { pct: 12, action: "full halt + flatten", state: "clear" },
+  { pct: 2, action: "HERALD notify · MEDIUM", state: "notify-only" },
+  { pct: 5, action: "HERALD notify · HIGH", state: "notify-only" },
+  { pct: 8, action: "HERALD notify · HIGH", state: "notify-only" },
+  { pct: 10, action: "HERALD CRITICAL · trading continues", state: "notify-only" },
+  { pct: 12, action: "HERALD CRITICAL · trading continues", state: "notify-only" },
 ];
+
+export const drawdownPolicy = {
+  notifyOnly: true,
+  velocityHalt60s: 150,
+  velocityHalt15m: 400,
+  volatileExemptPipelines: ["P22", "P29", "P30", "P12"],
+  note: "Portfolio drawdown tiers never block trades — velocity breakers still fail-closed",
+};
+
+export const latencyBudget = {
+  hotPathGateP95Ms: 15,
+  hotPathSubmitP95Ms: 50,
+  homeToEdgeP95Ms: 25,
+  edgeToExchangeP95Ms: 1,
+  nostrDispatchMs: 3,
+  warmPathGateP95Ms: 150,
+  hotPipelines: ["P22", "P29", "P12", "P30"],
+};
 
 export const pipelinesCatalog = [
   { id: "P1", name: "CEX Spot Arb", phase: "funded", edge: "EDGE-TKY" },
-  { id: "P5", name: "Funding Carry", phase: "funded", edge: "EDGE-TKY" },
-  { id: "P10", name: "Restaking / AVS", phase: "paper", edge: "EDGE-FRA" },
+  { id: "P3", name: "Cross-Rollup Arb", phase: "paper", edge: "EDGE-FRA", flash: true },
+  { id: "P5", name: "Funding Carry", phase: "funded", edge: "EDGE-TKY", flash: true },
+  { id: "P6", name: "Liquidation Hunter", phase: "paper", edge: "EDGE-FRA", flash: true },
+  { id: "P10", name: "Restaking / AVS", phase: "paper", edge: "EDGE-FRA", flash: true },
   { id: "P11", name: "Prediction Arb", phase: "micro_live", edge: "EDGE-USE" },
-  { id: "P12", name: "Intent Solver", phase: "funded", edge: "EDGE-FRA" },
-  { id: "P16", name: "RWA Basis", phase: "scorecard", edge: "EDGE-FRA" },
-  { id: "P22", name: "Memecoin Trench", phase: "catalog", edge: "EDGE-FRA" },
-  { id: "P29", name: "MEV Bundle", phase: "defunded", edge: "EDGE-FRA" },
+  { id: "P12", name: "Intent Solver", phase: "funded", edge: "EDGE-FRA", flash: true },
+  { id: "P16", name: "RWA Basis", phase: "scorecard", edge: "EDGE-FRA", flash: true },
+  { id: "P22", name: "Memecoin Trench", phase: "paper", edge: "EDGE-FRA", memecoin: true },
+  { id: "P29", name: "MEV Bundle", phase: "defunded", edge: "EDGE-TKY" },
   { id: "P32", name: "Bridge Security", phase: "shadow", edge: "EDGE-FRA" },
   { id: "P34", name: "CLMM 2.0", phase: "pending_yes", edge: "EDGE-FRA" },
 ];
 
-export const edgePops = [
-  { id: "EDGE-TKY", region: "ap-northeast-1", targets: "Binance, OKX, Hyperliquid", rtt: "<1ms", status: "healthy" },
-  { id: "EDGE-SIN", region: "ap-southeast-1", targets: "Bybit, BSC, Sui", rtt: "<1ms", status: "healthy" },
-  { id: "EDGE-FRA", region: "Frankfurt DE-CIX", targets: "Solana-EU, ETH builders", rtt: "<1ms", status: "healthy" },
-  { id: "EDGE-USE", region: "us-east-1", targets: "Coinbase, ARB/OP/Base", rtt: "<1ms", status: "watch" },
-  { id: "EDGE-AMS", region: "Amsterdam AMS-IX", targets: "Solana secondary, Nostr", rtt: "<1ms", status: "healthy" },
+export const edgeMesh = {
+  mode: "full_mesh",
+  routingPolicy: "lowest_live_p50_rtt",
+  paperLatencyFaithful: true,
+  activePops: 5,
+  defaultPop: "EDGE-FRA",
+};
+
+export const edgeStrategyRouting = [
+  { strategy: "P22", primary: "EDGE-FRA", fallback: "EDGE-AMS", note: "Jito FRA · memecoin" },
+  { strategy: "P29", primary: "EDGE-TKY", fallback: "EDGE-FRA", note: "MEV colo" },
+  { strategy: "P30", primary: "EDGE-TKY", fallback: "EDGE-SIN", note: "Cross-chain MEV" },
+  { strategy: "P12", primary: "EDGE-FRA", fallback: "EDGE-USE", note: "Intent solver EU/US" },
+  { strategy: "P3", primary: "EDGE-FRA", fallback: "EDGE-TKY", note: "Flash-loan arb" },
+  { strategy: "P8", primary: "EDGE-TKY", fallback: "EDGE-SIN", note: "APAC CEX-adjacent" },
 ];
+
+export const edgePops = [
+  { id: "EDGE-FRA", region: "Frankfurt DE-CIX", targets: "Jito FRA, Erigon, EU DEX", rtt: "≤5ms", status: "healthy", wg: "10.0.10.100" },
+  { id: "EDGE-TKY", region: "ap-northeast-1", targets: "Binance, OKX, Hyperliquid", rtt: "<1ms", status: "healthy", wg: "10.0.10.101" },
+  { id: "EDGE-SIN", region: "ap-southeast-1", targets: "Bybit, BSC, Sui", rtt: "<1ms", status: "healthy", wg: "10.0.10.102" },
+  { id: "EDGE-USE", region: "us-east-1", targets: "Coinbase, L2 seq, Flashbots", rtt: "≤3ms", status: "healthy", wg: "10.0.10.103" },
+  { id: "EDGE-AMS", region: "Amsterdam AMS-IX", targets: "Solana gRPC, Nostr", rtt: "≤5ms", status: "healthy", wg: "10.0.10.104" },
+];
+
+export const flashLoanRouter = {
+  enabled: false,
+  promotionApproved: false,
+  skill: "flash_loan_router",
+  composeAgent: "ALCHEMY",
+  executeAgent: "TRENCH-OPS",
+  maxAmountUsd: 500_000,
+  paperSimPassRate: 0.72,
+  paperSimCount: 100,
+  sourcePriority: {
+    ethereum: ["balancer", "morpho", "uniswap_v4", "aave_v3"],
+    arbitrum: ["balancer", "morpho", "aave_v3"],
+    base: ["morpho", "balancer", "aave_v3"],
+  },
+  pipelines: ["P1", "P2", "P3", "P5", "P6", "P7", "P8", "P12", "P15", "P16", "P17"],
+  recentComposes: [
+    { ts: "2026-07-09T11:10:00Z", chain: "ethereum", source: "balancer", amountUsd: 4200, profitUsd: 14.2, strategy: "P3" },
+    { ts: "2026-07-09T10:55:00Z", chain: "arbitrum", source: "morpho", amountUsd: 2800, profitUsd: 9.1, strategy: "P12" },
+    { ts: "2026-07-09T10:40:00Z", chain: "base", source: "morpho", amountUsd: 1500, profitUsd: 4.8, strategy: "P6" },
+  ],
+};
+
+export const memecoinTrench = {
+  pipelineId: "P22",
+  enabled: false,
+  promotionApproved: false,
+  mode: "paper" as const,
+  skill: "memecoin_trench",
+  scanAgent: "PREDATOR",
+  executeAgent: "TRENCH-OPS",
+  feedsAgent: "NEXUS",
+  sizeAgent: "GUARDIAN",
+  edgePop: "EDGE-FRA",
+  jitoBlockEngine: "frankfurt.mainnet.block-engine.jito.wtf",
+  pumpFunProgram: "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+  geyserConfigured: false,
+  dailySolCap: 2.0,
+  dailySolUsed: 0.85,
+  maxSnipePctEquity: 0.5,
+  maxTop10HolderPct: 30,
+  maxInsiderPct: 15,
+  graduationTargetUsd: 69000,
+  paperSimPassRate: 0.68,
+  paperSimCount: 100,
+  filtersPassed24h: 12,
+  filtersRejected24h: 88,
+  drawdownExempt: true,
+  hotPathMs: 15,
+  sixGates: [
+    { id: "G1", name: "Mint authority revoked", key: "G1_mint_authority" },
+    { id: "G2", name: "Freeze authority revoked", key: "G2_freeze_authority" },
+    { id: "G3", name: "Holder concentration", key: "G3_holder_concentration" },
+    { id: "G4", name: "No cabal preload", key: "G4_preload_cabal" },
+    { id: "G5", name: "Curve liquidity alive", key: "G5_curve_liquidity" },
+    { id: "G6", name: "Sell simulation OK", key: "G6_sellability" },
+  ],
+  strategies: [
+    { id: "first_block_snipe", when: "G1–G6 pass at create", maxPctEquity: 0.5, phase: "A" },
+    { id: "curve_climb", when: "15–85% curve, no cabal", maxPctEquity: 0.5, phase: "B" },
+    { id: "graduation", when: "~$69k migration approach", maxPctEquity: 0.5, phase: "C" },
+    { id: "post_grad_pullback", when: "After PumpSwap migration", maxPctEquity: 1.0, phase: "D" },
+    { id: "smart_money_mirror", when: "Tracked wallet entry", maxPctEquity: 0.5, phase: "D" },
+  ],
+  circuitBreakers: [
+    { id: "CB_MEMECOIN_DAILY_SOL_CAP", action: "halt P22 until UTC reset" },
+    { id: "CB_MEMECOIN_FILTER_BYPASS", action: "DENY fail-closed" },
+    { id: "CB_MEMECOIN_HONEYPOT", action: "DENY + HERALD alert" },
+    { id: "CB_MEMECOIN_GRAD_FAIL", action: "halt lane P22" },
+    { id: "CB_MEMECOIN_TIP_BLEED", action: "reduce size P22" },
+  ],
+  exits: {
+    stopLossPct: 40,
+    trailingStopPct: 25,
+    takeProfitLadder: [0.25, 0.25, 0.5],
+    timeExitMinutes: 15,
+  },
+  recentCandidates: [
+    {
+      ts: "2026-07-09T11:42:00Z",
+      mint: "7xKX…9pQm",
+      passed: true,
+      strategy: "curve_climb",
+      gates: { G1_mint_authority: "PASS", G2_freeze_authority: "PASS", G3_holder_concentration: "PASS", G4_preload_cabal: "PASS", G5_curve_liquidity: "PASS", G6_sellability: "PASS" },
+      notionalUsd: 142,
+      confidence: 0.58,
+    },
+    {
+      ts: "2026-07-09T11:38:00Z",
+      mint: "4nWp…k2Rs",
+      passed: false,
+      strategy: "—",
+      gates: { G1_mint_authority: "PASS", G2_freeze_authority: "FAIL", G3_holder_concentration: "—", G4_preload_cabal: "—", G5_curve_liquidity: "—", G6_sellability: "—" },
+      rejectReason: "freeze authority active (honeypot risk)",
+      notionalUsd: 0,
+      confidence: 0,
+    },
+    {
+      ts: "2026-07-09T11:35:00Z",
+      mint: "9mTy…3vLk",
+      passed: true,
+      strategy: "first_block_snipe",
+      gates: { G1_mint_authority: "PASS", G2_freeze_authority: "PASS", G3_holder_concentration: "PASS", G4_preload_cabal: "PASS", G5_curve_liquidity: "PASS", G6_sellability: "PASS" },
+      notionalUsd: 71,
+      confidence: 0.52,
+    },
+  ],
+  paperTrades: [
+    { ts: "2026-07-09T11:42:05Z", mint: "7xKX…9pQm", side: "buy", notionalUsd: 142, strategy: "curve_climb", pnlUsd: null, status: "open" },
+    { ts: "2026-07-09T11:35:08Z", mint: "9mTy…3vLk", side: "buy", notionalUsd: 71, strategy: "first_block_snipe", pnlUsd: 18.4, status: "closed" },
+    { ts: "2026-07-09T11:20:00Z", mint: "2pQr…8nWf", side: "buy", notionalUsd: 95, strategy: "graduation", pnlUsd: -38.2, status: "stopped" },
+  ],
+};
 
 export const modelTiers = [
   { tier: "1", port: ":30000", model: "Qwen3-30B-A3B FP8", role: "Signals, risk, TRENCH-OPS", live: true },
   { tier: "2", port: ":30001", model: "Qwen3-Coder-Next-80B", role: "ARCHON, SENTINEL, LAMARCK", live: true },
+  { tier: "E", port: ":30004", model: "Qwen3-Embedding-0.6B", role: "Embedder ride-along", live: true },
   { tier: "3a", port: ":30005", model: "DeepSeek V4 Pro", role: "R&D / CORTEX deep votes", live: false },
   { tier: "3b", port: ":30003", model: "GLM-5.2 Q4_K_M", role: "Secondary R&D only", live: false },
-  { tier: "U", port: ":30002", model: "Qwen3-30B (TITANSPARK)", role: "Utility agents", live: true },
+  { tier: "U", port: ":30002", model: "Qwen3-30B (TITANSPARK)", role: "Utility agents · ALCHEMY", live: true },
 ];
 
 export const signingAudit = [

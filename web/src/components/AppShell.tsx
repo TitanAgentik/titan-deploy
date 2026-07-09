@@ -19,6 +19,8 @@ const TITLES: Record<string, string> = {
   "/pipelines": "Pipelines",
   "/promotions": "Promotions",
   "/edge": "Edge Mesh",
+  "/flash-loans": "Flash Loans",
+  "/memecoin": "Memecoin Trench",
   "/signing": "Signing Node",
   "/automations": "Automations",
   "/goals": "Goals Lab",
@@ -48,7 +50,7 @@ function useClock() {
 
 export function AppShell() {
   const { pathname } = useLocation();
-  const title = TITLES[pathname] ?? "TITAN Cockpit";
+  const title = TITLES[pathname] ?? "Titan Agentik";
   const clock = useClock();
   const { toasts, push, dismiss } = useToasts();
   const [paletteOpen, setPaletteOpen] = useState(false);

@@ -324,7 +324,7 @@ done
 
 # Infra specs (power, signing, GPU schedule)
 INFRA_DIR="$OPENCLAW_HOME/infra"
-for spec in power_requirements.yaml signing_node.yaml gpu_schedule.yaml latency_budget.yaml latency_fast_path.yaml edge_hot_path.yaml edge_mesh.yaml edge_rtt_probe.yaml; do
+for spec in power_requirements.yaml signing_node.yaml gpu_schedule.yaml latency_budget.yaml latency_fast_path.yaml edge_hot_path.yaml edge_mesh.yaml edge_rtt_probe.yaml flash_loan.yaml; do
   if [[ -f "$INFRA_DIR/$spec" ]]; then
     pass "Infra spec: $spec"
   else
@@ -529,6 +529,47 @@ if [[ -f "$PROJECT_ROOT/templates/skills/memecoin_trench/SKILL.md" ]]; then
   pass "Skill memecoin_trench present"
 else
   fail "Missing memecoin_trench skill"
+fi
+
+# Flash-loan router (§FL)
+if grep -q "flash_loan_live:" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null; then
+  pass "policy.yaml: flash_loan_live block"
+else
+  fail "policy.yaml missing flash_loan_live block"
+fi
+if [[ -f "$PROJECT_ROOT/templates/safety/titan_safety/flash_loan_router.py" ]]; then
+  pass "flash_loan_router module present"
+else
+  fail "Missing flash_loan_router.py"
+fi
+if [[ -f "$PROJECT_ROOT/templates/infra/flash_loan.yaml" ]]; then
+  pass "infra/flash_loan.yaml present"
+else
+  fail "Missing infra/flash_loan.yaml"
+fi
+if [[ -f "$PROJECT_ROOT/templates/playbooks/flash_loan_live.yaml" ]]; then
+  pass "playbook flash_loan_live.yaml present"
+else
+  fail "Missing playbooks/flash_loan_live.yaml"
+fi
+if [[ -f "$OPENCLAW_HOME/openclaw.json" ]] && command -v python3 &>/dev/null; then
+  python3 -c "
+import json, sys
+cfg = json.load(open('$OPENCLAW_HOME/openclaw.json'))
+fl = cfg.get('flashLoanRouter') or {}
+if fl.get('enabled') is not False:
+    sys.exit(1)
+if not fl.get('requiresPromotionYes', False):
+    sys.exit(2)
+if fl.get('skill') != 'flash_loan_router':
+    sys.exit(3)
+" 2>/dev/null && pass "openclaw.json flashLoanRouter catalog (disabled by default)" \
+    || fail "openclaw.json flashLoanRouter invalid or enabled at deploy"
+fi
+if [[ -f "$PROJECT_ROOT/templates/skills/flash_loan_router/SKILL.md" ]]; then
+  pass "Skill flash_loan_router present"
+else
+  fail "Missing flash_loan_router skill"
 fi
 
 # TITANHOME retained in IDENTITY

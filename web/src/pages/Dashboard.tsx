@@ -81,7 +81,7 @@ export function Dashboard() {
     <>
       <PageHeader
         eyebrow="Portfolio overview"
-        title="Institutional dashboard"
+        title="Crypto Dashboard"
         subtitle="Equity, lanes, promotions, and services at a glance — click any metric for detail and actions."
         actions={
           <>
@@ -208,7 +208,7 @@ export function Dashboard() {
           <span className="label">Drawdown</span>
           <span className="value">{portfolio.drawdownPct}%</span>
           <span className={`delta ${portfolio.drawdownPct > 2 ? "down" : "up"}`}>
-            CB tiers 2/5/8/10/12%
+            CB notify 2/5/8/10/12%
           </span>
         </button>
       </section>
@@ -235,7 +235,7 @@ export function Dashboard() {
         <ClickableMetric
           label="Drawdown"
           value={`${portfolio.drawdownPct}%`}
-          delta="CB tiers 2/5/8/10/12%"
+          delta="CB notify 2/5/8/10/12%"
           deltaDir={portfolio.drawdownPct > 2 ? "down" : "up"}
           onClick={() => setMetric("dd")}
         />
@@ -593,7 +593,7 @@ export function Dashboard() {
             rows={[
               { label: "Current DD", value: `${portfolio.drawdownPct}%` },
               { label: "Next tier", value: "2% alert + size reduce" },
-              { label: "Halt tier", value: "12% full halt + flatten" },
+              { label: "Halt tier", value: "12% HERALD CRITICAL (no halt)" },
             ]}
           />
         )}

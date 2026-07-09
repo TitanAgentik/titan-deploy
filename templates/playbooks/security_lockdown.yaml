@@ -37,7 +37,7 @@ recovery:
   - titan-safety evolution unfreeze --operator YOU
   - Clear SIGNING_HALTED after PCR + recon OK
   - Re-enable edge PoPs individually
-  - Review stalk targets in Cockpit /security
+  - Review stalk targets in Titan Agentik /security
 
 related_playbooks:
   - kill_switch.yaml

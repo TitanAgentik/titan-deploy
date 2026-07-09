@@ -23,7 +23,7 @@ export function Identity() {
         </Card>
         <Card title="System persona">
           <div className="mono" style={{ fontSize: 20 }}>
-            TITAN / OpenClaw + Hermes
+            Titan Agentik · OpenClaw + Hermes
           </div>
           <p className="muted small">
             Capital-preservation-first. No closed/cloud models on live path. Quantum agents DORMANT.

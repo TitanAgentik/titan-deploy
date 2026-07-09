@@ -1,6 +1,6 @@
-# TITAN Cockpit — Design System
+# Titan Agentik — Design System
 
-Original control-plane UI for the TITAN operator surface. Built for dense trading ops: signal clarity, low glare, and quick scanning under load.
+Original Crypto Dashboard UI for the Titan Agentik operator surface. Built for dense trading ops: signal clarity, low glare, and quick scanning under load.
 
 ## Principles
 
@@ -36,6 +36,6 @@ Original control-plane UI for the TITAN operator surface. Built for dense tradin
 | ID | Name | Description |
 |----|------|-------------|
 | `light` | Signal (default) | Cool slate light theme |
-| `dark` | Night | Deep institutional dark with teal accent |
+| `dark` | Night | Deep crypto dark with teal accent |
 
 Switch in **Settings → Appearance**.

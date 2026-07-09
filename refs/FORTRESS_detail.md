@@ -20,7 +20,7 @@ Complements AEGIS L1–L6 with host / edge / vault hardening.
 2. Agent FS cannot write `control_plane.secret` or `kill_switch.secret`
 3. Staging dir isolated from live skills/
 4. Edge workers: stateless, no LLM, same-AZ as exchange matching engines
-5. Cockpit: Tailscale / SSH tunnel only — never raw public admin UI
+5. Titan Agentik: Tailscale / SSH tunnel only — never raw public admin UI
 
 ## See also
 

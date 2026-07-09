@@ -1,0 +1,48 @@
+# Flash-loan live activation — requires operator YES (flash_loan_live)
+version: "1.0"
+note: "Mention≠mandate. Live flash loans require promotion YES + paper sim evidence."
+
+capital_envelope_usd:
+  min: 0
+  max: 500000
+
+pipelines:
+  - P1
+  - P2
+  - P3
+  - P5
+  - P6
+  - P7
+  - P8
+  - P12
+  - P15
+  - P16
+  - P17
+
+source_priority:
+  ethereum: [balancer, morpho, uniswap_v4, aave_v3]
+  arbitrum: [balancer, morpho, aave_v3]
+  base: [morpho, balancer, aave_v3]
+
+agents:
+  compose: ALCHEMY
+  execute: TRENCH-OPS
+  risk: GUARDIAN
+
+gates:
+  - flash_loan_compose_profit_positive
+  - promotion_flash_loan_live_yes
+  - risk_kernel_19001
+  - execution_gate_receipt
+  - signing_node_19010_typed_data
+  - paper_sim_minimum_days
+
+circuit_breakers:
+  - CB_FLASH_LOAN_REPAY_FAIL
+  - CB_FLASH_LOAN_FEE_SPIKE
+  - CB_FLASH_LOAN_NEGATIVE_EDGE
+
+paper_requirements:
+  min_sim_pass_rate: 0.6
+  min_sim_count: 50
+  min_days: 3

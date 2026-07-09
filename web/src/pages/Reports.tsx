@@ -6,7 +6,7 @@ export function Reports() {
     <>
       <PageHeader
         title="Reports"
-        subtitle="Institutional reporting — PnL attribution, TCA, drawdown, and weekly sweep readiness."
+        subtitle="Crypto reporting — PnL attribution, TCA, drawdown, and weekly sweep readiness."
         actions={
           <>
             <Btn variant="ghost">PDF</Btn>

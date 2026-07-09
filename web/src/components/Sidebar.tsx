@@ -22,6 +22,8 @@ import {
   Rocket,
   Cpu,
   Shield,
+  Zap,
+  Flame,
 } from "lucide-react";
 import { portfolio } from "@/lib/data";
 
@@ -42,8 +44,10 @@ export const NAV = [
     label: "Trading",
     items: [
       { to: "/pipelines", icon: GitBranch, label: "Pipelines" },
-      { to: "/promotions", icon: Rocket, label: "Promotions", badge: 1 },
+      { to: "/promotions", icon: Rocket, label: "Promotions", badge: 3 },
+      { to: "/memecoin", icon: Flame, label: "Memecoin Trench" },
       { to: "/edge", icon: Globe2, label: "Edge Mesh" },
+      { to: "/flash-loans", icon: Zap, label: "Flash Loans" },
       { to: "/signing", icon: KeyRound, label: "Signing Node" },
     ],
   },
@@ -82,8 +86,8 @@ export function Sidebar() {
       <div className="brand">
         <div className="brand-mark">T</div>
         <div className="brand-text">
-          <strong>TITAN COCKPIT</strong>
-          <span>institutional control plane</span>
+          <strong>Titan Agentik</strong>
+          <span>crypto control plane</span>
         </div>
       </div>
 

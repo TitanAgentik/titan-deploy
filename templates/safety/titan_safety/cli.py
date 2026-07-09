@@ -18,6 +18,8 @@ from .execution_gate import ExecutionGate
 from .kill_switch import KillSwitch
 from .promotion_gate import PromotionCategory, PromotionGate, PromotionRequest
 from .promotion_stats import StatsGateConfig, StrategyStats, StrategyStatsGate
+from .flash_loan_router import FlashLoanConfig, FlashLoanRequest, FlashLoanRouter
+from .flash_loan_sim import run_simulation as run_flash_loan_simulation
 from .memecoin_filter import MemecoinFilter, MemecoinFilterConfig, MintCandidate
 from .memecoin_sim import run_simulation
 from .policy_loader import load_policy
@@ -470,6 +472,76 @@ def cmd_security_lockdown(args: argparse.Namespace) -> int:
     return 0 if result.get("ok", False) else 1
 
 
+def cmd_flashloan_route(args: argparse.Namespace) -> int:
+    policy_path = Path(args.policy) if args.policy else Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"
+    policy = load_policy(policy_path)
+    cfg = FlashLoanConfig.from_raw(policy.raw if policy else {})
+    router = FlashLoanRouter(cfg)
+    decision = router.route(args.asset, args.amount_usd, args.chain, prefer=args.prefer or "")
+    print(json.dumps(decision.to_dict(), indent=2))
+    return 0
+
+
+def cmd_flashloan_compose(args: argparse.Namespace) -> int:
+    policy_path = Path(args.policy) if args.policy else Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"
+    policy = load_policy(policy_path)
+    cfg = FlashLoanConfig.from_raw(policy.raw if policy else {})
+    router = FlashLoanRouter(cfg)
+    raw = json.loads(args.request_json)
+    req = FlashLoanRequest.from_dict(raw)
+    result = router.compose(req)
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.passed else 1
+
+
+def cmd_flashloan_sim(args: argparse.Namespace) -> int:
+    policy_path = Path(args.policy) if args.policy else Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"
+    policy = load_policy(policy_path)
+    cfg = FlashLoanConfig.from_raw(policy.raw if policy else {})
+    result = run_flash_loan_simulation(
+        count=args.count,
+        seed=args.seed,
+        equity_usd=args.equity,
+        config=cfg,
+    )
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+def cmd_flashloan_status(args: argparse.Namespace) -> int:
+    from .promotion_gate import PromotionGate
+
+    policy_path = Path(args.policy) if args.policy else Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"
+    policy = load_policy(policy_path)
+    fl = (policy.raw.get("flash_loan_live") or {}) if policy else {}
+    pg = PromotionGate()
+    print(
+        json.dumps(
+            {
+                "enabled": bool(fl.get("enabled", False)),
+                "requires_approval": bool(
+                    (policy.raw.get("position_limits") or {}).get("flash_loan_live_requires_approval", True)
+                ),
+                "max_amount_usd": fl.get("max_amount_usd"),
+                "pipeline_ids": fl.get("pipeline_ids", []),
+                "promotion_approved": pg.has_approved("flash_loan_live"),
+                "sources": fl.get("sources", {}),
+            },
+            indent=2,
+        )
+    )
+    return 0
+
+
+def cmd_promotion_list(args: argparse.Namespace) -> int:
+    gate = PromotionGate()
+    rows = gate.list_approvals()
+    if args.approved_only:
+        rows = [r for r in rows if r.get("approved")]
+    print(json.dumps(rows, indent=2))
+    return 0
+
+
 def cmd_memecoin_filter(args: argparse.Namespace) -> int:
     policy_path = Path(args.policy) if args.policy else Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"
     policy = load_policy(policy_path)
@@ -707,6 +779,10 @@ def main(argv: list[str] | None = None) -> int:
     pv = promo_sub.add_parser("verify-audit")
     pv.set_defaults(func=cmd_promotion_verify_audit)
 
+    pl = promo_sub.add_parser("list", help="List promotion audit records")
+    pl.add_argument("--approved-only", action="store_true")
+    pl.set_defaults(func=cmd_promotion_list)
+
     hb = sub.add_parser("heartbeat", help="Reset dead-man's switch timer")
     hb.add_argument("--operator", default="operator")
     hb.set_defaults(func=cmd_heartbeat)
@@ -887,6 +963,29 @@ def main(argv: list[str] | None = None) -> int:
     el = edge_sub.add_parser("list", help="List active PoPs and mesh mode")
     el.add_argument("--mesh", default=None, help="Override edge_mesh.yaml path")
     el.set_defaults(func=cmd_edge_list)
+
+    p_fl = sub.add_parser("flashloan", help="Flash-loan router — route/compose/sim (ALCHEMY)")
+    fl_sub = p_fl.add_subparsers(dest="fl_cmd", required=True)
+    flr = fl_sub.add_parser("route", help="Select lowest-fee flash source for chain/asset")
+    flr.add_argument("--asset", default="WETH")
+    flr.add_argument("--amount-usd", type=float, required=True)
+    flr.add_argument("--chain", default="ethereum")
+    flr.add_argument("--prefer", default="", help="Preferred source (balancer, morpho, aave_v3, uniswap_v4)")
+    flr.add_argument("--policy", default=None)
+    flr.set_defaults(func=cmd_flashloan_route)
+    flc = fl_sub.add_parser("compose", help="Compose flash-loan calldata + typed_data")
+    flc.add_argument("--request-json", required=True, help="JSON FlashLoanRequest")
+    flc.add_argument("--policy", default=None)
+    flc.set_defaults(func=cmd_flashloan_compose)
+    fls = fl_sub.add_parser("sim", help="Paper sim: route+compose profit distribution")
+    fls.add_argument("--count", type=int, default=50)
+    fls.add_argument("--seed", type=int, default=42)
+    fls.add_argument("--equity", type=float, default=2500.0)
+    fls.add_argument("--policy", default=None)
+    fls.set_defaults(func=cmd_flashloan_sim)
+    flst = fl_sub.add_parser("status", help="Flash-loan policy + promotion status")
+    flst.add_argument("--policy", default=None)
+    flst.set_defaults(func=cmd_flashloan_status)
 
     p_mc = sub.add_parser("memecoin", help="P22 memecoin trench filter / sim / status")
     mc_sub = p_mc.add_subparsers(dest="mc_cmd", required=True)

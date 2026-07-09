@@ -1,0 +1,42 @@
+# Flash-loan router infra — deploy to ~/.openclaw/infra/flash_loan.yaml
+version: "1.0"
+
+router:
+  module: titan_safety.flash_loan_router
+  cli: titan-safety flashloan
+
+chains:
+  ethereum:
+    chain_id: 1
+    rpc_env: ETH_RPC_URL
+    edge_pop: EDGE-FRA
+  arbitrum:
+    chain_id: 42161
+    rpc_env: ETH_RPC_URL
+    edge_pop: EDGE-FRA
+  base:
+    chain_id: 8453
+    rpc_env: ETH_RPC_URL
+    edge_pop: EDGE-USE
+
+providers:
+  balancer:
+    fee_bps: 0
+    ethereum: "0xba12222222228d8ba445958a685a0a280785497"
+  morpho:
+    fee_bps: 0
+  aave_v3:
+    fee_bps: 9
+  uniswap_v4:
+    fee_bps: 0
+
+execution:
+  require_typed_data: true
+  max_callback_ops: 12
+  broadcast_venues: [flashbots_protect, uniswap_v3]
+  signing_path: signing_node
+
+bootstrap:
+  - "Run paper sim: titan-safety flashloan sim --count 100"
+  - "Promotion YES: titan-safety promotion approve --category flash_loan_live --subject flash_loan_global --response YES"
+  - "Enable flashLoanRouter.enabled in openclaw.json + flash_loan_live.enabled in policy.yaml"

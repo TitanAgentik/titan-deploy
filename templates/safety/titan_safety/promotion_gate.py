@@ -251,3 +251,16 @@ class PromotionGate:
         if not self.audit_path.exists():
             return []
         return [json.loads(l) for l in self.audit_path.read_text(encoding="utf-8").splitlines() if l.strip()]
+
+    def has_approved(self, category: str, subject: str | None = None) -> bool:
+        """True if audit log contains operator YES for category (optional subject)."""
+        global_subjects = frozenset({"flash_loan_global", "FlashLoanRouterV2", "*"})
+        for rec in reversed(self.list_approvals()):
+            if rec.get("category") != category or not rec.get("approved"):
+                continue
+            subj = str(rec.get("subject", ""))
+            if subject is None:
+                return True
+            if subj == subject or subj in global_subjects:
+                return True
+        return False

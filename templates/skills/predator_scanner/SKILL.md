@@ -61,4 +61,4 @@ Owner: **PREDATOR** (Tier 1 `:30000` — critical path, never cloud models).
 
 - `refs/REAPER_detail.md`, `refs/GHOST_detail.md`, `refs/MEV_detail.md`
 - AGENTS trade voting (PREDATOR advisory voter)
-- Cockpit `/security` Stalking + Predatory tabs
+- Titan Agentik `/security` Stalking + Predatory tabs

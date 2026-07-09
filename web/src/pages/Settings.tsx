@@ -35,7 +35,7 @@ export function Settings() {
       <PageHeader
         eyebrow="Governance"
         title="Settings"
-        subtitle="Remote access, auth, appearance, and cockpit connectivity. Prefer Tailscale / SSH tunnel — never expose unsigned admin UI publicly."
+        subtitle="Remote access, auth, appearance, and Agentik connectivity. Prefer Tailscale / SSH tunnel — never expose unsigned admin UI publicly."
       />
 
       <div className="grid grid-2" style={{ marginBottom: 14 }}>

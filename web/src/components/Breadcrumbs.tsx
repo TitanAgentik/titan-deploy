@@ -11,6 +11,8 @@ const GROUP: Record<string, string> = {
   "/pipelines": "Trading",
   "/promotions": "Trading",
   "/edge": "Trading",
+  "/flash-loans": "Trading",
+  "/memecoin": "Trading",
   "/signing": "Trading",
   "/automations": "Intelligence",
   "/goals": "Intelligence",
@@ -26,11 +28,11 @@ const GROUP: Record<string, string> = {
 };
 
 export function Breadcrumbs({ pathname, title }: { pathname: string; title: string }) {
-  const group = GROUP[pathname] ?? "Cockpit";
+  const group = GROUP[pathname] ?? "Agentik";
 
   return (
     <nav className="breadcrumbs" aria-label="Breadcrumb">
-      <Link to="/">TITAN</Link>
+      <Link to="/">Titan Agentik</Link>
       <span className="sep">/</span>
       <span>{group}</span>
       <span className="sep">/</span>

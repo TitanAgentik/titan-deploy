@@ -51,5 +51,5 @@ titan-safety security lockdown --dry-run --operator YOU --reason "drill"
 
 - Skill: `predator_scanner`, `sentinel_security`
 - Playbook: `security_lockdown.yaml`
-- Cockpit: `/security`
+- Titan Agentik: `/security`
 - P44 AGENT_HUNT (TITAN.reconciled)

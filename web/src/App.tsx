@@ -22,6 +22,8 @@ import { Workspace } from "@/pages/Workspace";
 import { Reports } from "@/pages/Reports";
 import { Settings } from "@/pages/Settings";
 import { Security } from "@/pages/Security";
+import { FlashLoans } from "@/pages/FlashLoans";
+import { MemecoinTrench } from "@/pages/MemecoinTrench";
 
 export default function App() {
   return (
@@ -38,6 +40,8 @@ export default function App() {
           <Route path="pipelines" element={<Pipelines />} />
           <Route path="promotions" element={<Promotions />} />
           <Route path="edge" element={<EdgeMesh />} />
+          <Route path="flash-loans" element={<FlashLoans />} />
+          <Route path="memecoin" element={<MemecoinTrench />} />
           <Route path="signing" element={<Signing />} />
           <Route path="automations" element={<Automations />} />
           <Route path="goals" element={<GoalsLab />} />

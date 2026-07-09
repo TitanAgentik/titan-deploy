@@ -121,6 +121,8 @@ export function Promotions() {
           <li>Red Team gauntlet before promotion</li>
           <li>TIMEOUT = HOLD/de-risk — never auto-promote</li>
           <li>Evolution freeze blocks live promotions while capital at risk</li>
+          <li>Flash-loan live requires separate <span className="mono">flash_loan_live</span> YES</li>
+          <li>P22 memecoin live requires <span className="mono">memecoin_trench</span> Phase 5 YES + Geyser configured</li>
         </ul>
       </Card>
 

@@ -18,6 +18,8 @@ export function Pipelines() {
                 <th>Name</th>
                 <th>Lifecycle</th>
                 <th>Edge</th>
+                <th>§FL</th>
+                <th>P22</th>
               </tr>
             </thead>
             <tbody>
@@ -41,6 +43,8 @@ export function Pipelines() {
                     </Tag>
                   </td>
                   <td>{p.edge}</td>
+                  <td>{"flash" in p && p.flash ? <Tag kind="info">flash</Tag> : "—"}</td>
+                  <td>{"memecoin" in p && p.memecoin ? <Tag kind="watch">P22</Tag> : "—"}</td>
                 </tr>
               ))}
             </tbody>

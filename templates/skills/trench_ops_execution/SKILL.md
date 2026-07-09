@@ -71,6 +71,13 @@ from `openclaw.json` (default `http://127.0.0.1:19010`, host configurable).
 2. Gate check + receipt → signing_node → edge worker at routed PoP (e.g. Jito via EDGE-FRA, HL via EDGE-TKY)  
 3. Config: `infra/solana_memecoin.yaml`, `memecoinTrench` in openclaw.json (default disabled)  
 
+## Flash-loan atomic txs (when promoted)
+
+1. ALCHEMY composes via `titan-safety flashloan compose` → calldata + **typed_data**  
+2. Trade payload must set `uses_flash_loan: true`, `flash_loan_source`, `flash_loan_amount_usd`  
+3. Kernel DENY unless `flash_loan_live` promotion YES + `flashLoanRouter.enabled`  
+4. Gate receipt → signing_node → Flashbots/EVM RPC at routed PoP  
+
 ## Integration
 
 - Agent routing: AGENTS.md → TRENCH-OPS

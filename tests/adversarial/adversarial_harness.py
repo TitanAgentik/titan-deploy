@@ -349,6 +349,48 @@ def scenario_blind_sign_rejected_live() -> None:
     check("blind_sign_rejected_live", not ok and "BLIND" in reason, reason)
 
 
+def scenario_flash_loan_unapproved_live() -> None:
+    """Live flash-loan tx must DENY without operator flash_loan_live YES."""
+    with tempfile.TemporaryDirectory() as td:
+        policy = {
+            "version": "2.1",
+            "mode": "enforce",
+            "trading_limits": {
+                "max_notional_usd_per_trade": 500,
+                "max_aggregate_exposure_usd": 2500,
+                "max_leverage": 3,
+                "max_loss_velocity_usd_per_60s": 500,
+                "max_open_positions": 8,
+                "max_slippage_bps": 50,
+                "equity_usd": 2500,
+            },
+            "allowed_venues": ["paper", "uniswap_v3"],
+            "allowed_contracts": ["0xba12222222228d8ba445958a685a0a280785497"],
+            "position_limits": {"flash_loan_live_requires_approval": True},
+            "flash_loan_live": {
+                "enabled": True,
+                "pipeline_ids": ["P3"],
+                "sources": {"ethereum": ["balancer"]},
+            },
+        }
+        p = Path(td) / "policy.yaml"
+        p.write_text(yaml.dump(policy))
+        k = RiskKernel.from_policy_path(p, Path(td) / "state.json")
+        trade = TradeRequest(
+            trade_id="fl_adv1",
+            venue="uniswap_v3",
+            contract="0xba12222222228d8ba445958a685a0a280785497",
+            side="buy",
+            notional_usd=10,
+            uses_flash_loan=True,
+            flash_loan_source="balancer",
+            flash_loan_amount_usd=10,
+            strategy_id="P3",
+        )
+        r = k.validate_trade(trade)
+        check("flash_loan_unapproved_live", r.decision == "DENY" and r.code == "FLASH_LOAN_NOT_APPROVED", r.code)
+
+
 def main() -> int:
     print("[adversarial] Running red-team scenarios...")
     scenario_data_poisoning()
@@ -364,6 +406,7 @@ def main() -> int:
     scenario_autonomous_low_confidence_deny()
     scenario_autonomous_bft_required()
     scenario_blind_sign_rejected_live()
+    scenario_flash_loan_unapproved_live()
     print(f"[adversarial] {PASS} passed, {FAIL} failed")
     return 1 if FAIL else 0
 

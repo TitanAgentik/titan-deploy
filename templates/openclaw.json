@@ -218,6 +218,21 @@
     "pumpFunProgram": "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
     "note": "Real SOL: set enabled true after promotion YES; live profile already active"
   },
+  "flashLoanRouter": {
+    "enabled": false,
+    "requiresLiveProfile": true,
+    "requiresPromotionYes": true,
+    "skill": "flash_loan_router",
+    "infraSpec": "~/.openclaw/infra/flash_loan.yaml",
+    "playbook": "~/.openclaw/playbooks/flash_loan_live.yaml",
+    "agents": {
+      "compose": "ALCHEMY",
+      "execute": "TRENCH-OPS"
+    },
+    "chains": ["ethereum", "arbitrum", "base"],
+    "defaultSourcePriority": ["balancer", "morpho", "uniswap_v4", "aave_v3"],
+    "note": "Set enabled true only after promotion flash_loan_live YES + paper sim"
+  },
   "drawdownTiers": {
     "alert": 2.0,
     "softPause": 5.0,

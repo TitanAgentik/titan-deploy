@@ -1,10 +1,10 @@
-# TITAN Cockpit
+# Titan Agentik
 
-Institutional-grade operator Web UI for the TITAN / OpenClaw / Hermes control plane.
+Crypto-native operator Web UI for the Titan Agentik / OpenClaw / Hermes control plane.
 
-**Design:** [Signal theme](DESIGN.md) — original TITAN palette (cool slate, cyan accent, Sora display). Night dark mode in Settings.
+**Design:** [Signal theme](DESIGN.md) — original Titan palette (cool slate, cyan accent, Sora display). Night dark mode in Settings.
 
-Inspired by [ClawBuddy](https://clawbuddy.help) and the [OpenClaw Control UI](https://docs.openclaw.ai/web/control-ui), adapted to TITAN’s bounded-autonomy trading stack.
+Inspired by [ClawBuddy](https://clawbuddy.help) and the [OpenClaw Control UI](https://docs.openclaw.ai/web/control-ui), adapted to Titan Agentik’s bounded-autonomy trading stack.
 
 ## Features
 
@@ -12,7 +12,7 @@ Inspired by [ClawBuddy](https://clawbuddy.help) and the [OpenClaw Control UI](ht
 - **Activity rail** — bell icon in topbar for recent agent + operator events
 - **Status strip** — navy mesh-grid KPI band on Dashboard
 - **Interactive UX** — clickable metrics, modals, drawers, confirmation flows, toasts
-- **21 sections** — capital, risk, pipelines, promotions, edge mesh, signing, model tiers, and more
+- **23 sections** — capital, risk, pipelines, promotions, memecoin trench, edge mesh, flash loans, signing, and more
 
 ## Quick start
 
@@ -52,7 +52,7 @@ Vite proxies safety services:
 
 **Control:** Dashboard · Command Center · Capital & Wallets · Risk & CBs · **Security Ops** · Ops Center · Forge
 
-**Trading:** Pipelines · Promotions · Edge Mesh · Signing Node
+**Trading:** Pipelines · Promotions · Memecoin Trench · Edge Mesh · Flash Loans · Signing Node
 
 **Intelligence:** Automations · Goals Lab · Identity · Model Tiers · AI Log · Questions
 

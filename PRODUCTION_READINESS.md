@@ -85,7 +85,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 3. **Safety + profit services running:** All systemd units healthy (`curl :19003/health` → `"status":"ok"`), including allocator (`:19006`) and TCA (`:19007`).
 4. **Fail-closed verified:** Stop risk kernel; confirm all trade paths return DENY (not bypass).
 5. **Kill switch drill:** Activate via CLI; deactivate only with signed `RESUME` (`kill sign --command RESUME` then `kill deactivate --signed ...`); confirm kernel denies trades while active.
-5a. **Security Ops four pillars:** `titan-safety security status` shows HARDENED; `security lockdown --dry-run` plans kill+freeze+signing halt+honeypot; skills `sentinel_security` / `predator_scanner` non-stub; refs AEGIS/GHOST/REAPER present; Cockpit `/security` matches CLI posture.
+5a. **Security Ops four pillars:** `titan-safety security status` shows HARDENED; `security lockdown --dry-run` plans kill+freeze+signing halt+honeypot; skills `sentinel_security` / `predator_scanner` non-stub; refs AEGIS/GHOST/REAPER present; Titan Agentik `/security` matches CLI posture.
 6. **Reconciliation with real adapter:** Replace `mock` adapter with exchange/on-chain adapter wired to real keys; verify zero divergence over 48h paper.
 7. **Operator heartbeat:** Dead-man's switch tested; heartbeat cron or manual `titan-safety heartbeat` scheduled.
 8. **Live infrastructure:** NATS, inference endpoints, Erigon on EDGE-FRA (Phase 1 single PoP), Solana feeds — production SLOs met.
@@ -114,6 +114,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 - **AUGUR regime feed** — portfolio risk uses stub regime; wire live AUGUR macro feed for production.
 - **MRM challenger promotion** — stub only; requires promotion gate YES for live swap.
 - **P22 real Solana** — Geyser creds (`GEYSER_GRPC_URL`), Jito tip wallet, live recon module, `capital_profile: live`, venues `solana_pumpfun`/`jito`, promotion YES, then `memecoinTrench.enabled: true` (see `infra/solana_memecoin.yaml` checklist).
+- **Flash-loan live** — `titan-safety flashloan sim` + promotion `flash_loan_live` YES, then `flashLoanRouter.enabled: true` + `flash_loan_live.enabled` in policy (see `infra/flash_loan.yaml`).
 
 ---
 

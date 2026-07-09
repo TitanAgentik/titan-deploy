@@ -27,7 +27,7 @@ export function Questions() {
     <>
       <PageHeader
         title="Questions"
-        subtitle="Click a question for full context and reply options. Ask TITAN with a target agent."
+        subtitle="Click a question for full context and reply options. Ask Titan Agentik with a target agent."
       />
 
       <div className="grid grid-2" style={{ marginBottom: 14 }}>
@@ -108,7 +108,7 @@ export function Questions() {
           </div>
         </Card>
 
-        <Card title="Ask TITAN">
+        <Card title="Ask Titan Agentik">
           <div className="option-grid" style={{ marginBottom: 12 }}>
             {["CORTEX", "ARCHON", "GUARDIAN", "ARBITER"].map((a) => (
               <button

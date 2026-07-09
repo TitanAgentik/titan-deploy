@@ -25,6 +25,9 @@ class TradeRequest:
     strategy_id: str = ""
     confidence: float = 0.0
     bft_votes: list[dict[str, Any]] = field(default_factory=list)
+    uses_flash_loan: bool = False
+    flash_loan_source: str = ""
+    flash_loan_amount_usd: float = 0.0
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TradeRequest:
@@ -43,6 +46,11 @@ class TradeRequest:
             strategy_id=str(data.get("strategy_id", "")),
             confidence=float(data.get("confidence", 0.0)),
             bft_votes=[v for v in votes if isinstance(v, dict)],
+            uses_flash_loan=bool(data.get("uses_flash_loan", data.get("usesFlashLoan", False))),
+            flash_loan_source=str(data.get("flash_loan_source", data.get("flashLoanSource", ""))),
+            flash_loan_amount_usd=float(
+                data.get("flash_loan_amount_usd", data.get("flashLoanAmountUsd", 0))
+            ),
         )
 
 
@@ -133,12 +141,14 @@ class RiskKernel:
         kill_switch_active: bool = False,
         pipeline_halt_checker: Any | None = None,
         portfolio_simulator: Any | None = None,
+        safety_dir: Path | None = None,
     ) -> None:
         self.policy = policy
         self.state = state or RiskKernelState()
         self.kill_switch_active = kill_switch_active
         self.pipeline_halt_checker = pipeline_halt_checker
         self.portfolio_simulator = portfolio_simulator
+        self.safety_dir = safety_dir or (Path.home() / ".openclaw" / "safety")
 
     @classmethod
     def from_policy_path(
@@ -146,17 +156,80 @@ class RiskKernel:
         policy_path: str | Path,
         state_path: str | Path | None = None,
         kill_switch_active: bool = False,
+        safety_dir: str | Path | None = None,
     ) -> RiskKernel:
         policy = load_policy(policy_path)
         sp = Path(str(state_path).replace("~", str(Path.home()))) if state_path else None
         state = RiskKernelState(sp) if sp else RiskKernelState()
-        return cls(policy, state, kill_switch_active)
+        sd = Path(str(safety_dir).replace("~", str(Path.home()))) if safety_dir else None
+        return cls(policy, state, kill_switch_active, safety_dir=sd)
 
     def _deny(self, code: str, reason: str, **details: Any) -> ValidationResult:
         return ValidationResult(decision="DENY", reason=reason, code=code, details=details)
 
     def _allow(self, reason: str = "within_limits") -> ValidationResult:
         return ValidationResult(decision="ALLOW", reason=reason, code="OK")
+
+    def _validate_flash_loan(self, trade: TradeRequest) -> ValidationResult | None:
+        """Return DENY result if flash-loan trade fails policy; None if OK."""
+        is_paper = trade.venue.lower() == "paper"
+        fl_raw = self.policy.raw.get("flash_loan_live") or {}
+        requires_approval = bool(
+            self.policy.raw.get("position_limits", {}).get("flash_loan_live_requires_approval", True)
+        )
+
+        if not is_paper:
+            if not fl_raw.get("enabled", False):
+                return self._deny(
+                    "FLASH_LOAN_DISABLED",
+                    "flash_loan_live.enabled is false — live flash loans blocked",
+                )
+            if requires_approval:
+                from .promotion_gate import PromotionGate
+
+                pg = PromotionGate(self.safety_dir)
+                approved = pg.has_approved("flash_loan_live") or (
+                    bool(trade.strategy_id) and pg.has_approved("flash_loan_live", trade.strategy_id)
+                )
+                if not approved:
+                    return self._deny(
+                        "FLASH_LOAN_NOT_APPROVED",
+                        "Live flash loan requires operator YES on flash_loan_live promotion",
+                        strategy_id=trade.strategy_id,
+                    )
+
+        fl_amount = trade.flash_loan_amount_usd or trade.notional_usd
+        max_fl = float(fl_raw.get("max_amount_usd", 500_000.0))
+        if fl_amount > max_fl:
+            return self._deny(
+                "FLASH_LOAN_AMOUNT",
+                f"Flash loan amount {fl_amount} exceeds cap {max_fl}",
+                amount=fl_amount,
+                cap=max_fl,
+            )
+
+        if trade.flash_loan_source:
+            allowed_sources: set[str] = set()
+            for chain_sources in (fl_raw.get("sources") or {}).values():
+                if isinstance(chain_sources, list):
+                    allowed_sources.update(str(s).lower() for s in chain_sources)
+            if allowed_sources and trade.flash_loan_source.lower() not in allowed_sources:
+                return self._deny(
+                    "FLASH_LOAN_SOURCE",
+                    f"Flash loan source not allow-listed: {trade.flash_loan_source}",
+                    source=trade.flash_loan_source,
+                )
+
+        if trade.strategy_id:
+            pipelines = [str(p) for p in fl_raw.get("pipeline_ids", [])]
+            if pipelines and trade.strategy_id not in pipelines and not is_paper:
+                return self._deny(
+                    "FLASH_LOAN_PIPELINE",
+                    f"Pipeline {trade.strategy_id} not in flash_loan_live allowlist",
+                    strategy_id=trade.strategy_id,
+                )
+
+        return None
 
     def validate_trade(self, trade: TradeRequest) -> ValidationResult:
         if self.kill_switch_active:
@@ -194,6 +267,11 @@ class RiskKernel:
                 f"Contract not allow-listed: {trade.contract}",
                 contract=trade.contract,
             )
+
+        if trade.uses_flash_loan:
+            fl_result = self._validate_flash_loan(trade)
+            if fl_result is not None:
+                return fl_result
 
         if trade.notional_usd <= 0:
             return self._deny("INVALID_NOTIONAL", "Notional must be positive")
@@ -270,6 +348,7 @@ class RiskKernel:
                     trade,
                     self.policy.raw or {},
                     limits.equity_usd,
+                    self.safety_dir,
                 )
                 if not v.ok:
                     return self._deny(
@@ -290,6 +369,7 @@ class RiskKernel:
                 trade,
                 self.policy.raw or {},
                 limits.equity_usd,
+                self.safety_dir,
             )
             if not v.ok:
                 return self._deny(
