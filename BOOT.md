@@ -1,5 +1,7 @@
 # BOOT.md — Gateway Restart Checklist
 
+> Full system manual: [`SYSTEM.md`](./SYSTEM.md)
+
 Keep short. Runs on gateway restart when internal hooks are enabled.
 
 1. Confirm safety services healthy: `:19001`–`:19007`, `:19010` (`curl …/health`)
