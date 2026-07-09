@@ -166,9 +166,10 @@ export function Pnl() {
                     ];
                   }}
                   contentStyle={{
-                    background: "#fff",
-                    border: "1px solid rgba(11,21,40,0.12)",
+                    background: "var(--bg-2)",
+                    border: "1px solid var(--border-strong)",
                     borderRadius: 8,
+                    color: "var(--text)",
                   }}
                 />
                 <Bar dataKey="wtd" radius={[0, 4, 4, 0]}>
@@ -264,9 +265,10 @@ export function Pnl() {
                   <Tooltip
                     formatter={(v: number) => [formatPnl(v, false), "PnL"]}
                     contentStyle={{
-                      background: "#fff",
-                      border: "1px solid rgba(11,21,40,0.12)",
+                      background: "var(--bg-2)",
+                      border: "1px solid var(--border-strong)",
                       borderRadius: 8,
+                      color: "var(--text)",
                     }}
                   />
                   <Bar dataKey="value" radius={[4, 4, 0, 0]}>
@@ -289,9 +291,10 @@ export function Pnl() {
                   <Tooltip
                     formatter={(v: number) => [formatPnl(v, false), "Cumulative"]}
                     contentStyle={{
-                      background: "#fff",
-                      border: "1px solid rgba(11,21,40,0.12)",
+                      background: "var(--bg-2)",
+                      border: "1px solid var(--border-strong)",
                       borderRadius: 8,
+                      color: "var(--text)",
                     }}
                   />
                   <Area

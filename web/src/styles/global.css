@@ -898,6 +898,18 @@ table.data tr:hover td {
   align-items: center;
 }
 
+.cockpit-save-bar-actions .btn {
+  background: rgba(15, 22, 32, 0.28);
+  color: #f0f4f8;
+  border-color: rgba(232, 238, 246, 0.35);
+}
+
+.cockpit-save-bar-actions .btn:hover:not(:disabled) {
+  background: rgba(15, 22, 32, 0.42);
+  color: #ffffff;
+  border-color: rgba(232, 238, 246, 0.55);
+}
+
 .cockpit-save-bar-actions .btn.ghost {
   color: #f0f4f8;
   border-color: rgba(232, 238, 246, 0.35);
@@ -916,7 +928,22 @@ table.data tr:hover td {
 }
 
 .cockpit-save-bar-actions .btn.primary {
+  background: linear-gradient(135deg, #34e0b4 0%, #23b7a0 100%);
   color: #03130e;
+  border-color: transparent;
+  box-shadow: 0 2px 12px rgba(3, 19, 14, 0.35);
+  font-weight: 650;
+}
+
+.cockpit-save-bar-actions .btn.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4ceabf 0%, #27c7ad 100%);
+  color: #03130e;
+}
+
+.cockpit-save-bar-actions .btn.primary:disabled {
+  color: #03130e;
+  opacity: 0.55;
+  background: linear-gradient(135deg, #2bb896 0%, #1e9a86 100%);
 }
 
 .mono { font-family: var(--mono); }

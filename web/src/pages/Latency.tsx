@@ -186,9 +186,10 @@ export function Latency() {
                     <Tooltip
                       formatter={(v: number) => [`${v} ms`, "Gate p95"]}
                       contentStyle={{
-                        background: "#fff",
-                        border: "1px solid rgba(11,21,40,0.12)",
+                        background: "var(--bg-2)",
+                        border: "1px solid var(--border-strong)",
                         borderRadius: 8,
+                        color: "var(--text)",
                       }}
                     />
                     <Area
@@ -218,9 +219,10 @@ export function Latency() {
                     <Tooltip
                       formatter={(v: number) => [`${v} ms`, "Submit p95"]}
                       contentStyle={{
-                        background: "#fff",
-                        border: "1px solid rgba(11,21,40,0.12)",
+                        background: "var(--bg-2)",
+                        border: "1px solid var(--border-strong)",
                         borderRadius: 8,
+                        color: "var(--text)",
                       }}
                     />
                     <Line type="monotone" dataKey="p95" stroke="#10b981" strokeWidth={2} dot={false} />
@@ -240,9 +242,10 @@ export function Latency() {
                     <YAxis type="category" dataKey="label" stroke="#7b8798" fontSize={10} width={88} />
                     <Tooltip
                       contentStyle={{
-                        background: "#fff",
-                        border: "1px solid rgba(11,21,40,0.12)",
+                        background: "var(--bg-2)",
+                        border: "1px solid var(--border-strong)",
                         borderRadius: 8,
+                        color: "var(--text)",
                       }}
                     />
                     <Legend />

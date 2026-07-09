@@ -253,10 +253,10 @@ export function Dashboard() {
                 <YAxis stroke="#7b8798" fontSize={11} domain={chartMode === "equity" ? ["dataMin - 200", "dataMax + 200"] : ["dataMin - 50", "dataMax + 50"]} />
                 <Tooltip
                   contentStyle={{
-                    background: "#fff",
-                    border: "1px solid rgba(11,21,40,0.12)",
+                    background: "var(--bg-2)",
+                    border: "1px solid var(--border-strong)",
                     borderRadius: 8,
-                    color: "#0b1528",
+                    color: "var(--text)",
                   }}
                   formatter={(v: number) => [
                     chartMode === "equity" ? `$${Number(v).toLocaleString()}` : formatPnl(Number(v), false),
