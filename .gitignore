@@ -7,5 +7,7 @@ __pycache__/
 **/*.key
 **/*.pem
 **/secrets*
+web/node_modules/
+web/dist/
 # Generated workspace mirrors are committed so Cursor can open them;
 # rebuild with scripts/build.py to refresh from TITAN.reconciled.md
