@@ -45,7 +45,7 @@
 
 ## Quantum Status
 
-QCC, QSA, QRP are **DORMANT**. 100% classical GPU execution (REVM, CuEVM, ML inference).
+Quantum-coordination agents removed from the catalog. Live capital is **classical-only** (REVM, CuEVM, ML inference). OS CSPRNG for entropy. QI Optimizer (`quantum_inspired.py`) is classical SA — not a quantum agent.
 
 
 ## Bounded Autonomy Matrix (Enforced)

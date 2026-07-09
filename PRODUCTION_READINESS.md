@@ -94,7 +94,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 11. **Exchange/wallet keys:** Provisioned with least privilege; withdrawal disabled; separate from agent write paths.
 12. **Capital module smoke-tested:** `titan-safety capital deposit|withdraw|balance` and audit verify pass; Trezor/on-chain adapter still `mock` until ops wiring.
 13. **Residual risk review:** Operator reads and accepts risks in the next section.
-14. **Quantum confirmed dormant:** `openclaw.json` / `config.yaml` show `quantum.status: dormant`; no Wukong/cuQuantum/Tier 3 paths active; `quantum_*` skills archived under `skills/_archived/quantum/`.
+14. **Quantum classical-only:** QCC/QSA/QRP absent from `openclaw.json` agent definitions; `quantum.status: dormant` / `quantum.enabled: false`; no Wukong/cuQuantum/Tier 3 paths active; `quantum_*` skills archived under `skills/_archived/quantum/`.
 
 ---
 
@@ -121,7 +121,7 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 ## Honest Residual Risks
 
 1. **Same-model BFT** — GUARDIAN/ARCHON/CORTEX/SENTINEL share weights; only the out-of-process kernel is model-independent.
-2. **Quantum layer disabled** — QCC/QSA/QRP are **permanently dormant** for live capital. No cuQuantum, Wukong-180, or Tier 3 cloud QPU dispatch. Classical GPU only (REVM, CuEVM, ML). Do not enable quantum paths without a full re-audit and operator sign-off.
+2. **Quantum layer removed** — QCC/QSA/QRP are **not in the agent catalog**. No cuQuantum, Wukong-180, or Tier 3 cloud QPU dispatch for live capital. Classical GPU only (REVM, CuEVM, ML). Do not re-introduce quantum agents or QPU paths without a full re-audit and operator sign-off.
 3. **Config-only agent wiring** — If an execution path bypasses pre-trade HTTP call, capital is exposed. Code review of execution skills required.
 4. **Mock reconciliation** — Until live adapter is implemented and tested, position truth is not verified against chain/exchange.
 5. **No formal verification** — Limits are unit-tested, not mathematically proven.

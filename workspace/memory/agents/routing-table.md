@@ -40,10 +40,6 @@
 | ARBITER | Backtest validation |
 | HORIZON | R&D metrology |
 
-## Quantum (DORMANT)
+## Quantum
 
-| Agent | Status |
-|-------|--------|
-| QCC | DORMANT |
-| QSA | DORMANT |
-| QRP | DORMANT |
+Quantum-coordination agents removed. Classical-only posture; OS CSPRNG for entropy.

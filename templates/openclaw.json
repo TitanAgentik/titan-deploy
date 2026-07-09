@@ -59,10 +59,7 @@
       {"id": "ATLAS", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
       {"id": "QUANT", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
       {"id": "ARBITER", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
-      {"id": "HORIZON", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"},
-      {"id": "QCC", "tier": "quantum", "status": "dormant"},
-      {"id": "QSA", "tier": "quantum", "status": "dormant"},
-      {"id": "QRP", "tier": "quantum", "status": "dormant"}
+      {"id": "HORIZON", "tier": "utility", "endpoint": "http://localhost:30002", "model": "Qwen3-30B-A3B-Instruct-2507"}
     ]
   },
   "autonomy": {
@@ -271,10 +268,11 @@
   },
   "quantum": {
     "status": "dormant",
+    "enabled": false,
     "cloudQpuEnabled": false,
     "cuQuantumEnabled": false,
     "wukongBudgetActive": false,
-    "note": "100% classical execution — QCC/QSA/QRP disabled for live capital"
+    "note": "Classical-only — quantum agents removed from catalog; no QPU dispatch for live capital"
   },
   "inference": {
     "latencyBudgetPath": "~/.openclaw/infra/latency_budget.yaml",

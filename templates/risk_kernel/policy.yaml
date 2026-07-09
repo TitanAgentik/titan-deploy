@@ -239,7 +239,7 @@ bft:
 
 quantum:
   enabled: false
-  note: "Permanently disabled for live capital — classical-only execution; no cuQuantum/Wukong/Tier 3 dispatch"
+  note: "Classical-only — quantum agents removed; no cuQuantum/Wukong/Tier 3 dispatch for live capital"
 
 power_loss:
   on_ups_battery: halt_trading

@@ -41,7 +41,7 @@ HEADER = """# TITAN Spec Digest (navigation map)
   `capital_profile: live`.
 - Kill switch deactivation requires an HMAC-signed RESUME. Mutating safety
   POSTs require `X-Titan-Auth`.
-- Quantum agents (QCC/QSA/QRP) are DORMANT — 100% classical execution.
+- Quantum agents removed from catalog — 100% classical execution.
 
 ## Companion files (refs/)
 

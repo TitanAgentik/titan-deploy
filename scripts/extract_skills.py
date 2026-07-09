@@ -70,7 +70,7 @@ metadata:
 # {title} (ARCHIVED)
 
 **Status:** `removed` — quantum compute layer is **permanently disabled** for live capital.
-QCC/QSA/QRP agents are dormant. Use classical equivalents (QUANT, ORACLE, GUARDIAN).
+Quantum agents removed from catalog. Use classical equivalents (QUANT, ORACLE, GUARDIAN).
 
 This skill is retained under `skills/_archived/quantum/` for spec audit only — not loaded at runtime.
 

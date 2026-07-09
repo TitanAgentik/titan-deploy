@@ -12,7 +12,7 @@
 2. [System map](#2-system-map)
 3. [Hardware / nodes](#3-hardware--nodes)
 4. [Model tiers & inference ports](#4-model-tiers--inference-ports)
-5. [23 agents + roles](#5-23-agents--roles)
+5. [20 agents + roles](#5-20-agents--roles)
 6. [Trade lifecycle end-to-end](#6-trade-lifecycle-end-to-end)
 7. [Risk kernel, CBs, drawdown, capital](#7-risk-kernel-cbs-drawdown-capital)
 8. [Security four pillars + ghost + predatory](#8-security-four-pillars--ghost--predatory)
@@ -20,7 +20,7 @@
 10. [Safety services ports map](#10-safety-services-ports-map)
 11. [Cockpit map](#11-cockpit-map)
 12. [CLI essentials](#12-cli-essentials)
-13. [Quantum path (dormant)](#13-quantum-path-dormant)
+13. [Quantum path (classical-only)](#13-quantum-path-classical-only)
 14. [Go-live / verify sequence](#14-go-live--verify-sequence)
 15. [Explicit non-goals / hard exclusions](#15-explicit-non-goals--hard-exclusions)
 
@@ -150,9 +150,9 @@ From `templates/openclaw.json` `inference` + `hardware_bom.yaml`. **No closed/cl
 
 ---
 
-## 5. 23 agents + roles
+## 5. 20 agents + roles
 
-Total: **15** LLM agents on TITANHOME tiers + **8** utility on TITANSPARK + **3** quantum **dormant** + **5** stateless edge workers (no LLM). Count of named agents in `openclaw.json` definitions = 23 including QCC/QSA/QRP.
+Total: **12** LLM agents on TITANHOME tiers (4 orch + 5 signal + 3 coding) + **8** utility on TITANSPARK + **5** stateless edge workers (no LLM). Named agents in `openclaw.json` definitions = **20**. Quantum-coordination agents (QCC/QSA/QRP) removed — classical-only.
 
 | Agent | Tier | Role |
 |-------|------|------|
@@ -177,7 +177,6 @@ Total: **15** LLM agents on TITANHOME tiers + **8** utility on TITANSPARK + **3*
 | **QUANT** | Utility | Stats / pairs / pred-market models |
 | **ARBITER** | Utility | Backtest gate / Red Team / deploy lifecycle |
 | **HORIZON** | Utility | R&D metrology (observer only — cannot trade) |
-| **QCC / QSA / QRP** | Quantum | **DORMANT** — no dispatch |
 
 **Trade BFT (advisory):** AUGUR + PREDATOR + ATLAS, threshold **2-of-3**. Orchestrator-tier heterogeneous votes (ARCHON / CORTEX / GUARDIAN) are documented separately; **kernel DENY wins**.
 
@@ -442,17 +441,17 @@ Wind-down: `titan-safety wind-down safe-mode|derisk|flatten|status`.
 
 ---
 
-## 13. Quantum path (dormant)
+## 13. Quantum path (classical-only)
 
 | Item | Status |
 |------|--------|
-| QCC / QSA / QRP | **DORMANT** in `openclaw.json` |
-| `quantum.enabled` / `quantum.status` | `false` / `dormant` |
+| QCC / QSA / QRP | **Removed** from agent catalog (`openclaw.json` definitions) |
+| `quantum.enabled` / `quantum.status` | `false` / `dormant` (policy flag retained) |
 | cuQuantum / Wukong / cloud QPU | Disabled for live capital |
-| QI Optimizer (`quantum_inspired.py`) | Classical simulated annealing only; `advisory_only`, `live_path=false` |
-| Randomness | OS CSPRNG fallback (QRP dormant) |
+| QI Optimizer (`quantum_inspired.py`) | Classical simulated annealing only; `advisory_only`, `live_path=false` — not a quantum agent |
+| Randomness | OS CSPRNG |
 
-**Why:** Live capital must not depend on unverified quantum dispatch or correlated cloud QPUs. Classical REVM / CuEVM / ML inference only. Re-enabling quantum requires full re-audit and explicit operator sign-off (`iron-laws.md` §8).
+**Why:** Live capital is classical-only (REVM / CuEVM / ML). Quantum agents are not in the system catalog. Re-introducing QPU dispatch requires full re-audit and explicit operator sign-off (`iron-laws.md` §8).
 
 ---
 

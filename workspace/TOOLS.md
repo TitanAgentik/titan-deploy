@@ -1,7 +1,7 @@
 # TOOLS.md — Agent Capability Matrix (the Titan UNIFIED)
 
-## GPU TP=2 Agents (llama-server :30000, zai-org/GLM-5.2 GGUF Q4_K_M + FP8 KV + MTP native spec-decode (`--spec-type draft-mtp`), PCIe 5.0 x16, expert-offload via `--n-cpu-moe`: dense + hot experts in VRAM (\~180 GB) + cold experts overflow to DDR5-6000 (\~196 GB pinned), all signal/coding/orchestrator agents (quantum-coord dormant) share this single deployment via `--parallel 15` multi-tenant slots)  
-**ORACLE:** Market data APIs, signal computation (108 signals + narrative (classical-only; quantum dormant)), HYDRA ML inference, multi-chain price reconciliation, confidence scoring  
+## GPU TP=2 Agents (llama-server :30000, zai-org/GLM-5.2 GGUF Q4_K_M + FP8 KV + MTP native spec-decode (`--spec-type draft-mtp`), PCIe 5.0 x16, expert-offload via `--n-cpu-moe`: dense + hot experts in VRAM (\~180 GB) + cold experts overflow to DDR5-6000 (\~196 GB pinned), all signal/coding/orchestrator agents share this single deployment via `--parallel 12` multi-tenant slots)  
+**ORACLE:** Market data APIs, signal computation (108 signals + narrative, classical-only), HYDRA ML inference, multi-chain price reconciliation, confidence scoring  
 **WRAITH:** Blockchain RPCs (14 chains), on-chain analytics, wallet tracking, MEV detection, deployer analysis  
 **PREDATOR:** DEX APIs, token scanning, rug detection, mempool monitoring (via 5-PoP edge mesh — TKY/SIN/FRA/USE/AMS), liquidity analysis, **stalking + predatory hunt** (`titan-safety security status`; honeypot lattice armed by default), **P22 memecoin trench** (six-gate filter + lifecycle; `titan-safety memecoin filter|evaluate|sim`)  
 **AUGUR:** Macro data feeds, HMM regime detection, correlation analysis, volatility regime classification  

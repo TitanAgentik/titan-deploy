@@ -18,7 +18,7 @@ button on its own.
 TITAN is a **robot trader**. It's a collection of programs ("agents") that watch
 crypto markets, decide when to buy and sell, and then actually place those trades
 by themselves. The big spec file (`source/TITAN.md`) describes a very ambitious
-version: 23 agents, self-improving AI, global servers, fancy quantum stuff.
+version: 20 agents, self-improving AI, global servers, fancy quantum stuff.
 
 Here is the honest truth you need to internalize before spending a dollar:
 

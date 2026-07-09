@@ -83,8 +83,8 @@ export function QuantumInspired() {
       />
 
       <div className="alert-banner">
-        <strong>Advisory only</strong> — live_path=false · backend=classical_sa · quantum.enabled unchanged ·
-        QCC/QSA/QRP dormant. SA output does not gate execution; risk kernel DENY remains authoritative.
+        <strong>Advisory only</strong> — live_path=false · backend=classical_sa · quantum.enabled=false ·
+        quantum agents removed. SA output does not gate execution; risk kernel DENY remains authoritative.
       </div>
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
@@ -265,7 +265,7 @@ export function QuantumInspired() {
             <Tag kind="info">advisory_only</Tag> — no ExecutionGate or allocator service wiring
           </li>
           <li>
-            Dormant quantum agents: {qi.dormantAgents.join(", ")} — classical-only mode unchanged
+            Quantum agents removed from catalog — classical-only mode (QI is classical SA, not a quantum agent)
           </li>
           <li>
             <span className="mono">quantum.enabled</span> remains <Tag kind="neutral">false</Tag>

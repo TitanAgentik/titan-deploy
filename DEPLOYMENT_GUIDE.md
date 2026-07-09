@@ -9,7 +9,7 @@ promotion gates).
 - This bundle ships **real, tested software controls**. It does **not** make live
   trading safe or profitable by itself. Software is necessary, not sufficient.
 - Several claims in `TITAN.md` are aspirational or fictional (e.g. `GLM-5.2-753B`,
-  `$356,700/day`, quantum "stealth", "23 agents at full autonomy"). Treat the
+  `$356,700/day`, quantum "stealth", "20 agents at full autonomy"). Treat the
   spec as **product vision**, and this guide as the **operational reality**.
 - The correct posture is **bounded autonomy**: the machine executes freely inside
   a human-set risk envelope; humans own promotions, risk-parameter changes, and

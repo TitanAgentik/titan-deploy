@@ -93,7 +93,7 @@ Four pillars always armed: **Impenetrable** (baseline) + **Evasion** (Ghost — 
 
 **Constraints:** No closed/cloud models on live path. TRENCH-OPS / GUARDIAN / EXECUTOR stay on Tier 1/2 only. Spec: `~/.openclaw/infra/gpu_schedule.yaml` + `hardware_bom.yaml`
 
-## Agent Routing (23 agents)  
+## Agent Routing (20 agents)  
 - **HYPERION**: Operator interface agent (Async NATS streaming, reporting (off-critical path))
 
 ### Orchestrator / risk / security tier (4 agents)  
@@ -132,13 +132,6 @@ Four pillars always armed: **Impenetrable** (baseline) + **Evasion** (Ghost — 
 | ARBITER | Backtest validation / walk-forward / Red Team gauntlet | `Qwen3-30B-A3B-Instruct-2507` FP4 |  
 | HORIZON | R\&D automation metrology (CSET observer) | `Qwen3-30B-A3B-Instruct-2507` FP4 |
 
-### Quantum-coordination agents (3) — DORMANT (classical-only mode)  
-| Agent | Role | Layer |  
-| --- | --- | --- |  
-| QCC (Quantum Compute Coordinator) | **DORMANT** — no quantum dispatch | N/A |  
-| QSA (Quantum Signal Agent) | **DORMANT** — classical signals only | N/A |  
-| QRP (Quantum Randomness Provider) | **DORMANT** — OS CSPRNG fallback | N/A |
-
 ### Embedding + reranker stack  
 | Component | Model | Hosting |  
 | --- | --- | --- |  
@@ -157,10 +150,11 @@ Four pillars always armed: **Impenetrable** (baseline) + **Evasion** (Ghost — 
 
 > **Architecture rationale:** Each edge PoP is placed in the **exact same AWS region/AZ** as the target DEX / sequencer / builder. Since Hyperliquid DEX validators all run in AWS `ap-northeast-1` (Tokyo), and BSC/Sui run in AWS `ap-southeast-1` (Singapore), traffic between our edge and the exchange never leaves Amazon's backbone — achieving sub-millisecond RTT. This replaces the previous single-PoP Falkenstein design which added 130-200ms RTT to APAC exchanges. Erigon archive runs on EDGE-FRA (Frankfurt, DE-CIX peered); CRUSH pipeline and batch data processing run on TITANHOME during off-peak hours.
 
-**Total: 23 agents — 15 share the GPU TP=2 llama-server `:30000` (4 orchestrator
+**Total: 20 agents — 12 on TITANHOME inference tiers (4 orchestrator + 5 signal + 3 coding)
 
-  + 5 signal + 3 coding + 3 quantum-coord dormant) + 8 utility on TITANSPARK SGLang  
-  `:30002` (llama.cpp `:30001` cold fallback only) + 5 stateless edge workers across 5 global PoPs (no LLM). All inference local.**
+  + 8 utility on TITANSPARK SGLang `:30002` (llama.cpp `:30001` cold fallback only)
+  + 5 stateless edge workers across 5 global PoPs (no LLM). All inference local.
+  Quantum-coordination agents (QCC/QSA/QRP) removed — classical-only posture.**
 
 ## Inter-Agent Protocol & Consensus Engine
 
@@ -205,7 +199,7 @@ Four pillars always armed: **Impenetrable** (baseline) + **Evasion** (Ghost — 
 - **Escalation:** trades >5% equity → CORTEX + GUARDIAN auto-review (no human gate per §AUTONOMY PRINCIPLE).  
 - **Memory search mandate:** query collections BEFORE any decision.  
 - **Edge dispatch:** TRENCH-OPS selects edge via routing table → Nostr NIP-44 Event Pub/Sub (Kind 1059) → edge worker broadcasts within 3 ms.  
-- **Quantum dispatch:** DISABLED (classical-only mode). QCC/QSA/QRP dormant; no NATS quantum queue.
+- **Quantum dispatch:** REMOVED (classical-only mode). No quantum agents; no NATS quantum queue.
 - **A2A bridge:** ARCHON maintains A2A-protocol outbound channels to external agent systems (protocol governance agents, exchange-side AI, MEV relay coordinators) as authorized by Hyperion.
 
 ### Trading Memory Decision Log (TradingAgents-Inspired)
@@ -264,10 +258,10 @@ checkpoint_clear_on_success: true
 | TradingAgents Feature | Titan Integration | Enhancement Over TradingAgents |  
 | --- | --- | --- |  
 | 4-Analyst concurrent pipeline | Multi-analyst evidence pipeline (fundamentals, sentiment, news, technical) | DeFi-native: on-chain metrics, mempool data, funding rates replace equity-centric Yahoo Finance data |  
-| Bull/Bear research debate | BULL_RESEARCHER / BEAR_RESEARCHER adversarial sub-roles | Classical-only (quantum dormant)|  
+| Bull/Bear research debate | BULL_RESEARCHER / BEAR_RESEARCHER adversarial sub-roles | Classical-only |  
 | Structured-output agents | JSON-enforced thesis schemas for all debate participants | Integrated with existing BFT voting consensus (2-of-3 threshold) |  
-| Risk management debate | AGGRESSIVE_RISK_AGENT / CONSERVATIVE_RISK_AGENT | Classical-only (quantum dormant)|  
+| Risk management debate | AGGRESSIVE_RISK_AGENT / CONSERVATIVE_RISK_AGENT | Classical-only |  
 | Portfolio Manager approval | GUARDIAN as final authority gate | Augmented with 44-pipeline portfolio-level constraint checking |  
-| Trading Memory Decision Log | JSONL decision audit trail with 3-phase lifecycle | Classical signal provenance tracking only (quantum dormant) |  
+| Trading Memory Decision Log | JSONL decision audit trail with 3-phase lifecycle | Classical signal provenance tracking only |  
 
 <!-- truncated to bootstrap char limit -->

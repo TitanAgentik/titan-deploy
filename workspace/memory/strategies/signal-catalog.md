@@ -17,7 +17,7 @@
 ## Rules
 
 1. Min 3 independent sources before trade entry (R17).
-2. No quantum signal paths (QSA dormant).
+2. No quantum signal paths (classical-only; quantum agents removed).
 3. Full 108-signal list lives in TITAN source §ORACLE — do not enable all by default.
 
 See: `memory/strategies/selective-activation.md`, `memory/strategies/active-pipelines.md`

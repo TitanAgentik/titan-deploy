@@ -330,7 +330,6 @@ export const agents = [
   { id: "HERALD", role: "Telegram", tier: "U :30002", status: "online", load: 12 },
   { id: "FORGE", role: "Infra health", tier: "U :30002", status: "online", load: 22 },
   { id: "ARBITER", role: "Backtest", tier: "U :30002", status: "online", load: 18 },
-  { id: "QCC", role: "Quantum coord", tier: "DORMANT", status: "dormant", load: 0 },
 ];
 
 export const services = [
@@ -1754,7 +1753,7 @@ export const quantumInspired = {
   livePath: false,
   backend: "classical_sa" as const,
   quantumEnabled: false,
-  dormantAgents: ["QCC", "QSA", "QRP"],
+  quantumAgentsRemoved: true,
   cli: "titan-safety qi demo --seed 42 --k 4 --compare-kelly",
   config: {
     k: 4,

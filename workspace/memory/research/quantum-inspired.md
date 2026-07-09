@@ -9,7 +9,7 @@ Compares against fractional-Kelly `CapitalAllocator` for R&D; **not wired to liv
 
 - No cloud QPU, no `quantum.enabled` policy changes
 - Stdlib-only module: `titan_safety/quantum_inspired.py`
-- Dormant quantum agents (QCC/QSA/QRP) remain unused
+- Quantum agents removed from catalog; QI is classical SA only
 
 ## CLI
 

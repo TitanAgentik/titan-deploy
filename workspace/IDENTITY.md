@@ -37,9 +37,9 @@
 
 ## Scale
 
-- 23 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 26 workflows | **47-pipeline catalog**
+- 20 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 26 workflows | **47-pipeline catalog**
 - **Selective activation:** catalog size ≠ required set — fund ≤`max_active_pipelines` (default 4) HEALTHY lanes
-- Quantum agents: DORMANT (100% classical execution)
+- Quantum agents: removed (100% classical execution)
 
 ## Bootstrap Limits
 
@@ -52,8 +52,8 @@
 - **Framework**: OpenClaw (nervous system) + Hermes Agent (cognitive brain) \= "the Titan"  
 - **Compute**: Threadripper PRO 9995WX (96C/192T) + WRX90E-SAGE + 512GB DDR5-6000 ECC + 2× RTX PRO 6000 Blackwell Max-Q (192GB VRAM) + TITANSPARK GX10  
 - **Models**: ALL LOCAL — GLM-5.2-753B-A40B (GPU TP=2, llama.cpp `--n-cpu-moe` expert-offload) + Qwen3.6-35B-A3B (CPU, llama.cpp) + MTP native speculative  
-- **Quantum**: 100% Classical Execution — quantum agents DORMANT (Quantum simulators removed to dedicate all VRAM to REVM parallelization)  
-- **Scale**: 23 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 26 workflows | 47 pipelines (P1-P34, P37-P48 incl. §GRIS)  
+- **Quantum**: 100% Classical Execution — quantum agents removed (Quantum simulators removed to dedicate all VRAM to REVM parallelization)  
+- **Scale**: 20 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 26 workflows | 47 pipelines (P1-P34, P37-P48 incl. §GRIS)  
 - **Edge**: Phase 1 single-PoP (EDGE-FRA default); full 5-PoP mesh Phase 3+ — EDGE-TKY (AWS `ap-northeast-1` c7i.metal-24xl) + EDGE-SIN (AWS `ap-southeast-1` c7i.4xlarge) + EDGE-FRA (Vultr BM Frankfurt, DE-CIX peered) + EDGE-USE (AWS `us-east-1` c7i.2xlarge) + EDGE-AMS (Vultr BM Amsterdam) — same-AZ as DEX / sequencers / builders, sub-1ms RTT  
 - **OS**: Ubuntu 24.04 LTS HWE (kernel 7.0) + AF_XDP Kernel-Bypass Networking (sub-10µs packet processing) | Python 3.12 | systemd 255  
 - **Learning**: SAGE + MGPO + Hermes-RL/DRPO + HyEvo + GEPA + DGM-H + SIA + SkillOpt + InterleaveThinker + ALE + Robust  
@@ -61,9 +61,10 @@
 - **Autonomy**: BOUNDED — routine trades <1% equity auto-execute within GUARDIAN limits; human YES required for promotion to live, evolution deploys, leverage changes, flash-loan live, and trades >1% equity; operator receives informational notifications plus CRITICAL alerts for 6 emergency conditions
 - **Global Intelligence**: §GRIS — 35+ sources (10 academic, 6 international, 7 code, 8 intelligence, 4 model), 4-stage NLP triage (800+/day → 5-15 candidates), P48 safe implementation pipeline (sandbox → benchmark → hot-swap), top-20 AI model watchlist with auto-evaluate-swap, Global Research Digest in daily Telegram briefing
 
-> **QUANTUM STATUS (reconciled):** QCC, QSA, QRP are **DORMANT**. No cuQuantum, Wukong,
-> or Tier 3 cloud QPU dispatch. 100% classical GPU execution (REVM, CuEVM, ML inference).
+> **QUANTUM STATUS (reconciled):** Quantum-coordination agents (QCC/QSA/QRP) **removed** from the catalog.
+> No cuQuantum, Wukong, or Tier 3 cloud QPU dispatch. 100% classical GPU execution (REVM, CuEVM, ML inference).
 > OS CSPRNG for all cryptographic entropy. Quantum skills archived — not loaded at runtime.
+> QI Optimizer (`quantum_inspired.py`) is classical SA only — not a quantum agent.
 
 > **MODEL TIER ARCHITECTURE (reconciled):** Critical-path trading uses **Tier 1 / Tier 2** only (Qwen3 stack). Tier 3 is offline R&D/evolution.
 > - **Tier 1 (:30000, GPU 0):** Qwen3-30B-A3B FP8 — signals, risk, execution (50-70 tok/s) — **UNCHANGED**

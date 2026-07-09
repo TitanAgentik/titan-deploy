@@ -392,7 +392,7 @@ export function ManualControl() {
           <span className="chip">
             capital · {seed.capitalProfile.toUpperCase()}
           </span>
-          <span className="chip ok">quantum · DORMANT</span>
+          <span className="chip ok">quantum · OFF</span>
           <span className={`chip ${evolutionFrozen ? "warn" : "ok"}`}>
             evolution · {evolutionFrozen ? "FROZEN" : "OPEN"}
           </span>
@@ -1047,7 +1047,7 @@ export function ManualControl() {
             value={seed.allocator.selectedIds.join(", ") || "—"}
           />
           <Metric label="Last plan" value={seed.allocator.lastPlanAt.slice(11, 19) + "Z"} />
-          <Metric label="Backend" value="classical_sa" delta="quantum dormant" />
+          <Metric label="Backend" value="classical_sa" delta="agents removed" />
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Btn

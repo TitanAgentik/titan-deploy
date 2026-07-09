@@ -224,7 +224,7 @@ quantum:
   cloud_qpu_enabled: false
   cuquantum_enabled: false
   wukong_budget_active: false
-  note: "100% classical execution — QCC/QSA/QRP disabled for live capital"
+  note: "Classical-only — quantum agents removed from catalog; no QPU dispatch for live capital"
 
 risk_kernel:
   enabled: true
@@ -535,21 +535,6 @@ capital:
         "tier": "utility",
         "endpoint": "http://localhost:30002",
         "model": "Qwen3-30B-A3B-Instruct-2507"
-      },
-      {
-        "id": "QCC",
-        "tier": "quantum",
-        "status": "dormant"
-      },
-      {
-        "id": "QSA",
-        "tier": "quantum",
-        "status": "dormant"
-      },
-      {
-        "id": "QRP",
-        "tier": "quantum",
-        "status": "dormant"
       }
     ]
   },
@@ -800,7 +785,7 @@ capital:
     "cloudQpuEnabled": false,
     "cuQuantumEnabled": false,
     "wukongBudgetActive": false,
-    "note": "100% classical execution \u2014 QCC/QSA/QRP disabled for live capital"
+    "note": "Classical-only \u2014 quantum agents removed from catalog; no QPU dispatch for live capital"
   },
   "inference": {
     "latencyBudgetPath": "~/.openclaw/infra/latency_budget.yaml",

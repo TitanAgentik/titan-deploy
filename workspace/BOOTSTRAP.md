@@ -75,9 +75,10 @@
 - [ ] Confirm TIMEOUT on promotion prompt → HOLD (not auto-promote)
 - [ ] Confirm Phase 5 go/no-go requires explicit operator YES
 
-## Quantum (DORMANT)
+## Quantum (classical-only)
 
-- [ ] QCC/QSA/QRP confirmed dormant — classical-only mode active
+- [ ] Confirm quantum agents absent from `openclaw.json` definitions — classical-only mode
+- [ ] Confirm `quantum.enabled: false` / `quantum.status: dormant` in policy
 - [ ] REVM simulation pool :30020 responding
 - [ ] CuEVM fuzzing :30012 available (off-peak)
 

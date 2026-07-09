@@ -60,7 +60,7 @@ def signal_catalog_doc() -> str:
 ## Rules
 
 1. Min 3 independent sources before trade entry (R17).
-2. No quantum signal paths (QSA dormant).
+2. No quantum signal paths (classical-only; quantum agents removed).
 3. Full 108-signal list lives in TITAN source §ORACLE — do not enable all by default.
 
 See: `memory/strategies/selective-activation.md`, `memory/strategies/active-pipelines.md`
@@ -337,13 +337,9 @@ def agent_routing_table() -> str:
 | ARBITER | Backtest validation |
 | HORIZON | R&D metrology |
 
-## Quantum (DORMANT)
+## Quantum
 
-| Agent | Status |
-|-------|--------|
-| QCC | DORMANT |
-| QSA | DORMANT |
-| QRP | DORMANT |
+Quantum-coordination agents removed. Classical-only posture; OS CSPRNG for entropy.
 """
 
 
@@ -438,7 +434,7 @@ Compares against fractional-Kelly `CapitalAllocator` for R&D; **not wired to liv
 
 - No cloud QPU, no `quantum.enabled` policy changes
 - Stdlib-only module: `titan_safety/quantum_inspired.py`
-- Dormant quantum agents (QCC/QSA/QRP) remain unused
+- Quantum agents removed from catalog; QI is classical SA only
 
 ## CLI
 

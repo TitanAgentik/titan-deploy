@@ -32,72 +32,69 @@ def reconcile_counts(text: str) -> str:
     )
     text = text.replace("all 46 pipelines", "funded lanes from the 47-pipeline catalog")
     text = text.replace("all 47 pipelines", "funded lanes from the 47-pipeline catalog")
-    # Agent/pipeline totals drift throughout the doc — normalize to 23 agents.
-    text = re.sub(r"\bALL 24 agents\b", "ALL 23 agents", text)
-    text = re.sub(r"\ball 24 agents\b", "all 23 agents", text)
-    text = re.sub(r"\b24 agents communicate\b", "23 agents communicate", text)
+    # Agent/pipeline totals drift throughout the doc — normalize to 20 agents.
+    text = re.sub(r"\bALL 2[34] agents\b", "ALL 20 agents", text)
+    text = re.sub(r"\ball 2[34] agents\b", "all 20 agents", text)
+    text = re.sub(r"\b2[34] agents communicate\b", "20 agents communicate", text)
+    text = re.sub(r"\b23 agents\b", "20 agents", text)
     return text
 
 
 def reconcile_quantum(text: str) -> str:
-    """Mark quantum agents dormant; align with 100% classical execution."""
+    """Remove/neutralize quantum agents; align with 100% classical execution."""
     if "QUANTUM STATUS (reconciled)" not in text:
         text = text.replace(
             "100% Classical Execution (Quantum simulators removed",
-            "100% Classical Execution — quantum agents DORMANT (Quantum simulators removed",
+            "100% Classical Execution — quantum agents removed (Quantum simulators removed",
             1,
         )
         quantum_status = """
-> **QUANTUM STATUS (reconciled):** QCC, QSA, QRP are **DORMANT**. No cuQuantum, Wukong,
-> or Tier 3 cloud QPU dispatch. 100% classical GPU execution (REVM, CuEVM, ML inference).
+> **QUANTUM STATUS (reconciled):** Quantum-coordination agents (QCC/QSA/QRP) **removed** from the catalog.
+> No cuQuantum, Wukong, or Tier 3 cloud QPU dispatch. 100% classical GPU execution (REVM, CuEVM, ML inference).
 > OS CSPRNG for all cryptographic entropy. Quantum skills archived — not loaded at runtime.
+> QI Optimizer (`quantum_inspired.py`) is classical SA only — not a quantum agent.
 
 """
         anchor = "## AUTONOMY PRINCIPLE"
         if anchor in text and "QUANTUM STATUS (reconciled)" not in text:
             text = text.replace(anchor, quantum_status + anchor, 1)
 
-    # Agent matrix (authority table + routing table variants)
+    # Strip quantum-coordination agent table from routing (agents removed from catalog)
     text = re.sub(
-        r"### Quantum-coordination agents \(3\)(?: — FULLY AUTONOMOUS)?",
-        "### Quantum-coordination agents (3) — DORMANT (classical-only mode)",
-        text,
-    )
-    text = re.sub(
-        r"\| QCC \| Quantum compute coordinator \| Auto-route all quantum jobs \|",
-        "| QCC | Quantum compute coordinator | **DORMANT** — no quantum dispatch |",
+        r"### Quantum-coordination agents \(3\)[^\n]*\n(?:\|[^\n]*\n)+",
+        "",
         text,
         count=1,
     )
     text = re.sub(
-        r"\| QSA \| Quantum signal agent \| Auto-classify all signals \|",
-        "| QSA | Quantum signal agent | **DORMANT** — classical signals only |",
+        r"\| QCC \|[^\n]*\|\n",
+        "",
         text,
-        count=1,
     )
     text = re.sub(
-        r"\| QRP \| Quantum randomness provider \| Auto-generate entropy \|",
-        "| QRP | Quantum randomness provider | **DORMANT** — OS CSPRNG fallback |",
+        r"\| QSA \|[^\n]*\|\n",
+        "",
         text,
-        count=1,
     )
     text = re.sub(
-        r"\| QCC \(Quantum Compute Coordinator\) \|[^\n]+\|",
-        "| QCC (Quantum Compute Coordinator) | **DORMANT** — no quantum dispatch | N/A (classical-only) |",
+        r"\| QRP \|[^\n]*\|\n",
+        "",
         text,
-        count=1,
     )
     text = re.sub(
-        r"\| QSA \(Quantum Signal Agent\) \|[^\n]+\|",
-        "| QSA (Quantum Signal Agent) | **DORMANT** — classical signals only | N/A (classical-only) |",
+        r"\| QCC \(Quantum Compute Coordinator\) \|[^\n]+\|\n",
+        "",
         text,
-        count=1,
     )
     text = re.sub(
-        r"\| QRP \(Quantum Randomness Provider\) \|[^\n]+\|",
-        "| QRP (Quantum Randomness Provider) | **DORMANT** — OS CSPRNG fallback | N/A (classical-only) |",
+        r"\| QSA \(Quantum Signal Agent\) \|[^\n]+\|\n",
+        "",
         text,
-        count=1,
+    )
+    text = re.sub(
+        r"\| QRP \(Quantum Randomness Provider\) \|[^\n]+\|\n",
+        "",
+        text,
     )
 
     # Dispatch, routing, and active-path language
@@ -108,7 +105,7 @@ def reconcile_quantum(text: str) -> str:
     )
     text = re.sub(
         r"- \*\*Quantum dispatch:\*\* agents submit quantum requests to QCC via NATS JetStream queue;[^\n]+",
-        "- **Quantum dispatch:** DISABLED (classical-only mode). QCC/QSA/QRP dormant; no NATS quantum queue.",
+        "- **Quantum dispatch:** REMOVED (classical-only mode). No quantum agents; no NATS quantum queue.",
         text,
     )
     text = re.sub(
@@ -159,13 +156,28 @@ def reconcile_quantum(text: str) -> str:
         text,
     )
     text = re.sub(
-        r"\+ 3 quantum-coord\)",
-        "+ 3 quantum-coord dormant)",
+        r" \+ 3 quantum-coord(?: dormant)?\)",
+        ")",
         text,
     )
     text = re.sub(
         r"orchestrator/quantum-coord agents",
-        "orchestrator agents (quantum-coord dormant)",
+        "orchestrator agents",
+        text,
+    )
+    text = re.sub(
+        r"orchestrator agents \(quantum-coord dormant\)",
+        "orchestrator agents",
+        text,
+    )
+    text = re.sub(
+        r"## Agent Routing \(23 agents\)",
+        "## Agent Routing (20 agents)",
+        text,
+    )
+    text = re.sub(
+        r"\*\*Total: 23 agents",
+        "**Total: 20 agents",
         text,
     )
     text = re.sub(
@@ -195,12 +207,12 @@ def reconcile_quantum(text: str) -> str:
     )
     text = re.sub(
         r"- \[ \] QCC: initialize cuQuantum Appliance[^\n]+",
-        "- [x] QCC: **skipped** — quantum dormant; classical-only mode",
+        "- [x] Quantum agents: **removed** — classical-only mode",
         text,
     )
     text = re.sub(
         r"- \[ \] QRP: fill entropy pool \(36 KB initial from first QRNG batch\)",
-        "- [x] QRP: **skipped** — OS CSPRNG for entropy (quantum dormant)",
+        "- [x] Entropy: OS CSPRNG (quantum agents removed)",
         text,
     )
     text = re.sub(

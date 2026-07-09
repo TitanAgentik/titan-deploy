@@ -140,7 +140,7 @@ See: https://hermes-agent.nousresearch.com/docs/user-guide/features/context-file
 
 - Bypass pre-trade validation
 - Auto-promote on TIMEOUT
-- Enable quantum agents for live capital
+- Re-introduce quantum agents or QPU dispatch for live capital
 - Commit secrets (`.env`, API keys, wallet seeds)
 """
     for path in (WORKSPACE / ".hermes.md", PROJECT_ROOT / ".hermes.md"):

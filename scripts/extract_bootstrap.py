@@ -93,7 +93,7 @@ def build_soul(text: str) -> str:
 
 ## Quantum Status
 
-QCC, QSA, QRP are **DORMANT**. 100% classical GPU execution (REVM, CuEVM, ML inference).
+Quantum-coordination agents removed from the catalog. Live capital is **classical-only** (REVM, CuEVM, ML inference). OS CSPRNG for entropy. QI Optimizer (`quantum_inspired.py`) is classical SA — not a quantum agent.
 """
     parts = [iron_laws, BOUNDED_AUTONOMY_MATRIX.strip()]
     if soul_section:
@@ -108,22 +108,25 @@ QCC, QSA, QRP are **DORMANT**. 100% classical GPU execution (REVM, CuEVM, ML inf
 
 def patch_quantum_classical_only(content: str) -> str:
     """Strip contradictory quantum-active language from bootstrap files."""
+    # Remove quantum-coordination agent section entirely when present
+    content = re.sub(
+        r"### Quantum-coordination agents \(3\)[^\n]*\n(?:\|[^\n]*\n)+\n?",
+        "",
+        content,
+        count=1,
+    )
     replacements = [
         (
-            r"### Quantum-coordination agents \(3\)(?: — DORMANT \(classical-only mode\))?",
-            "### Quantum-coordination agents (3) — DORMANT (classical-only mode)",
+            r"\| QCC \(Quantum Compute Coordinator\) \|[^\n]+\|\n?",
+            "",
         ),
         (
-            r"\| QCC \(Quantum Compute Coordinator\) \|[^\n]+\|",
-            "| QCC (Quantum Compute Coordinator) | **DORMANT** — no quantum dispatch | N/A |",
+            r"\| QSA \(Quantum Signal Agent\) \|[^\n]+\|\n?",
+            "",
         ),
         (
-            r"\| QSA \(Quantum Signal Agent\) \|[^\n]+\|",
-            "| QSA (Quantum Signal Agent) | **DORMANT** — classical signals only | N/A |",
-        ),
-        (
-            r"\| QRP \(Quantum Randomness Provider\) \|[^\n]+\|",
-            "| QRP (Quantum Randomness Provider) | **DORMANT** — OS CSPRNG fallback | N/A |",
+            r"\| QRP \(Quantum Randomness Provider\) \|[^\n]+\|\n?",
+            "",
         ),
         (
             r"\| ORACLE \| Signal generation \(108 signals \+ narrative \+ quantum\) \|",
@@ -131,15 +134,27 @@ def patch_quantum_classical_only(content: str) -> str:
         ),
         (
             r"- \*\*Quantum dispatch:\*\* agents submit quantum requests to QCC via NATS JetStream queue;[^\n]+",
-            "- **Quantum dispatch:** DISABLED (classical-only mode). QCC/QSA/QRP dormant.",
+            "- **Quantum dispatch:** REMOVED (classical-only mode). No quantum agents; no NATS quantum queue.",
         ),
         (
-            r"\+ 3 quantum-coord\)",
-            "+ 3 quantum-coord dormant)",
+            r" \+ 3 quantum-coord(?: dormant)?\)",
+            ")",
         ),
         (
             r"orchestrator/quantum-coord agents",
-            "orchestrator agents (quantum-coord dormant)",
+            "orchestrator agents",
+        ),
+        (
+            r"orchestrator agents \(quantum-coord dormant\)",
+            "orchestrator agents",
+        ),
+        (
+            r"## Agent Routing \(23 agents\)",
+            "## Agent Routing (20 agents)",
+        ),
+        (
+            r"\*\*Total: 23 agents",
+            "**Total: 20 agents",
         ),
         (
             r"108 signals \+ narrative \+ quantum-enhanced",
@@ -790,9 +805,9 @@ def build_identity(text: str) -> str:
 
 ## Scale
 
-- 23 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 26 workflows | **47-pipeline catalog**
+- 20 agents | 14 chains | 108+ signals | 775+ CBs | 65 skills | 26 workflows | **47-pipeline catalog**
 - **Selective activation:** catalog size ≠ required set — fund ≤`max_active_pipelines` (default 4) HEALTHY lanes
-- Quantum agents: DORMANT (100% classical execution)
+- Quantum agents: removed (100% classical execution)
 
 ## Bootstrap Limits
 
@@ -959,9 +974,10 @@ def build_bootstrap() -> str:
 - [ ] Confirm TIMEOUT on promotion prompt → HOLD (not auto-promote)
 - [ ] Confirm Phase 5 go/no-go requires explicit operator YES
 
-## Quantum (DORMANT)
+## Quantum (classical-only)
 
-- [ ] QCC/QSA/QRP confirmed dormant — classical-only mode active
+- [ ] Confirm quantum agents absent from `openclaw.json` definitions — classical-only mode
+- [ ] Confirm `quantum.enabled: false` / `quantum.status: dormant` in policy
 - [ ] REVM simulation pool :30020 responding
 - [ ] CuEVM fuzzing :30012 available (off-peak)
 
