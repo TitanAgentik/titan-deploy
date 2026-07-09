@@ -250,16 +250,6 @@ export function Security() {
               <Lock size={14} /> Security lockdown…
             </Btn>
             <Btn
-              variant="ghost"
-              onClick={() => {
-                save();
-                push("Saved locally (cockpit)", "ok");
-              }}
-              disabled={!dirty}
-            >
-              Save prefs
-            </Btn>
-            <Btn
               variant="primary"
               onClick={() => void refreshLive()}
             >

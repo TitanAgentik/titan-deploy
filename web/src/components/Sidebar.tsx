@@ -31,6 +31,8 @@ import {
   Timer,
   Atom,
   SlidersHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { portfolio, pnl, formatPnl } from "@/lib/data";
 
@@ -93,10 +95,20 @@ export const NAV = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({
+  collapsed,
+  onToggleCollapsed,
+  dirty,
+  onSaveShell,
+}: {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+  dirty: boolean;
+  onSaveShell: () => void;
+}) {
   const mode = portfolio.killActive ? "HALTED" : portfolio.capitalProfile.toUpperCase();
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${collapsed ? " collapsed" : ""}`}>
       <div className="brand">
         <div className="brand-mark">T</div>
         <div className="brand-text">
@@ -114,6 +126,7 @@ export function Sidebar() {
                 key={item.to}
                 to={item.to}
                 end={item.to === "/"}
+                title={item.label}
                 className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
               >
                 <item.icon />
@@ -144,6 +157,25 @@ export function Sidebar() {
             Kernel · <span className="mono">{mode}</span>
           </span>
         </div>
+        <button
+          type="button"
+          className="sidebar-collapse-btn"
+          onClick={onToggleCollapsed}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          {!collapsed ? <span>Collapse</span> : null}
+        </button>
+        {dirty ? (
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={onSaveShell}
+            title="Save sidebar layout locally"
+          >
+            <span>{collapsed ? "Save" : "Save layout (local)"}</span>
+          </button>
+        ) : null}
       </div>
     </aside>
   );

@@ -7,6 +7,10 @@ import { ActivityRail } from "./ActivityRail";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { ToastStack, useToasts } from "./interactive";
 import { portfolio, pnl, formatPnl } from "@/lib/data";
+import { useCockpitDraft } from "@/lib/useCockpitDraft";
+
+type ShellPrefs = { sidebarCollapsed: boolean };
+const SHELL_DEFAULTS: ShellPrefs = { sidebarCollapsed: false };
 
 const TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -62,6 +66,12 @@ export function AppShell() {
   const { toasts, push, dismiss } = useToasts();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const {
+    draft: shell,
+    update: updateShell,
+    dirty: shellDirty,
+    save: saveShell,
+  } = useCockpitDraft("shell", SHELL_DEFAULTS);
 
   const onPaletteAction = useCallback(
     (msg: string, tone: "ok" | "warn" | "danger" = "ok") => {
@@ -88,8 +98,18 @@ export function AppShell() {
   const mode = portfolio.killActive ? "HALTED" : portfolio.capitalProfile.toUpperCase();
 
   return (
-    <div className="app-shell">
-      <Sidebar />
+    <div className={`app-shell${shell.sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
+      <Sidebar
+        collapsed={shell.sidebarCollapsed}
+        onToggleCollapsed={() =>
+          updateShell({ sidebarCollapsed: !shell.sidebarCollapsed })
+        }
+        dirty={shellDirty}
+        onSaveShell={() => {
+          saveShell();
+          push("Saved locally (cockpit)", "ok");
+        }}
+      />
       <div className="main">
         <header className="topbar">
           <div>
