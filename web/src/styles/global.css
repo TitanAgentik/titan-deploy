@@ -768,6 +768,49 @@ table.data tr:hover td {
   flex-wrap: wrap;
 }
 
+/* Sticky cockpit save bar (Manual Control local prefs) */
+.cockpit-save-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(180deg, rgba(16, 23, 36, 0.96), rgba(8, 12, 20, 0.94));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.cockpit-save-bar.dirty {
+  border-color: rgba(242, 193, 78, 0.45);
+  background: linear-gradient(
+    90deg,
+    rgba(242, 193, 78, 0.12),
+    rgba(8, 12, 20, 0.94) 55%
+  );
+}
+
+.cockpit-save-bar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cockpit-save-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .mono { font-family: var(--mono); }
 .muted { color: var(--text-dim); }
 .small { font-size: 12px; }

@@ -9,6 +9,7 @@ import {
   KeyRound,
   Lock,
   Radio,
+  Save,
   Shield,
   ShieldAlert,
   Skull,
@@ -52,6 +53,16 @@ import {
   postWindDown,
   type ControlResult,
 } from "@/lib/manualControlApi";
+import {
+  clearManualControlPrefs,
+  defaultsFromSeed,
+  formToPrefs,
+  hydrateFormState,
+  loadManualControlPrefs,
+  prefsFingerprint,
+  saveManualControlPrefs,
+  type ManualControlFormState,
+} from "@/lib/manualControlPrefs";
 
 type ConfirmKind =
   | "kill"
@@ -120,20 +131,60 @@ function SectionHead({
   );
 }
 
+function applyForm(
+  form: ManualControlFormState,
+  setters: {
+    setTradingHalted: (v: boolean) => void;
+    setKillActive: (v: boolean) => void;
+    setSigningHalted: (v: boolean) => void;
+    setWindDown: (v: WindDownMode) => void;
+    setEvolutionFrozen: (v: boolean) => void;
+    setHoneypotArmed: (v: boolean) => void;
+    setPromotionHold: (v: boolean) => void;
+    setEdgePop: (v: string) => void;
+    setHeraldLevel: (v: HeraldAlertLevel) => void;
+    setMaxActivePipelines: (v: number) => void;
+    setPipelines: (v: ManualPipelineControl[]) => void;
+  },
+) {
+  setters.setTradingHalted(form.tradingHalted);
+  setters.setKillActive(form.killActive);
+  setters.setSigningHalted(form.signingHalted);
+  setters.setWindDown(form.windDown);
+  setters.setEvolutionFrozen(form.evolutionFrozen);
+  setters.setHoneypotArmed(form.honeypotArmed);
+  setters.setPromotionHold(form.promotionHold);
+  setters.setEdgePop(form.edgePop);
+  setters.setHeraldLevel(form.heraldLevel);
+  setters.setMaxActivePipelines(form.maxActivePipelines);
+  setters.setPipelines(form.pipelines.map((p) => ({ ...p })));
+}
+
 export function ManualControl() {
   const { toasts, push, dismiss } = useToasts();
   const seed = manualControl;
+  const initial = useMemo(() => hydrateFormState(), []);
 
-  const [tradingHalted, setTradingHalted] = useState(seed.tradingHalted);
-  const [killActive, setKillActive] = useState(seed.killActive);
-  const [signingHalted, setSigningHalted] = useState(seed.signingHalted);
-  const [windDown, setWindDown] = useState<WindDownMode>(seed.windDownMode);
-  const [evolutionFrozen, setEvolutionFrozen] = useState(seed.evolutionFrozen);
-  const [honeypotArmed, setHoneypotArmed] = useState(seed.honeypotArmed);
-  const [promotionHold, setPromotionHold] = useState(seed.promotionHold);
-  const [edgePop, setEdgePop] = useState(seed.selectedEdgePop);
-  const [heraldLevel, setHeraldLevel] = useState<HeraldAlertLevel>(seed.heraldAlertLevel);
-  const [pipelines, setPipelines] = useState<ManualPipelineControl[]>(seed.pipelines);
+  const [tradingHalted, setTradingHalted] = useState(initial.tradingHalted);
+  const [killActive, setKillActive] = useState(initial.killActive);
+  const [signingHalted, setSigningHalted] = useState(initial.signingHalted);
+  const [windDown, setWindDown] = useState<WindDownMode>(initial.windDown);
+  const [evolutionFrozen, setEvolutionFrozen] = useState(initial.evolutionFrozen);
+  const [honeypotArmed, setHoneypotArmed] = useState(initial.honeypotArmed);
+  const [promotionHold, setPromotionHold] = useState(initial.promotionHold);
+  const [edgePop, setEdgePop] = useState(initial.edgePop);
+  const [heraldLevel, setHeraldLevel] = useState<HeraldAlertLevel>(initial.heraldLevel);
+  const [maxActivePipelines, setMaxActivePipelines] = useState(initial.maxActivePipelines);
+  const [pipelines, setPipelines] = useState<ManualPipelineControl[]>(initial.pipelines);
+  const [savedFingerprint, setSavedFingerprint] = useState(() => {
+    const existing = loadManualControlPrefs();
+    return existing
+      ? prefsFingerprint(existing)
+      : prefsFingerprint(formToPrefs(defaultsFromSeed()));
+  });
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(
+    () => loadManualControlPrefs()?.savedAt ?? null,
+  );
   const [log, setLog] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmKind>(null);
@@ -142,6 +193,40 @@ export function ManualControl() {
   const [killPipeline, setKillPipeline] = useState("P12");
   const [revokeKeys, setRevokeKeys] = useState(true);
   const [lockdownDryRun, setLockdownDryRun] = useState(true);
+
+  const formState: ManualControlFormState = useMemo(
+    () => ({
+      tradingHalted,
+      killActive,
+      signingHalted,
+      windDown,
+      evolutionFrozen,
+      honeypotArmed,
+      promotionHold,
+      edgePop,
+      heraldLevel,
+      maxActivePipelines,
+      pipelines,
+    }),
+    [
+      tradingHalted,
+      killActive,
+      signingHalted,
+      windDown,
+      evolutionFrozen,
+      honeypotArmed,
+      promotionHold,
+      edgePop,
+      heraldLevel,
+      maxActivePipelines,
+      pipelines,
+    ],
+  );
+
+  const dirty = useMemo(
+    () => prefsFingerprint(formToPrefs(formState)) !== savedFingerprint,
+    [formState, savedFingerprint],
+  );
 
   const hasHmac = Boolean(getHmacToken());
   const overall = killActive
@@ -154,6 +239,20 @@ export function ManualControl() {
     () => pipelines.filter((p) => p.runState === "running" && p.advisoryEnabled).length,
     [pipelines],
   );
+
+  const formSetters = {
+    setTradingHalted,
+    setKillActive,
+    setSigningHalted,
+    setWindDown,
+    setEvolutionFrozen,
+    setHoneypotArmed,
+    setPromotionHold,
+    setEdgePop,
+    setHeraldLevel,
+    setMaxActivePipelines,
+    setPipelines,
+  };
 
   const audit = (msg: string, tone: "ok" | "warn" | "danger" = "ok") => {
     const line = `${new Date().toISOString()}  ${msg}`;
@@ -178,6 +277,33 @@ export function ManualControl() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const saveLocal = () => {
+    const prefs = formToPrefs(formState);
+    saveManualControlPrefs(prefs);
+    setSavedFingerprint(prefsFingerprint(prefs));
+    setLastSavedAt(prefs.savedAt);
+    push("Saved locally (cockpit)", "ok");
+    setLog((l) =>
+      [`${prefs.savedAt}  Saved locally (cockpit)`, ...l].slice(0, 24),
+    );
+  };
+
+  const discardUnsaved = () => {
+    const restored = hydrateFormState(loadManualControlPrefs());
+    applyForm(restored, formSetters);
+    push("Discarded unsaved changes", "warn");
+  };
+
+  const resetToDefaults = () => {
+    clearManualControlPrefs();
+    const defaults = defaultsFromSeed();
+    applyForm(defaults, formSetters);
+    const prefs = formToPrefs(defaults);
+    setSavedFingerprint(prefsFingerprint(prefs));
+    setLastSavedAt(null);
+    push("Reset to defaults (local prefs cleared)", "warn");
   };
 
   return (
@@ -213,6 +339,29 @@ export function ManualControl() {
           </>
         }
       />
+
+      <div className={`cockpit-save-bar${dirty ? " dirty" : ""}`}>
+        <div className="cockpit-save-bar-meta">
+          <span className={`chip ${dirty ? "warn" : "ok"}`}>
+            {dirty ? "Unsaved changes" : "Saved locally (cockpit)"}
+          </span>
+          <span className="muted small">
+            Browser localStorage · not live API
+            {lastSavedAt ? ` · last save ${lastSavedAt.slice(11, 19)}Z` : " · no save yet"}
+          </span>
+        </div>
+        <div className="cockpit-save-bar-actions">
+          <Btn variant="ghost" disabled={!dirty || busy} onClick={discardUnsaved}>
+            Discard
+          </Btn>
+          <Btn variant="ghost" disabled={busy} onClick={resetToDefaults}>
+            Reset defaults
+          </Btn>
+          <Btn variant="primary" disabled={!dirty || busy} onClick={saveLocal}>
+            <Save size={14} /> Save
+          </Btn>
+        </div>
+      </div>
 
       {/* System posture strip */}
       <div
@@ -267,7 +416,7 @@ export function ManualControl() {
             equity · ${seed.equityUsd.toLocaleString()}
           </span>
           <span className="chip">
-            active lanes · {activeCount}/{seed.maxActivePipelines}
+            active lanes · {activeCount}/{maxActivePipelines}
           </span>
         </div>
       </div>
@@ -655,6 +804,13 @@ export function ManualControl() {
             />
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
               <Btn
+                variant="primary"
+                disabled={busy || !dirty}
+                onClick={saveLocal}
+              >
+                <Save size={14} /> Save cockpit prefs
+              </Btn>
+              <Btn
                 disabled={busy}
                 onClick={() =>
                   void run(
@@ -663,7 +819,7 @@ export function ManualControl() {
                   )
                 }
               >
-                Apply edge preference
+                Apply edge (API/demo)
               </Btn>
               <Link className="btn" to="/forge">
                 Forge
@@ -690,7 +846,7 @@ export function ManualControl() {
         style={{ marginBottom: 14 }}
         action={
           <Badge kind="info">
-            {activeCount}/{seed.maxActivePipelines} active
+            {activeCount}/{maxActivePipelines} active
           </Badge>
         }
       >
@@ -699,6 +855,34 @@ export function ManualControl() {
           title="Advisory enable/disable · per-lane halt · selective activation"
           hint="P22 memecoin gated · new activation = Human YES · allocator cap ≤4"
         />
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 12,
+            alignItems: "flex-end",
+            marginBottom: 12,
+          }}
+        >
+          <div className="field" style={{ marginBottom: 0, minWidth: 160 }}>
+            <label htmlFor="max-active-pipelines">Max active pipelines</label>
+            <input
+              id="max-active-pipelines"
+              type="number"
+              min={1}
+              max={12}
+              value={maxActivePipelines}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                if (!Number.isFinite(n)) return;
+                setMaxActivePipelines(Math.max(1, Math.min(12, Math.round(n))));
+              }}
+            />
+          </div>
+          <span className="muted small" style={{ paddingBottom: 8 }}>
+            Preference only · Save to keep across navigation
+          </span>
+        </div>
         <div className="table-wrap">
           <table className="data">
             <thead>
@@ -861,7 +1045,7 @@ export function ManualControl() {
           hint="SA/Kelly advisory only · does not gate execution"
         />
         <div className="grid grid-4" style={{ marginBottom: 12 }}>
-          <Metric label="Max active" value={String(seed.maxActivePipelines)} />
+          <Metric label="Max active" value={String(maxActivePipelines)} />
           <Metric
             label="QI selected"
             value={seed.allocator.selectedIds.join(", ") || "—"}
@@ -970,18 +1154,22 @@ export function ManualControl() {
             </button>
           ))}
         </div>
-        <Btn
-          variant="primary"
-          disabled={busy}
-          onClick={() =>
-            void run(
-              () => postHeraldAlertLevel(heraldLevel, "cockpit"),
-              () => audit(`HERALD level applied: ${heraldLevel}`, "ok"),
-            )
-          }
-        >
-          Apply HERALD level
-        </Btn>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Btn variant="primary" disabled={busy || !dirty} onClick={saveLocal}>
+            <Save size={14} /> Save cockpit prefs
+          </Btn>
+          <Btn
+            disabled={busy}
+            onClick={() =>
+              void run(
+                () => postHeraldAlertLevel(heraldLevel, "cockpit"),
+                () => audit(`HERALD level applied: ${heraldLevel}`, "ok"),
+              )
+            }
+          >
+            Apply HERALD (API/demo)
+          </Btn>
+        </div>
       </Card>
 
       {/* Autonomy matrix + audit */}
