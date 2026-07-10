@@ -3,10 +3,13 @@
 > **What this document is:** A beginner-friendly but complete walkthrough for putting the **Titan Agentik cockpit** (`web/`) into a **production-style** deployment on TITANHOME (or equivalent operator host).  
 > **What this document is not:** A switch that enables live trading. Shipping the UI does **not** authorize capital. Live capital still requires paper → shadow → Phase 5 human YES, UPS, healthy safety units, and the gates in `PRODUCTION_READINESS.md`.
 
+> **Beginner one-stop tutorial (UI live + providers + real money path):** [`BEGINNER_WEB_UI_LIVE_MONEY_GUIDE.md`](./BEGINNER_WEB_UI_LIVE_MONEY_GUIDE.md) — start there if you want the full teach-from-zero narrative. **UI live ≠ capital live.**
+
 **Related docs (do not skip):**
 
 | Doc | Role |
 |-----|------|
+| [`BEGINNER_WEB_UI_LIVE_MONEY_GUIDE.md`](./BEGINNER_WEB_UI_LIVE_MONEY_GUIDE.md) | **Beginner:** cockpit → providers → real crypto/money (standalone) |
 | [`web/README.md`](./web/README.md) | Quick start + provider overview |
 | [`WEB_UI_DATA_PROVIDERS_LIVE_GUIDE.md`](./WEB_UI_DATA_PROVIDERS_LIVE_GUIDE.md) | Beginner deep-dive: mock vs live providers, env, proxies, stubs |
 | [`SYSTEM.md`](./SYSTEM.md) | Full system manual (cockpit map §11, ports §10) |

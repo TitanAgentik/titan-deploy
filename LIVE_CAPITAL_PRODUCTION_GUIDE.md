@@ -6,10 +6,13 @@
 
 **Last aligned with:** deploy bundle policy `templates/risk_kernel/policy.yaml` v2.1+, `PRODUCTION_READINESS.md`, `SYSTEM.md`, `iron-laws.md`, `SOUL.md`, `AGENTS.md`.
 
+> **Beginner bridge (cockpit UI + data providers + this capital path):** [`BEGINNER_WEB_UI_LIVE_MONEY_GUIDE.md`](./BEGINNER_WEB_UI_LIVE_MONEY_GUIDE.md). Flipping UI Live mode does **not** authorize capital.
+
 **Related docs (read these too):**
 
 | Doc | Role |
 |-----|------|
+| [`BEGINNER_WEB_UI_LIVE_MONEY_GUIDE.md`](./BEGINNER_WEB_UI_LIVE_MONEY_GUIDE.md) | **Beginner:** web UI live + providers + real money (standalone) |
 | [`PRODUCTION_READINESS.md`](./PRODUCTION_READINESS.md) | Honest “what software enforces” + residual risks |
 | [`SYSTEM.md`](./SYSTEM.md) | Full system manual |
 | [`BOOT.md`](./BOOT.md) | Gateway restart checklist (no auto-promote) |
