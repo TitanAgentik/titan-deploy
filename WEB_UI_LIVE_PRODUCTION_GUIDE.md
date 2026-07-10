@@ -8,6 +8,7 @@
 | Doc | Role |
 |-----|------|
 | [`web/README.md`](./web/README.md) | Quick start + provider overview |
+| [`WEB_UI_DATA_PROVIDERS_LIVE_GUIDE.md`](./WEB_UI_DATA_PROVIDERS_LIVE_GUIDE.md) | Beginner deep-dive: mock vs live providers, env, proxies, stubs |
 | [`SYSTEM.md`](./SYSTEM.md) | Full system manual (cockpit map §11, ports §10) |
 | [`PRODUCTION_READINESS.md`](./PRODUCTION_READINESS.md) | Honest go-live gates for **capital** |
 | [`LIVE_CAPITAL_PRODUCTION_GUIDE.md`](./LIVE_CAPITAL_PRODUCTION_GUIDE.md) | **Real-capital** paper → shadow → Phase 5 YES → live (not this UI guide) |

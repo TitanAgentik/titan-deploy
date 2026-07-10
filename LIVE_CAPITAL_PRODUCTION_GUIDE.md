@@ -15,6 +15,7 @@
 | [`BOOT.md`](./BOOT.md) | Gateway restart checklist (no auto-promote) |
 | [`BOOTSTRAP.md`](./BOOTSTRAP.md) | First-run ritual |
 | [`WEB_UI_LIVE_PRODUCTION_GUIDE.md`](./WEB_UI_LIVE_PRODUCTION_GUIDE.md) | Cockpit production serve — **UI live ≠ capital live** |
+| [`WEB_UI_DATA_PROVIDERS_LIVE_GUIDE.md`](./WEB_UI_DATA_PROVIDERS_LIVE_GUIDE.md) | Mock vs live **data providers** only — does **not** authorize capital |
 | [`DEPLOYMENT_GUIDE.md`](./DEPLOYMENT_GUIDE.md) / [`DEPLOYMENT_GUIDE_BEGINNER.md`](./DEPLOYMENT_GUIDE_BEGINNER.md) | Deploy narratives |
 | [`TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md`](./TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md) | End-to-end stack setup |
 | [`templates/playbooks/promotion.yaml`](./templates/playbooks/promotion.yaml) | Promotion ceremony playbook |

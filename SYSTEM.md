@@ -347,7 +347,8 @@ Control-plane mutating POSTs require `X-Titan-Auth` HMAC when `control_plane.aut
 ## 11. Cockpit map
 
 App: `web/` (Titan Agentik). Routes from `web/src/App.tsx` / `Sidebar.tsx`.  
-**Production web UI setup (beginner → live serve):** [`WEB_UI_LIVE_PRODUCTION_GUIDE.md`](./WEB_UI_LIVE_PRODUCTION_GUIDE.md).
+**Production web UI setup (beginner → live serve):** [`WEB_UI_LIVE_PRODUCTION_GUIDE.md`](./WEB_UI_LIVE_PRODUCTION_GUIDE.md).  
+**Data providers (mock → live APIs, beginner):** [`WEB_UI_DATA_PROVIDERS_LIVE_GUIDE.md`](./WEB_UI_DATA_PROVIDERS_LIVE_GUIDE.md).
 
 **Live vs fixture (honest)**
 
