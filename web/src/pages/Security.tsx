@@ -28,11 +28,8 @@ import {
   securityPosture,
   stalkTargets,
 } from "@/lib/data";
-import {
-  fetchSecurityPosture,
-  postSecurityLockdownDryRun,
-  type LiveSecurityPosture,
-} from "@/lib/securityApi";
+import { postSecurityLockdownDryRun } from "@/lib/securityApi";
+import { advisoryLabel, useSecurityProvider } from "@/lib/providers";
 
 type Pillar = "impenetrable" | "evasion" | "stalk" | "predatory";
 type Stalk = (typeof stalkTargets)[number];
@@ -120,16 +117,17 @@ export function Security() {
   const [pred, setPred] = useState<Pred | null>(null);
   const [lockdown, setLockdown] = useState(false);
   const [lockdownBusy, setLockdownBusy] = useState(false);
-  const [live, setLive] = useState<LiveSecurityPosture | null>(null);
+  const { result: secResult, refresh: refreshSec } = useSecurityProvider();
 
-  const isLive = Boolean(live?.live);
+  const isLive = Boolean(secResult?.data.live && !secResult.error);
+  const live = secResult?.data;
 
   const refreshLive = async () => {
-    const st = await fetchSecurityPosture();
-    setLive(st);
-    if (st.live) {
-      if (typeof st.honeypot_armed === "boolean") setHoneypotArmed(st.honeypot_armed);
-      if (typeof st.hunt_mode === "boolean") setHuntMode(st.hunt_mode);
+    const r = await refreshSec();
+    const st = r.data;
+    if (st.live && !r.error) {
+      if (typeof st.honeypotArmed === "boolean") setHoneypotArmed(st.honeypotArmed);
+      if (typeof st.huntMode === "boolean") setHuntMode(st.huntMode);
       push(
         st.overall === "LOCKDOWN"
           ? "Live posture: LOCKDOWN"
@@ -137,34 +135,29 @@ export function Security() {
         st.overall === "LOCKDOWN" ? "danger" : "ok",
       );
     } else {
-      push(`Using demo posture — :19008 ${st.error ?? "offline"}`, "warn");
+      push(`Using fixture posture — :19008 ${r.error ?? "offline"}`, "warn");
     }
   };
 
   useEffect(() => {
-    void fetchSecurityPosture().then((st) => {
-      setLive(st);
-      if (st.live) {
-        if (typeof st.honeypot_armed === "boolean") setHoneypotArmed(st.honeypot_armed);
-        if (typeof st.hunt_mode === "boolean") setHuntMode(st.hunt_mode);
-      }
-    });
-  }, []);
+    if (live?.live) {
+      if (typeof live.honeypotArmed === "boolean") setHoneypotArmed(live.honeypotArmed);
+      if (typeof live.huntMode === "boolean") setHuntMode(live.huntMode);
+    }
+  }, [live?.live, live?.honeypotArmed, live?.huntMode]);
 
   const overall = isLive && live?.overall ? live.overall : securityPosture.overall;
   const threat =
-    isLive && live?.threat_level ? live.threat_level : securityPosture.threatLevel;
+    isLive && live?.threatLevel ? live.threatLevel : securityPosture.threatLevel;
   const pcr =
-    isLive && typeof live?.pcr_drift === "boolean"
-      ? live.pcr_drift
+    isLive && typeof live?.pcrDrift === "boolean"
+      ? live.pcrDrift
       : securityPosture.pcrDrift;
-  const killActive = isLive ? Boolean(live?.kill_active) : false;
+  const killActive = isLive ? Boolean(live?.killActive) : false;
   const evolutionFrozen = isLive
-    ? Boolean(live?.evolution_frozen)
+    ? Boolean(live?.evolutionFrozen)
     : true; /* demo default matches portfolio */
-  const signingHalted = isLive
-    ? Boolean(live?.signing_halted)
-    : false;
+  const signingHalted = isLive ? Boolean(live?.signingHalted) : false;
 
   const layers =
     isLive && live?.layers && live.layers.length > 0
@@ -219,6 +212,7 @@ export function Security() {
         subtitle="Impenetrable defense, OPSEC evasion, threat stalking, and predatory countermeasures — advisory UI; risk kernel DENY remains authoritative."
         actions={
           <>
+            <span className="chip">{advisoryLabel(secResult)}</span>
             <ActionMenu
               label="Posture"
               items={[

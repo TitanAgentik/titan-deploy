@@ -13,7 +13,8 @@ Inspired by [ClawBuddy](https://clawbuddy.help) and the [OpenClaw Control UI](ht
 - **Status strip** — light translucent KPI band on Dashboard
 - **DEX-only** — no CEX venues; Uniswap / Curve / Hyperliquid / Solana / L2 DEX
 - **Interactive UX** — clickable metrics, modals, drawers, confirmation flows, toasts
-- **Operator sections** — capital, risk, pipelines, promotions, memecoin trench, edge mesh, flash loans, in-process signing, and more
+- **Data providers** — mock fixtures by default; live `/api/*` stubs soft-fail until backends exist
+- **Operator sections** — capital, risk, pipelines, promotions, memecoin trench, edge mesh, flash loans, in-process signing, Agent Manager (20 classical agents), and more
 
 ## Quick start
 
@@ -24,6 +25,18 @@ npm run dev
 ```
 
 Open **http://127.0.0.1:5173** (or your machine’s LAN IP — Vite binds `0.0.0.0`).
+
+Optional env (`.env` / `.env.local`):
+
+```bash
+# mock (default) | live
+VITE_DATA_MODE=mock
+
+# Optional absolute API origin; empty = same-origin Vite proxy
+# VITE_API_BASE=http://127.0.0.1:5173
+```
+
+Session override: **Settings → Data providers** (mock / live). Does not persist to disk.
 
 ## Access from anywhere
 
@@ -50,13 +63,41 @@ Vite proxies safety services:
 | `/api/signing` | Status / control plane (in-process signing halt via titan-safety) |
 | `/api/sign` | Optional legacy HTTP signing_node `:19010` (not required) |
 
+## Data providers
+
+Cockpit pages should not hard-wire fetches forever. High-traffic surfaces use `web/src/lib/providers/`:
+
+```
+providers/
+  types.ts          # shared DTOs (fleet, health, signing, …)
+  mode.ts           # VITE_DATA_MODE + session override
+  http.ts           # soft-fail fetchJson
+  create.ts         # createProviders({ mode })
+  mock/index.ts     # fixtures from data.ts
+  live/index.ts     # /api/* stubs — soft-fail to mock
+  context.tsx       # DataProvider + useFleet / useHealth / …
+  index.ts          # public exports
+```
+
+### How to add a data provider
+
+1. Add or extend a DTO in `types.ts`.
+2. Implement `getX()` on **mock** (return fixtures from `data.ts`) and **live** (call `/api/...`, map JSON, soft-fail with `error` + fixture data).
+3. Export a hook from `context.tsx` (`useX`) that calls `providers.getX()`.
+4. Prefer the hook in the page; keep `data.ts` imports only for charts / static labels if needed.
+5. Show `advisoryLabel(result)` so operators never confuse fixtures with live capital.
+
+Migrated today: Dashboard, Health, Agent Manager, Manual Control, Signing, Security, Pipelines, Settings (mode toggle). Other pages may still import `data.ts` directly — that file remains the fixture source of truth.
+
+**System truth (do not regress):** 20 classical agents (no QCC/QSA/QRP); signing in-process (no mandatory `:19010`); QI Optimizer = classical SA advisory only.
+
 ## Sidebar sections
 
-**Control:** Dashboard · Command Center · Capital & Wallets · Risk & CBs · **Security Ops** · Ops Center · Forge
+**Control:** Dashboard · Command Center · Manual Control · Capital & Wallets · Wallet Tracker · PnL · Risk & CBs · Dead Man's Switch · Security Ops · Ops Center · Health & Verify · Power & UPS · Forge
 
-**Trading:** Pipelines · Promotions · Memecoin Trench · Edge Mesh · Flash Loans · Signing
+**Trading:** Pipelines · QI Optimizer · TCA & Allocator · Promotions · Memecoin Trench · Edge Mesh · Latency · Flash Loans · Signing
 
-**Intelligence:** Automations · Crypto Twitter · Goals Lab · Identity · Model Tiers · AI Log · Questions
+**Intelligence:** Automations · Crypto News · Crypto Twitter · Goals Lab · Identity · Model Tiers · AI Log · Decision Log · Questions
 
 **Build:** Skill Factory · Agent Manager · Agent Teams · Workspace
 
@@ -73,7 +114,7 @@ Four-pillar defensive/offensive posture UI:
 | **Stalking** | PREDATOR/SENTINEL threat hunt — mempool clusters, probes, copy-traders |
 | **Predatory** | Honeypots, Red Team gauntlet, counter-copy poison, kill-chain response |
 
-Demo actions only until HMAC-wired to live safety units.
+Advisory / HMAC-gated until live safety units are up.
 
 ### Capital & Wallets
 
@@ -81,4 +122,4 @@ Dedicated deposit / withdraw / wallet inventory / **Trezor Safe 7 weekly profit 
 Deposits credit the operator ledger (≠ trading PnL). Sweeps unlock at $15K equity (20% of
 weekly profit every Sunday UTC; 100% reinvest below threshold).
 
-Demo data is used until safety systemd units are up; Command Center actions are local session demos (HMAC wiring lives in Settings).
+Fixture data is used until safety systemd units are up; Command Center actions are local session demos (HMAC wiring lives in Settings).

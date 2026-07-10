@@ -5,6 +5,7 @@ import { SaveBar } from "@/components/SaveBar";
 import { ToastStack, useToasts } from "@/components/interactive";
 import { pipelinesCatalog } from "@/lib/data";
 import { useCockpitDraft } from "@/lib/useCockpitDraft";
+import { advisoryLabel, usePipelinesProvider } from "@/lib/providers";
 
 type PhaseFilter = "all" | "funded" | "pending_yes" | "catalog" | "defunded" | "paper";
 type ViewMode = "table" | "compact";
@@ -34,11 +35,14 @@ export function Pipelines() {
   const { toasts, push, dismiss } = useToasts();
   const { draft, update, dirty, lastSavedAt, save, discard, resetDefaults } =
     useCockpitDraft("pipelines", DEFAULTS);
+  const { result: pipelinesResult } = usePipelinesProvider();
+
+  const catalog = pipelinesResult?.data.catalog ?? pipelinesCatalog;
 
   const rows = useMemo(() => {
-    if (draft.phaseFilter === "all") return pipelinesCatalog;
-    return pipelinesCatalog.filter((p) => p.phase === draft.phaseFilter);
-  }, [draft.phaseFilter]);
+    if (draft.phaseFilter === "all") return catalog;
+    return catalog.filter((p) => p.phase === draft.phaseFilter);
+  }, [draft.phaseFilter, catalog]);
 
   const onSave = () => {
     save();
@@ -52,10 +56,11 @@ export function Pipelines() {
         subtitle="DEX-only strategy catalog (R02 / R46). Concentration cap: ≤4 funded HEALTHY lanes via allocator."
         actions={
           <>
+            <span className="chip">{advisoryLabel(pipelinesResult)}</span>
             <Link className="btn" to="/qi-optimizer">
               QI Optimizer
             </Link>
-            <Btn onClick={() => push("Activation request queued (demo)", "warn")}>
+            <Btn onClick={() => push("Activation request queued (advisory)", "warn")}>
               Request activation
             </Btn>
           </>
@@ -148,9 +153,15 @@ export function Pipelines() {
                   {draft.viewMode === "table" ? (
                     <>
                       <td>{p.edge}</td>
-                      <td>{"flash" in p && p.flash ? <Tag kind="info">flash</Tag> : "—"}</td>
                       <td>
-                        {"memecoin" in p && p.memecoin ? <Tag kind="watch">P22</Tag> : "—"}
+                        {"flash" in p && p.flash ? <Tag kind="info">flash</Tag> : "—"}
+                      </td>
+                      <td>
+                        {"memecoin" in p && p.memecoin ? (
+                          <Tag kind="watch">P22</Tag>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </>
                   ) : null}

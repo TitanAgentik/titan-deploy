@@ -4,12 +4,8 @@ import { PageHeader, Card, Metric, Tag, Btn } from "@/components/ui";
 import { SaveBar } from "@/components/SaveBar";
 import { ToastStack, useToasts } from "@/components/interactive";
 import { useCockpitDraft } from "@/lib/useCockpitDraft";
-import {
-  probeHealth,
-  services,
-  verifyChecklist,
-  type VerifyCheckStatus,
-} from "@/lib/data";
+import { verifyChecklist, type VerifyCheckStatus } from "@/lib/data";
+import { advisoryLabel, useHealth } from "@/lib/providers";
 
 type GroupFilter = "all" | "bootstrap" | "config" | "safety" | "live_gates";
 
@@ -26,8 +22,8 @@ export function HealthVerify() {
   const { toasts, push, dismiss } = useToasts();
   const { draft, update, dirty, lastSavedAt, save, discard, resetDefaults } =
     useCockpitDraft("healthVerify", HEALTH_DEFAULTS);
+  const { result: health, loading, refresh } = useHealth();
   const [probing, setProbing] = useState(false);
-  const [liveOverall, setLiveOverall] = useState<string | null>(null);
 
   const groups =
     draft.group === "all"
@@ -39,37 +35,45 @@ export function HealthVerify() {
     .filter((c) => c.status === "pass").length;
   const totalChecks = verifyChecklist.groups.flatMap((g) => g.checks).length;
 
+  const inventory = health?.data
+    ? [
+        ...health.data.services,
+        health.data.inProcessSigning,
+        health.data.optionalLegacySigning,
+      ]
+    : [];
+
   const runProbe = useCallback(async () => {
     setProbing(true);
     try {
-      const r = await probeHealth();
-      if (!r.reachable) {
-        setLiveOverall("unreachable");
-        push("Status agg unreachable — showing checklist demo data", "warn");
-      } else {
-        setLiveOverall(r.overall);
-        push(`Health probe · overall=${r.overall} · ${r.services.length} services`, "ok");
-      }
+      const r = await refresh();
+      push(
+        r.data.reachable
+          ? `Health probe · overall=${r.data.overall}`
+          : "Status agg unreachable — showing checklist / fixture inventory",
+        r.data.reachable ? "ok" : "warn",
+      );
     } finally {
       setProbing(false);
     }
-  }, [push]);
+  }, [push, refresh]);
 
   return (
     <>
       <PageHeader
         title="Health & Verify"
-        subtitle="Operator checklist mirroring verify.sh + safety service ports. Live probe hits status-agg :19003 when available."
+        subtitle="Operator checklist mirroring verify.sh + safety ports :19001–:19008. Signing is in-process (not a required :19010 health fail)."
         actions={
           <>
+            <span className="chip">{advisoryLabel(health)}</span>
             <Link className="btn" to="/forge">
               Forge
             </Link>
             <Link className="btn" to="/power">
               Power / UPS
             </Link>
-            <Btn variant="primary" disabled={probing} onClick={() => void runProbe()}>
-              {probing ? "Probing…" : "Probe :19003"}
+            <Btn variant="primary" disabled={probing || loading} onClick={() => void runProbe()}>
+              {probing || loading ? "Probing…" : "Probe :19003"}
             </Btn>
           </>
         }
@@ -95,7 +99,7 @@ export function HealthVerify() {
         <Metric label="Last verify" value={verifyChecklist.lastRunAt.slice(11, 19) + "Z"} />
         <Metric
           label="Live probe"
-          value={liveOverall ? liveOverall.toUpperCase() : "—"}
+          value={health?.data.overall ? health.data.overall.toUpperCase() : "—"}
           delta="status-agg"
         />
         <Metric label="Script" value="verify.sh" delta="repo root" />
@@ -151,23 +155,49 @@ export function HealthVerify() {
         ))}
       </div>
 
-      <Card title="Safety service inventory (demo)">
+      <Card title="Service inventory">
         <div className="table-wrap">
           <table className="data">
             <thead>
               <tr>
                 <th>Service</th>
                 <th>Port</th>
+                <th>Kind</th>
                 <th>State</th>
               </tr>
             </thead>
             <tbody>
-              {services.map((s) => (
+              {inventory.map((s) => (
                 <tr key={s.name}>
-                  <td className="mono">titan-{s.name}</td>
-                  <td className="mono">:{s.port}</td>
+                  <td className="mono">
+                    {s.kind === "in_process" || s.kind === "optional_legacy"
+                      ? s.name
+                      : `titan-${s.name}`}
+                  </td>
+                  <td className="mono">{s.port != null ? `:${s.port}` : "in-process"}</td>
+                  <td className="muted small">
+                    {s.kind === "optional_legacy"
+                      ? "optional"
+                      : s.kind === "in_process"
+                        ? "in-process"
+                        : "safety"}
+                  </td>
                   <td>
-                    <Tag kind={s.ok ? "healthy" : "bleeding"}>{s.ok ? "UP" : "DOWN"}</Tag>
+                    <Tag
+                      kind={
+                        s.kind === "optional_legacy"
+                          ? "neutral"
+                          : s.ok
+                            ? "healthy"
+                            : "bleeding"
+                      }
+                    >
+                      {s.kind === "optional_legacy"
+                        ? "OPTIONAL"
+                        : s.ok
+                          ? "UP"
+                          : "DOWN"}
+                    </Tag>
                   </td>
                 </tr>
               ))}
@@ -176,8 +206,14 @@ export function HealthVerify() {
         </div>
         <p className="muted small" style={{ marginBottom: 0, marginTop: 12 }}>
           CLI · <span className="mono">{verifyChecklist.script}</span> · fails live capital without
-          UPS ack. Signing is in-process in titan-safety — no :19010 required (legacy HTTP optional).
+          UPS ack. Required safety ports are :19001–:19008. Signing is in-process in titan-safety —
+          :19010 is optional legacy HTTP only (never a mandatory health fail).
         </p>
+        {health?.error ? (
+          <p className="muted small" style={{ marginTop: 8 }}>
+            Provider note: {health.error}
+          </p>
+        ) : null}
       </Card>
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />

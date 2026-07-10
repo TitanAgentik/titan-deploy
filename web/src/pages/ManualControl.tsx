@@ -37,6 +37,7 @@ import {
   type WindDownMode,
 } from "@/lib/data";
 import { getHmacToken } from "@/lib/auth";
+import { advisoryLabel, useManualControlProvider } from "@/lib/providers";
 import {
   postAllocatorRefresh,
   postEdgeSelect,
@@ -307,14 +308,20 @@ export function ManualControl() {
     push("Reset to defaults (local prefs cleared)", "warn");
   };
 
+  const { result: mcProvider } = useManualControlProvider();
+
   return (
     <>
       <PageHeader
         eyebrow="OPERATOR · GUARDIAN · SENTINEL"
         title="Manual Control"
-        subtitle="Single command center for trading, risk, security, inference, pipelines, allocator, evolution, and HERALD — demo state until wired to titan-safety HTTP. Risk kernel DENY remains authoritative."
+        subtitle="Single command center for trading, risk, security, inference, pipelines, allocator, evolution, and HERALD — advisory until titan-safety HTTP is up. Risk kernel DENY remains authoritative. Fleet = 20 classical agents; signing in-process."
         actions={
           <>
+            <span className="chip">{advisoryLabel(mcProvider)}</span>
+            <Link className="btn" to="/agent-manager">
+              Agent Manager
+            </Link>
             <Link className="btn" to="/command">
               Command Center
             </Link>

@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { DataProvider } from "@/lib/providers";
 import "./styles/global.css";
 import "./styles/titan-theme.css";
 
@@ -15,6 +16,8 @@ document.documentElement.dataset.theme = resolveTheme();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    <DataProvider>
+      <App />
+    </DataProvider>
   </StrictMode>,
 );

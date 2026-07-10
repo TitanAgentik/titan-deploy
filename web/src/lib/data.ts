@@ -882,6 +882,7 @@ export function agentFleetSummary(roster: AgentRecord[] = agents) {
   return { total: roster.length, byStatus, byTier };
 }
 
+/** Safety units :19001–:19008. Signing is in-process (not a required :19010 row). */
 export const services = [
   { name: "risk-kernel", port: 19001, ok: true },
   { name: "reconciliation", port: 19002, ok: true },
@@ -891,6 +892,29 @@ export const services = [
   { name: "allocator", port: 19006, ok: true },
   { name: "tca", port: 19007, ok: true },
   { name: "security-ops", port: 19008, ok: true },
+];
+
+/** Extended inventory for Health UI — includes in-process signing + optional legacy. */
+export const serviceInventory = [
+  ...services.map((s) => ({
+    ...s,
+    kind: "safety_unit" as const,
+    note: undefined as string | undefined,
+  })),
+  {
+    name: "signing-in-process",
+    port: null as number | null,
+    ok: true,
+    kind: "in_process" as const,
+    note: "titan-safety SigningNode · no :19010 required",
+  },
+  {
+    name: "signing-node-http",
+    port: 19010 as number | null,
+    ok: true,
+    kind: "optional_legacy" as const,
+    note: "Optional legacy HTTP only — not on hot path",
+  },
 ];
 
 export const promotions = [

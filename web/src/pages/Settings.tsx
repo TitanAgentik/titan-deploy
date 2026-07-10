@@ -8,6 +8,12 @@ import {
 } from "@/lib/auth";
 import { SaveBar } from "@/components/SaveBar";
 import { useCockpitDraft } from "@/lib/useCockpitDraft";
+import {
+  dataModeLabel,
+  envDataMode,
+  useDataMode,
+  type DataMode,
+} from "@/lib/providers";
 
 type ThemeId = "light" | "dark";
 
@@ -20,6 +26,7 @@ function readTheme(): ThemeId {
 
 export function Settings() {
   const { toasts, push, dismiss } = useToasts();
+  const { mode, setMode } = useDataMode();
   const {
     draft: settingsPrefs,
     update: updateSettings,
@@ -44,12 +51,17 @@ export function Settings() {
     setHmacSaved(Boolean(getHmacToken()));
   }, []);
 
+  const applyMode = (next: DataMode) => {
+    setMode(next);
+    push(`Data mode → ${dataModeLabel(next)}`, "ok");
+  };
+
   return (
     <>
       <PageHeader
         eyebrow="Governance"
         title="Settings"
-        subtitle="Remote access, auth, appearance, and Agentik connectivity. Prefer Tailscale / SSH tunnel — never expose unsigned admin UI publicly."
+        subtitle="Remote access, auth, appearance, data providers, and Agentik connectivity. Prefer Tailscale / SSH tunnel — never expose unsigned admin UI publicly."
       />
 
       <SaveBar
@@ -89,6 +101,40 @@ export function Settings() {
           </div>
         </Card>
 
+        <Card title="Data providers">
+          <p className="muted small" style={{ marginBottom: 12 }}>
+            Cockpit reads through <span className="mono">lib/providers</span>. Mock uses fixtures
+            in <span className="mono">data.ts</span>. Live calls Vite{" "}
+            <span className="mono">/api/*</span> proxies and soft-fails to fixtures until your
+            backends exist. Env default:{" "}
+            <span className="mono">VITE_DATA_MODE={envDataMode()}</span>.
+          </p>
+          <div className="option-grid">
+            <button
+              type="button"
+              className={`option-tile${mode === "mock" ? " active" : ""}`}
+              onClick={() => applyMode("mock")}
+            >
+              <strong>Mock</strong>
+              <span>fixtures · advisory</span>
+            </button>
+            <button
+              type="button"
+              className={`option-tile${mode === "live" ? " active" : ""}`}
+              onClick={() => applyMode("live")}
+            >
+              <strong>Live</strong>
+              <span>API stubs · soft-fail</span>
+            </button>
+          </div>
+          <p className="muted small" style={{ marginTop: 12, marginBottom: 0 }}>
+            Active: <Tag kind={mode === "live" ? "watch" : "neutral"}>{dataModeLabel(mode)}</Tag>
+            {" · "}session override (not persisted to disk)
+          </p>
+        </Card>
+      </div>
+
+      <div className="grid grid-2" style={{ marginBottom: 14 }}>
         <Card title="Keyboard shortcuts">
           <div className="table-wrap">
             <table className="data">
@@ -109,9 +155,7 @@ export function Settings() {
             </table>
           </div>
         </Card>
-      </div>
 
-      <div className="grid grid-2" style={{ marginBottom: 14 }}>
         <Card title="Remote access">
           <div className="form-row">
             <div className="field" style={{ flex: 1 }}>
@@ -139,7 +183,9 @@ export function Settings() {
             </Tag>
           </div>
         </Card>
+      </div>
 
+      <div className="grid grid-2" style={{ marginBottom: 14 }}>
         <Card title="Control-plane HMAC">
           <div className="field">
             <label>Operator token (session)</label>
@@ -177,44 +223,44 @@ export function Settings() {
             </Tag>
           </div>
         </Card>
-      </div>
 
-      <Card title="API proxy map (Vite)">
-        <div className="table-wrap">
-          <table className="data">
-            <thead>
-              <tr>
-                <th>UI path</th>
-                <th>Upstream</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(
-                [
-                  ["/api/risk", "http://127.0.0.1:19001"],
-                  ["/api/recon", "http://127.0.0.1:19002"],
-                  ["/api/status", "http://127.0.0.1:19003"],
-                  ["/api/portfolio", "http://127.0.0.1:19004"],
-                  ["/api/dms", "http://127.0.0.1:19005"],
-                  ["/api/allocator", "http://127.0.0.1:19006"],
-                  ["/api/tca", "http://127.0.0.1:19007"],
-                  ["/api/security", "http://127.0.0.1:19008"],
-                  ["/api/signing", "http://127.0.0.1:19003 (halt via control plane)"],
-                  [
-                    "/api/sign",
-                    "optional legacy :19010 (default signing is in-process titan-safety)",
-                  ],
-                ] as const
-              ).map(([a, b]) => (
-                <tr key={a}>
-                  <td>{a}</td>
-                  <td>{b}</td>
+        <Card title="API proxy map (Vite)">
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>UI path</th>
+                  <th>Upstream</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
+              <tbody>
+                {(
+                  [
+                    ["/api/risk", "http://127.0.0.1:19001"],
+                    ["/api/recon", "http://127.0.0.1:19002"],
+                    ["/api/status", "http://127.0.0.1:19003"],
+                    ["/api/portfolio", "http://127.0.0.1:19004"],
+                    ["/api/dms", "http://127.0.0.1:19005"],
+                    ["/api/allocator", "http://127.0.0.1:19006"],
+                    ["/api/tca", "http://127.0.0.1:19007"],
+                    ["/api/security", "http://127.0.0.1:19008"],
+                    ["/api/signing", "http://127.0.0.1:19003 (halt via control plane)"],
+                    [
+                      "/api/sign",
+                      "optional legacy :19010 (default signing is in-process titan-safety)",
+                    ],
+                  ] as const
+                ).map(([a, b]) => (
+                  <tr key={a}>
+                    <td>{a}</td>
+                    <td>{b}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </>
   );

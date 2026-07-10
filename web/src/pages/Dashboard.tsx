@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -28,15 +28,14 @@ import {
   pnlSeries,
   pnlShareOfWtd,
   portfolio,
-  probeHealth,
   promotions,
   services,
   strategyCategoryLabels,
   type HealthOverall,
-  type HealthProbeResult,
 } from "@/lib/data";
 import { SaveBar } from "@/components/SaveBar";
 import { useCockpitDraft } from "@/lib/useCockpitDraft";
+import { advisoryLabel, useHealth, usePortfolioProvider } from "@/lib/providers";
 
 type Lane = (typeof lanes)[number];
 type Promo = (typeof promotions)[number];
@@ -75,26 +74,30 @@ export function Dashboard() {
   const chartMode = dashPrefs.chartMode;
   const setRange = (v: string) => updateDash({ range: v });
   const setChartMode = (v: "equity" | "pnl") => updateDash({ chartMode: v });
-  const [health, setHealth] = useState<HealthProbeResult | null>(null);
+  const { result: healthResult, refresh: refreshHealthProvider } = useHealth();
+  const { result: portfolioResult } = usePortfolioProvider();
 
   const refreshHealth = useCallback(async () => {
-    const result = await probeHealth("/api/status/health");
-    setHealth(result);
-    return result;
-  }, []);
-
-  useEffect(() => {
-    void refreshHealth();
-  }, [refreshHealth]);
+    return refreshHealthProvider();
+  }, [refreshHealthProvider]);
 
   const displayServices: Svc[] =
-    health?.reachable && health.services.length > 0
-      ? health.services.map((s) => ({
-          name: s.name,
-          port: s.port || services.find((d) => d.name === s.name)?.port || 0,
-          ok: s.ok,
-        }))
+    healthResult?.data.reachable && healthResult.data.services.length > 0
+      ? healthResult.data.services
+          .filter((s) => s.kind !== "optional_legacy" && s.kind !== "in_process")
+          .map((s) => ({
+            name: s.name,
+            port: s.port || services.find((d) => d.name === s.name)?.port || 0,
+            ok: s.ok,
+          }))
       : services;
+
+  const health = healthResult?.data ?? null;
+  const equityUsd = portfolioResult?.data.equityUsd ?? portfolio.equityUsd;
+  const availableUsd = portfolioResult?.data.availableUsd ?? portfolio.availableUsd;
+  const drawdownPct = portfolioResult?.data.drawdownPct ?? portfolio.drawdownPct;
+  const evolutionFrozen =
+    portfolioResult?.data.evolutionFrozen ?? portfolio.evolutionFrozen;
 
   return (
     <>
@@ -104,6 +107,7 @@ export function Dashboard() {
         subtitle="Click any metric for detail · DEX-only strategies, promotions, and services below."
         actions={
           <>
+            <span className="chip">{advisoryLabel(healthResult)}</span>
             <ActionMenu
               label={
                 <>
@@ -131,10 +135,10 @@ export function Dashboard() {
               onClick={() => {
                 void refreshHealth().then((r) =>
                   push(
-                    r.reachable
-                      ? `Health · ${overallLabel(r.overall)} (:19003)`
-                      : "Health probe unreachable — demo labels",
-                    r.reachable && r.overall === "ok" ? "ok" : "warn",
+                    r.data.reachable
+                      ? `Health · ${overallLabel(r.data.overall)} (:19003)`
+                      : "Health probe unreachable — fixture labels",
+                    r.data.reachable && r.data.overall === "ok" ? "ok" : "warn",
                   ),
                 );
               }}
@@ -156,7 +160,7 @@ export function Dashboard() {
         onResetDefaults={resetDefaults}
       />
 
-      {portfolio.evolutionFrozen ? (
+      {evolutionFrozen ? (
         <div className="alert-banner">
           <AlertTriangle size={16} />
           Evolution freeze active — click for options.
@@ -177,7 +181,7 @@ export function Dashboard() {
       <section className="status-strip" aria-label="Key portfolio metrics">
         <button type="button" className="status-stat" onClick={() => setMetric("equity")}>
           <span className="label">Equity</span>
-          <span className="value">${portfolio.equityUsd.toLocaleString()}</span>
+          <span className="value">${equityUsd.toLocaleString()}</span>
           <span className="delta up">+${portfolio.weeklyPnlUsd} WTD</span>
         </button>
         <button type="button" className="status-stat" onClick={() => setMetric("pnl")}>
@@ -194,13 +198,13 @@ export function Dashboard() {
         </button>
         <button type="button" className="status-stat" onClick={() => setMetric("available")}>
           <span className="label">Available</span>
-          <span className="value">${portfolio.availableUsd.toLocaleString()}</span>
+          <span className="value">${availableUsd.toLocaleString()}</span>
           <span className="delta">deployable</span>
         </button>
         <button type="button" className="status-stat" onClick={() => setMetric("dd")}>
           <span className="label">Drawdown</span>
-          <span className="value">{portfolio.drawdownPct}%</span>
-          <span className={`delta ${portfolio.drawdownPct > 2 ? "down" : "up"}`}>
+          <span className="value">{drawdownPct}%</span>
+          <span className={`delta ${drawdownPct > 2 ? "down" : "up"}`}>
             CB tiers 2–12%
           </span>
         </button>

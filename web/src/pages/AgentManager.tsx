@@ -29,12 +29,13 @@ import {
   agentFleetSummary,
   agentInferencePorts,
   agentRoleFamilyLabels,
-  agents,
+  agents as fixtureAgents,
   type AgentRecord,
   type AgentRoleFamily,
   type AgentRunStatus,
   type AgentTierKey,
 } from "@/lib/data";
+import { advisoryLabel, useFleet } from "@/lib/providers";
 
 type ViewMode = "table" | "grid";
 type TierFilter = "all" | AgentTierKey;
@@ -58,9 +59,9 @@ type AgentManagerDraft = {
   audit: string[];
 };
 
-function defaultControls(): Record<string, AgentControl> {
+function defaultControls(roster: AgentRecord[] = fixtureAgents): Record<string, AgentControl> {
   return Object.fromEntries(
-    agents.map((a) => [
+    roster.map((a) => [
       a.id,
       {
         enabled: a.runStatus === "UP" || a.runStatus === "IDLE",
@@ -122,11 +123,20 @@ export function AgentManager() {
   const { toasts, push, dismiss } = useToasts();
   const { draft, update, setDraft, dirty, lastSavedAt, save, discard, resetDefaults } =
     useCockpitDraft("agentManager", MANAGER_DEFAULTS);
+  const { result: fleetResult, refresh: refreshFleet } = useFleet();
 
   const [drawerOpen, setDrawerOpen] = useState(true);
 
-  const fleet = useMemo(() => agentFleetSummary(agents), []);
-  const controls = draft.controls ?? defaultControls();
+  const agents: AgentRecord[] = useMemo(() => {
+    const fromProvider = fleetResult?.data.agents;
+    if (fromProvider && fromProvider.length === 20) {
+      return fromProvider as AgentRecord[];
+    }
+    return fixtureAgents;
+  }, [fleetResult]);
+
+  const fleet = useMemo(() => agentFleetSummary(agents), [agents]);
+  const controls = draft.controls ?? defaultControls(agents);
 
   const filtered = useMemo(() => {
     const q = draft.search.trim().toLowerCase();
@@ -138,7 +148,7 @@ export function AgentManager() {
       const hay = `${a.id} ${a.role} ${a.model} ${a.port} ${a.pipelines.join(" ")} ${a.skills.join(" ")}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [draft.search, draft.tier, draft.role, draft.status]);
+  }, [agents, draft.search, draft.tier, draft.role, draft.status]);
 
   const selected =
     agents.find((a) => a.id === draft.selectedId) ??
@@ -167,7 +177,8 @@ export function AgentManager() {
     setDrawerOpen(true);
   };
 
-  const commitVotes = agentBftStatus.tradeVoters.filter((v) => v.vote === "COMMIT").length;
+  const tradeVoters = fleetResult?.data.tradeVoters ?? agentBftStatus.tradeVoters;
+  const commitVotes = tradeVoters.filter((v) => v.vote === "COMMIT").length;
 
   return (
     <>
@@ -177,6 +188,15 @@ export function AgentManager() {
         subtitle="Operator console for the 20-agent classical catalog — advisory controls, fleet posture, BFT voters, tier map. Not live process control."
         actions={
           <>
+            <span className="chip">{advisoryLabel(fleetResult)}</span>
+            <Btn
+              variant="ghost"
+              onClick={() => {
+                void refreshFleet().then(() => push("Fleet refreshed", "ok"));
+              }}
+            >
+              <RefreshCw size={14} /> Refresh
+            </Btn>
             <Link className="btn" to="/agents">
               Agent Teams
             </Link>
@@ -752,8 +772,8 @@ export function AgentManager() {
           }
         >
           <p className="muted small" style={{ marginTop: 0 }}>
-            Trade votes · {agentBftStatus.threshold} · {commitVotes}/
-            {agentBftStatus.tradeVoters.length} COMMIT
+            Trade votes · {fleetResult?.data.bftThreshold ?? agentBftStatus.threshold} ·{" "}
+            {commitVotes}/{tradeVoters.length} COMMIT
           </p>
           <div className="table-wrap">
             <table className="data">
@@ -765,7 +785,7 @@ export function AgentManager() {
                 </tr>
               </thead>
               <tbody>
-                {agentBftStatus.tradeVoters.map((v) => (
+                {tradeVoters.map((v) => (
                   <tr key={v.id}>
                     <td className="mono">{v.id}</td>
                     <td>
@@ -781,7 +801,7 @@ export function AgentManager() {
             {agentBftStatus.orchNote}
           </p>
           <p className="mono small" style={{ marginTop: 8, marginBottom: 0 }}>
-            gate · {agentBftStatus.authoritativeGate}
+            gate · {fleetResult?.data.authoritativeGate ?? agentBftStatus.authoritativeGate}
           </p>
         </Card>
 
