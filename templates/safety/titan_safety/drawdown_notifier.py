@@ -58,6 +58,28 @@ def enqueue_herald_alert(safety_dir: Path, alert: DrawdownAlert, source: str = "
         "ts": time.time(),
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
+    try:
+        from .telegram_notify import NotifyEvent, format_institutional_message, send_telegram_message
+
+        ev = NotifyEvent(
+            name="Drawdown Tier Crossed",
+            event_type="drawdown_tier",
+            severity=alert.severity,
+            agent_id=source,
+            description=alert.message,
+            details={
+                "tier_pct": alert.tier_pct,
+                "drawdown_pct": alert.drawdown_pct,
+                "action": alert.action,
+                "trading_continues": True,
+            },
+            action_required="Monitor exposure; trading continues autonomously.",
+            reason_codes=["DRAWDOWN_TIER", alert.action.upper()],
+        )
+        event["telegram_text"] = format_institutional_message(ev)
+        send_telegram_message(event["telegram_text"])
+    except Exception:
+        pass  # notify-only; never block trading
     safety_dir.mkdir(parents=True, exist_ok=True)
     with _queue_path(safety_dir).open("a", encoding="utf-8") as f:
         f.write(json.dumps(event) + "\n")

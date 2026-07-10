@@ -186,7 +186,9 @@ class PromotionGate:
             record = request.to_audit_record()
             record["evolution_freeze"] = True
             audit_hash = self._append_audit(record)
-            return PromotionDecision(approved=False, reason=freeze_reason, audit_hash=audit_hash)
+            decision = PromotionDecision(approved=False, reason=freeze_reason, audit_hash=audit_hash)
+            self._notify_promotion(request, decision)
+            return decision
 
         changed = request.metadata.get("changed_paths", [])
         if changed:
@@ -202,31 +204,53 @@ class PromotionGate:
             record = request.to_audit_record()
             record["stats_gate"] = {"passed": False, "reason": stats_reason, **stats_metrics}
             audit_hash = self._append_audit(record)
-            return PromotionDecision(
+            decision = PromotionDecision(
                 approved=False,
                 reason=f"Statistical evidence gate failed: {stats_reason}",
                 audit_hash=audit_hash,
             )
+            self._notify_promotion(request, decision)
+            return decision
 
         response = request.operator_response.strip().upper()
         if response != REQUIRED_APPROVAL:
             record = request.to_audit_record()
             record["stats_gate"] = {"passed": True, "reason": stats_reason, **stats_metrics}
             audit_hash = self._append_audit(record)
-            return PromotionDecision(
+            decision = PromotionDecision(
                 approved=False,
                 reason=f"Explicit operator YES required; got '{request.operator_response}'",
                 audit_hash=audit_hash,
             )
+            self._notify_promotion(request, decision)
+            return decision
 
         record = request.to_audit_record()
         record["stats_gate"] = {"passed": True, "reason": stats_reason, **stats_metrics}
         audit_hash = self._append_audit(record)
-        return PromotionDecision(
+        decision = PromotionDecision(
             approved=True,
             reason=f"operator YES recorded; {stats_reason}",
             audit_hash=audit_hash,
         )
+        self._notify_promotion(request, decision)
+        return decision
+
+    def _notify_promotion(self, request: PromotionRequest, decision: PromotionDecision) -> None:
+        try:
+            from .telegram_notify import notify_promotion_gate
+
+            notify_promotion_gate(
+                request.request_id,
+                request.category,
+                request.subject,
+                decision.approved,
+                decision.reason,
+                operator_id=request.operator_id,
+                safety_dir=self.safety_dir,
+            )
+        except Exception:
+            pass
 
     def verify_audit_chain(self) -> tuple[bool, str]:
         if not self.audit_path.exists():

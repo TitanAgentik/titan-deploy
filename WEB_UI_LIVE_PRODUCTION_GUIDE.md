@@ -1,4 +1,6 @@
-# Titan Agentik Web UI — Live Production Setup Guide
+# Titan Agentik Web UI — Live Production Setup Guide (ARCHIVED)
+
+> **Deprecated:** Cockpit archived to `archive/cockpit-web/`. **Telegram is the sole operator surface** — [`TELEGRAM_OPS_GUIDE.md`](./TELEGRAM_OPS_GUIDE.md).
 
 > **What this document is:** A beginner-friendly but complete walkthrough for putting the **Titan Agentik cockpit** (`web/`) into a **production-style** deployment on TITANHOME (or equivalent operator host).  
 > **What this document is not:** A switch that enables live trading. Shipping the UI does **not** authorize capital. Live capital still requires paper → shadow → Phase 5 human YES, UPS, healthy safety units, and the gates in `PRODUCTION_READINESS.md`.

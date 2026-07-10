@@ -131,7 +131,22 @@ class ExecutionGate:
             trade = TradeRequest.from_dict(trade)
         use_fast = fast_path if fast_path is not None else self._hot_path_enabled(trade)
         if use_fast:
-            return self._gate_fast(trade, believed)
+            decision = self._gate_fast(trade, believed)
+        else:
+            decision = self._gate_standard(trade, believed)
+        try:
+            from .telegram_notify import notify_gate_decision
+
+            notify_gate_decision(trade, decision, safety_dir=self.safety_dir)
+        except Exception:
+            pass
+        return decision
+
+    def _gate_standard(
+        self,
+        trade: TradeRequest,
+        believed: list[BelievedPosition] | list[dict[str, Any]] | None,
+    ) -> GateDecision:
         stages: dict[str, Any] = {}
 
         # --- Stage 0: ghost evasion (public path / unshielded live deny) ---

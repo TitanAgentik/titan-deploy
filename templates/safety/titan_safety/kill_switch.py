@@ -117,6 +117,12 @@ class KillSwitch:
             "pipeline_id": pipeline_id,
         }
         flag.write_text(json.dumps(payload), encoding="utf-8")
+        try:
+            from .telegram_notify import notify_pipeline_state
+
+            notify_pipeline_state(pipeline_id, "halted", operator, reason, safety_dir=self.safety_dir)
+        except Exception:
+            pass
         return payload
 
     def deactivate_pipeline(self, pipeline_id: str) -> bool:
@@ -127,6 +133,12 @@ class KillSwitch:
             return False
         if flag.exists():
             flag.unlink()
+            try:
+                from .telegram_notify import notify_pipeline_state
+
+                notify_pipeline_state(pipeline_id, "running", "system", "pipeline halt cleared", safety_dir=self.safety_dir)
+            except Exception:
+                pass
             return True
         return False
 
@@ -161,6 +173,12 @@ class KillSwitch:
             encoding="utf-8",
         )
         self.state_path.write_text(json.dumps(state.to_dict(), indent=2), encoding="utf-8")
+        try:
+            from .telegram_notify import notify_halt
+
+            notify_halt(scope, operator, reason, active=True, pipeline_id=pipeline_id, safety_dir=self.safety_dir)
+        except Exception:
+            pass
         return state
 
     def deactivate(self, operator: str) -> HaltState:
@@ -168,6 +186,12 @@ class KillSwitch:
             self.flag_path.unlink()
         state = HaltState(active=False, activated_by=operator, reason="cleared")
         self.state_path.write_text(json.dumps(state.to_dict(), indent=2), encoding="utf-8")
+        try:
+            from .telegram_notify import notify_halt
+
+            notify_halt("global", operator, "cleared", active=False, safety_dir=self.safety_dir)
+        except Exception:
+            pass
         return state
 
     def sign_command(self, command: str, operator: str) -> str:

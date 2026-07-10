@@ -137,6 +137,12 @@ class SigningNode:
                     "trade_id": trade.trade_id,
                 }
             )
+            try:
+                from .telegram_notify import notify_signing
+
+                notify_signing("fail", trade.trade_id, code="GATE_RECEIPT_INVALID", reason=reason, safety_dir=self.safety_dir)
+            except Exception:
+                pass
             return 401, {
                 "decision": "DENY",
                 "code": "GATE_RECEIPT_INVALID",
@@ -184,6 +190,18 @@ class SigningNode:
                 "status": result.get("status"),
             }
         )
+        try:
+            from .telegram_notify import notify_signing
+
+            notify_signing(
+                "success",
+                trade.trade_id,
+                code="OK",
+                reason="In-process sign completed",
+                safety_dir=self.safety_dir,
+            )
+        except Exception:
+            pass
         return 200, {"decision": "ALLOW", **result}
 
     def health(self) -> dict[str, Any]:

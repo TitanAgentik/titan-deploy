@@ -382,6 +382,75 @@ def cmd_telegram_capital(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def cmd_notify_test(args: argparse.Namespace) -> int:
+    from .telegram_notify import (
+        format_institutional_message,
+        load_config,
+        notify,
+        sample_test_event,
+        send_telegram_message,
+        TelegramConfig,
+    )
+
+    ev = sample_test_event()
+    text = format_institutional_message(ev)
+    if args.format_only:
+        print(text)
+        return 0
+    if args.queue:
+        result = notify(ev, safety_dir=Path(args.safety_dir) if args.safety_dir else None, send=not args.no_send)
+        print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+    cfg = load_config()
+    if args.dry_run:
+        cfg = TelegramConfig(
+            bot_token=cfg.bot_token or "dry",
+            chat_id=cfg.chat_id or "0",
+            enabled=True,
+            dry_run=True,
+        )
+    send_result = send_telegram_message(text, config=cfg)
+    print(text)
+    print(json.dumps({"send": send_result}, indent=2))
+    return 0 if send_result.get("ok") else 1
+
+
+def cmd_notify_send(args: argparse.Namespace) -> int:
+    from .telegram_notify import NotifyEvent, notify
+
+    details: dict[str, Any] = {}
+    if args.details_json:
+        details = json.loads(args.details_json)
+    ev = NotifyEvent(
+        name=args.title,
+        event_type=args.event_type,
+        severity=args.severity,
+        agent_id=args.agent_id,
+        description=args.description,
+        details=details,
+        action_required=args.action_required or "",
+        reason_codes=[c.strip() for c in args.reason_codes.split(",") if c.strip()],
+    )
+    result = notify(
+        ev,
+        safety_dir=Path(args.safety_dir) if args.safety_dir else None,
+        send=not args.no_send,
+    )
+    print(json.dumps(result, indent=2))
+    return 0 if result.get("ok") else 1
+
+
+def cmd_notify_drain(args: argparse.Namespace) -> int:
+    from .telegram_notify import process_herald_queue
+
+    results = process_herald_queue(
+        Path(args.safety_dir) if args.safety_dir else None,
+        max_items=args.max_items,
+    )
+    print(json.dumps({"drained": len(results), "results": results}, indent=2))
+    return 0
+
+
 def cmd_capital_verify_audit(args: argparse.Namespace) -> int:
     mgr = _capital_manager(args)
     ok, msg = mgr.verify_audit()
@@ -1165,6 +1234,35 @@ def main(argv: list[str] | None = None) -> int:
     qo.add_argument("--regime", default="neutral")
     qo.add_argument("--drawdown-pct", type=float, default=0.0)
     qo.set_defaults(func=cmd_qi_optimize)
+
+    p_notify = sub.add_parser("notify", help="Institutional Telegram notifications (HERALD)")
+    notify_sub = p_notify.add_subparsers(dest="notify_cmd", required=True)
+
+    nt = notify_sub.add_parser("test", help="Send or preview a test notification")
+    nt.add_argument("--format-only", action="store_true", help="Print formatted message only")
+    nt.add_argument("--queue", action="store_true", help="Enqueue to herald_queue.jsonl")
+    nt.add_argument("--no-send", action="store_true", help="Queue without Telegram API call")
+    nt.add_argument("--dry-run", action="store_true", help="Skip Telegram API (dry run)")
+    nt.add_argument("--safety-dir", default="", help="~/.openclaw/safety")
+    nt.set_defaults(func=cmd_notify_test)
+
+    ns = notify_sub.add_parser("send", help="Send a custom institutional notification")
+    ns.add_argument("--title", required=True, help="Alert title / name")
+    ns.add_argument("--event-type", required=True, help="e.g. risk_kernel_decision")
+    ns.add_argument("--severity", default="INFO", choices=["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"])
+    ns.add_argument("--agent-id", default="HERALD")
+    ns.add_argument("--description", required=True)
+    ns.add_argument("--details-json", default="", help="JSON object for details block")
+    ns.add_argument("--action-required", default="")
+    ns.add_argument("--reason-codes", default="", help="Comma-separated reason codes")
+    ns.add_argument("--no-send", action="store_true", help="Queue only")
+    ns.add_argument("--safety-dir", default="")
+    ns.set_defaults(func=cmd_notify_send)
+
+    nd = notify_sub.add_parser("drain", help="Drain herald_queue.jsonl to Telegram")
+    nd.add_argument("--safety-dir", default="")
+    nd.add_argument("--max-items", type=int, default=50)
+    nd.set_defaults(func=cmd_notify_drain)
 
     args = parser.parse_args(argv)
     return args.func(args)

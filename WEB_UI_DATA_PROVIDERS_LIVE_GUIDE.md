@@ -1,4 +1,6 @@
-# Titan Agentik Cockpit — Data Providers & Live UI Guide
+# Titan Agentik Cockpit — Data Providers & Live UI Guide (ARCHIVED)
+
+> **Deprecated:** Use [`TELEGRAM_OPS_GUIDE.md`](./TELEGRAM_OPS_GUIDE.md). Cockpit: `archive/cockpit-web/`.
 
 > **What this document is:** A long, beginner-friendly tutorial that explains — from first principles — how the **Titan Agentik web cockpit** (`web/`) gets **production-level live data**. It focuses on the **data provider** architecture (mock vs live), environment variables, Vite proxies, reverse proxies, auth, page-by-page wiring status, and troubleshooting.  
 > **What this document is not:** A switch that enables **live capital trading**. Turning on `VITE_DATA_MODE=live` only tells the UI to *try* fetching real safety APIs. It does **not** authorize Phase 5 capital, bypass the risk kernel, or fund pipelines.

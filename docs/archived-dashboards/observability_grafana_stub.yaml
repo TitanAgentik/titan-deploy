@@ -1,0 +1,26 @@
+# Grafana dashboard stub — wire after Prometheus scrape configured
+version: "1.0"
+
+prometheus:
+  scrape_targets:
+    - http://127.0.0.1:19001/metrics  # risk kernel
+    - http://127.0.0.1:19002/metrics  # reconciliation
+    - http://127.0.0.1:19003/metrics  # status aggregator
+    - http://127.0.0.1:19004/metrics  # portfolio risk
+    - http://127.0.0.1:19005/metrics  # dead man's switch
+    - http://127.0.0.1:19006/metrics  # capital allocator
+    - http://127.0.0.1:19007/metrics  # TCA / execution quality
+    - http://127.0.0.1:19008/metrics  # security ops
+    - http://127.0.0.1:19010/metrics  # signing node (if exposed)
+
+dashboard_panels:
+  - title: TITAN Safety Overview
+    query: titan_services_degraded
+  - title: Risk Kernel Validations
+    query: rate(risk_kernel_validations_total[5m])
+  - title: Portfolio VaR 95
+    query: portfolio_var_95_usd
+  - title: Kill Switch Status
+    query: titan_services_degraded
+
+note: "Install Prometheus + Grafana manually; this file documents scrape config only"

@@ -1,8 +1,8 @@
 # BOOT.md — Gateway Restart Checklist
 
 > Full system manual: [`SYSTEM.md`](./SYSTEM.md)  
-> Cockpit production serve: [`WEB_UI_LIVE_PRODUCTION_GUIDE.md`](./WEB_UI_LIVE_PRODUCTION_GUIDE.md)  
-> Real-capital go-live: [`LIVE_CAPITAL_PRODUCTION_GUIDE.md`](./LIVE_CAPITAL_PRODUCTION_GUIDE.md) (Phase 5 YES; UI live ≠ capital live)
+> Telegram operations: [`TELEGRAM_OPS_GUIDE.md`](./TELEGRAM_OPS_GUIDE.md)  
+> Real-capital go-live: [`LIVE_CAPITAL_PRODUCTION_GUIDE.md`](./LIVE_CAPITAL_PRODUCTION_GUIDE.md) (Phase 5 YES)
 
 Keep short. Runs on gateway restart when internal hooks are enabled.
 
@@ -10,7 +10,9 @@ Keep short. Runs on gateway restart when internal hooks are enabled.
 2. Confirm kill switch inactive: `titan-safety kill status`
 3. Confirm evolution freeze if live capital: `titan-safety evolution status`
 4. Confirm inference tiers up: `:30000` (critical), `:30001` (reasoning)
-5. Do **not** auto-promote or auto-resume halted pipelines
-6. Notify HERALD only on CRITICAL/HIGH failures
+5. Confirm Telegram path: `titan-safety notify test --dry-run` (or `--format-only`)
+6. Do **not** auto-promote or auto-resume halted pipelines
+7. Notify HERALD only on CRITICAL/HIGH failures
 
-Outbound alerts: use the message tool / herald_notify — do not spam routine OK.
+Outbound alerts: `titan-safety notify` / herald_notify skill — do not spam routine OK.  
+**No cockpit:** web UI archived at `archive/cockpit-web/` — Telegram is the sole operator surface.

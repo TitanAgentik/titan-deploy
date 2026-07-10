@@ -728,13 +728,22 @@ class CapitalManager:
                 "equity_after": state["equity_usd"],
             },
         )
+        sweep_msg = (
+            f"Swept ${sweep_amount:,.2f} ({self.config.trezor_sweep.sweep_pct_of_weekly_profit:.0f}% "
+            f"of ${profit:,.2f} weekly profit) to Trezor Safe 7"
+        )
+        try:
+            from .telegram_notify import notify_trezor_sweep
+            from pathlib import Path
+
+            safety_dir = Path.home() / ".openclaw" / "safety"
+            notify_trezor_sweep(sweep_amount, "executed", sweep_msg, safety_dir=safety_dir)
+        except Exception:
+            pass
         return CapitalResult(
             True,
             "sweep_executed",
-            (
-                f"Swept ${sweep_amount:,.2f} ({self.config.trezor_sweep.sweep_pct_of_weekly_profit:.0f}% "
-                f"of ${profit:,.2f} weekly profit) to Trezor Safe 7"
-            ),
+            sweep_msg,
             self.balance(),
             tx_hash=exec_result.get("tx_hash"),
         )

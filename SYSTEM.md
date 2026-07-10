@@ -1,6 +1,6 @@
 # SYSTEM.md — Titan / Titan Agentik System Manual
 
-> **Primary system documentation.** Start here for architecture, agents, safety, trading flow, edge, stealth, capital, cockpit, and operations.  
+> **Primary system documentation.** Start here for architecture, agents, safety, trading flow, edge, stealth, capital, Telegram operations, and CLI.  
 > Immutable constitutions remain in `SOUL.md` and `iron-laws.md`. Agent protocol detail lives in `AGENTS.md` / `TOOLS.md`.  
 > This file synthesizes the deploy bundle; it does not replace those sources of truth.
 
@@ -18,7 +18,7 @@
 8. [Security four pillars + ghost + predatory](#8-security-four-pillars--ghost--predatory)
 9. [Pipelines catalog vs selective activation](#9-pipelines-catalog-vs-selective-activation)
 10. [Safety services ports map](#10-safety-services-ports-map)
-11. [Cockpit map](#11-cockpit-map)
+11. [Telegram operator surface](#11-telegram-operator-surface)
 12. [CLI essentials](#12-cli-essentials)
 13. [Quantum path (classical-only)](#13-quantum-path-classical-only)
 14. [Go-live / verify sequence](#14-go-live--verify-sequence)
@@ -28,7 +28,7 @@
 
 ## 1. What Titan is
 
-**Titan (Titan Agentik)** is a local-first, capital-preservation-first crypto trading control plane: a multi-agent OpenClaw/Hermes runtime on operator hardware, gated by an **out-of-process risk kernel** and an **unbypassable execution gate**, with **in-process signing** in `titan-safety` after ExecutionGate ALLOW (legacy HTTP `:19010` optional only), broadcast via a **5-PoP edge mesh**. Agents propose; deterministic safety services veto. Catalog specs (pipelines, skills, pillars) are **not** a checklist to enable everything — selective activation funds a small set of HEALTHY lanes. Quantum agents (QCC/QSA/QRP) are **removed**; live path is classical GPU only (QI Optimizer is classical SA, not a quantum agent). The web cockpit (`web/`) is an operator surface — some pages call live safety APIs, others are advisory/demo until services are up.
+**Titan (Titan Agentik)** is a local-first, capital-preservation-first crypto trading control plane: a multi-agent OpenClaw/Hermes runtime on operator hardware, gated by an **out-of-process risk kernel** and an **unbypassable execution gate**, with **in-process signing** in `titan-safety` after ExecutionGate ALLOW (legacy HTTP `:19010` optional only), broadcast via a **5-PoP edge mesh**. Agents propose; deterministic safety services veto. Catalog specs (pipelines, skills, pillars) are **not** a checklist to enable everything — selective activation funds a small set of HEALTHY lanes. Quantum agents (QCC/QSA/QRP) are **removed**; live path is classical GPU only (QI Optimizer is classical SA, not a quantum agent). **Telegram (HERALD)** is the sole operator surface — institutional alerts via `titan-safety notify` and the HERALD queue; the web cockpit is archived under `archive/cockpit-web/`.
 
 ---
 
@@ -37,8 +37,7 @@
 ```mermaid
 flowchart TB
   subgraph Operators
-    HYPERION[HYPERION / Telegram]
-    COCKPIT[Titan Agentik Cockpit]
+    HYPERION[HYPERION / Telegram HERALD]
   end
 
   subgraph Agents["Agent runtime (OpenClaw / Hermes)"]
@@ -75,8 +74,6 @@ flowchart TB
   end
 
   HYPERION --> ARCHON
-  COCKPIT -.->|advisory / some live APIs| STATUS
-  COCKPIT -.-> SEC
   ARCHON --> SIGNALS
   SIGNALS --> BFT
   BFT --> GUARDIAN
@@ -101,7 +98,7 @@ flowchart TB
 | Risk kernel `:19001` + ExecutionGate receipt | **Authoritative** — DENY cannot be overridden by any LLM |
 | Portfolio risk `:19004` | **Authoritative** pre-trade VaR/CVaR/correlation when wired into gate/kernel |
 | BFT 2-of-3 (AUGUR/PREDATOR/ATLAS) | **Advisory** trade authorization; still blocked by kernel DENY |
-| Cockpit UI | **Operator surface** — live where APIs are wired; demo/localStorage elsewhere |
+| Telegram (HERALD) | **Notify-only** operator surface — cannot override kernel DENY |
 | QI optimizer / classical SA | **Advisory only** — `live_path=false` |
 
 ---
@@ -344,56 +341,36 @@ Control-plane mutating POSTs require `X-Titan-Auth` HMAC when `control_plane.aut
 
 ---
 
-## 11. Cockpit map
+## 11. Telegram operator surface
 
-App: `web/` (Titan Agentik). Routes from `web/src/App.tsx` / `Sidebar.tsx`.  
-**Production web UI setup (beginner → live serve):** [`WEB_UI_LIVE_PRODUCTION_GUIDE.md`](./WEB_UI_LIVE_PRODUCTION_GUIDE.md).  
-**Data providers (mock → live APIs, beginner):** [`WEB_UI_DATA_PROVIDERS_LIVE_GUIDE.md`](./WEB_UI_DATA_PROVIDERS_LIVE_GUIDE.md).
+**Guide:** [`TELEGRAM_OPS_GUIDE.md`](./TELEGRAM_OPS_GUIDE.md)
 
-**Live vs fixture (honest)**
+HERALD delivers institutional-grade Telegram messages for all operational events: clear title, severity, ISO 8601 timestamp, agent ID, description, structured details, and action required. Module: `templates/safety/titan_safety/telegram_notify.py`.
 
-- **Can be live** when safety services are up: Security (`:19008`), Health/Verify (aggregator), Manual Control / Settings API proxies, parts of Risk/Ops that hit `/api/*`.
-- **Often fixture / localStorage data:** Dashboard metrics, Decision Log sample window, Power UPS “refresh”, QI Optimizer (explicitly advisory), many PnL/pipeline charts until wired to real feeds. Prefer “fixture data” over “demo data” in operator-facing copy.
-- **Save bar:** browser localStorage — not the live API.
+```bash
+# Configure ~/.openclaw/.env (never commit)
+# TELEGRAM_BOT_TOKEN=...
+# TELEGRAM_CHAT_ID=...
 
-| Route | Page | Purpose |
-|-------|------|---------|
-| `/` | Dashboard | Portfolio snapshot |
-| `/command` | Command Center | Operator command surface |
-| `/manual-control` | Manual Control | Direct control prefs / actions |
-| `/capital` | Capital & Wallets | Capital ledger / wallet roles |
-| `/wallets` | Wallet Tracker | Watchlist / attribution |
-| `/pnl` | PnL | Strategy / sub-strategy PnL |
-| `/risk` | Risk & CBs | Kernel limits, drawdown, CBs |
-| `/dms` | Dead Man's Switch | Heartbeat / derisk / flatten status |
-| `/security` | Security Ops | Four pillars; live posture from `:19008` when available |
-| `/ops` | Ops Center | Operational overview |
-| `/health` | Health & Verify | Service health / verify checklist |
-| `/power` | Power & UPS | UPS / power-loss policy |
-| `/forge` | Forge | Infra / strategy health |
-| `/pipelines` | Pipelines | Lane catalog & status |
-| `/qi-optimizer` | QI Optimizer | Classical SA lane subset — **advisory only** |
-| `/tca` | TCA & Allocator | Scorecards / allocation plan |
-| `/promotions` | Promotions | Phase gates / pending YES |
-| `/memecoin` | Memecoin Trench | P22 filter / sim UI |
-| `/edge` | Edge Mesh | 5-PoP routing |
-| `/latency` | Latency | Hot/warm path budgets |
-| `/flash-loans` | Flash Loans | Router / sim (gated live) |
-| `/signing` | Signing | In-process titan-safety SigningNode · gate receipt (no `:19010` required) |
-| `/automations` | Automations | Workflows |
-| `/crypto-news` / `/crypto-twitter` | Intel feeds | Narrative / social surfaces |
-| `/goals` | Goals Lab | Operator OKRs |
-| `/identity` | Identity | SOUL / posture summary |
-| `/models` | Model Tiers | Inference map |
-| `/ai-log` | AI Log | Agent log tail |
-| `/decisions` | Decision Log | TradingAgents-style audit view |
-| `/questions` | Questions | Escalations awaiting operator |
-| `/skills` | Skill Factory | Skills catalog |
-| `/agent-manager` | Agent Manager | Fleet ops console · 20-agent posture / BFT / tier map (advisory) |
-| `/agents` | Agent Teams | Lighter agent card grid · spawn |
-| `/workspace` | Workspace | Workspace files |
-| `/reports` | Reports | Reporting |
-| `/settings` | Settings | API port map / prefs |
+titan-safety notify test
+titan-safety notify send --title "Drill" --event-type notify_test --description "..."
+titan-safety notify drain
+titan-safety capital balance --telegram
+```
+
+| Event category | Delivery |
+|----------------|----------|
+| Risk kernel / gate DENY | Immediate HIGH/CRITICAL |
+| Drawdown tier cross | Immediate; trading continues unless HALT |
+| Kill switch / pipeline halt | CRITICAL |
+| Signing success/fail | MEDIUM / CRITICAL |
+| Promotion / Phase 5 gate | HIGH / CRITICAL on YES |
+| Trezor weekly sweep | HIGH on execution |
+| Security lockdown | CRITICAL via herald queue |
+
+Queue file: `~/.openclaw/safety/herald_queue.jsonl`. Capital commands: `/balance`, `/deposit`, `/withdraw`, `/sweep`.
+
+**Archived cockpit:** `archive/cockpit-web/` — not supported for production. Legacy web UI guides remain for reference only.
 
 ---
 
@@ -437,6 +414,11 @@ titan-safety qi demo   # advisory classical SA — not live path
 
 # Promotion
 titan-safety promotion approve --response YES ...
+
+# Telegram (HERALD)
+titan-safety notify test
+titan-safety notify drain
+titan-safety capital balance --telegram
 titan-safety promotion-stats --stats '...'
 ```
 
@@ -506,7 +488,8 @@ Do **not** treat deploy as go-live. Follow these in order:
 | `templates/infra/` | BOM, edge, ghost, power, signing, Solana |
 | `PRODUCTION_READINESS.md` | Honest go-live gates + residual risks |
 | `LIVE_CAPITAL_PRODUCTION_GUIDE.md` | End-to-end real-capital go-live (gates documented; no silent enable) |
-| `web/` | Titan Agentik cockpit |
+| `TELEGRAM_OPS_GUIDE.md` | Telegram operator surface (sole UI) |
+| `archive/cockpit-web/` | Archived web cockpit (reference only) |
 
 ---
 

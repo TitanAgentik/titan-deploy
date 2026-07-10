@@ -1,4 +1,6 @@
-# Beginner Guide: Web UI Live + Real Crypto Money
+# Beginner Guide: Web UI Live + Real Crypto Money (ARCHIVED)
+
+> **Deprecated:** Operator surface is Telegram — [`TELEGRAM_OPS_GUIDE.md`](./TELEGRAM_OPS_GUIDE.md). Cockpit archived.
 
 > **Who this is for:** Someone who has never shipped a trading cockpit before, and wants one clear path from “I cloned the repo” to “the web UI talks to real backends” and then — only if they choose — to “real crypto / real money can move under Titan’s gates.”
 >
