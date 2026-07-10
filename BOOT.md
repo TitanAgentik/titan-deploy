@@ -1,6 +1,7 @@
 # BOOT.md — Gateway Restart Checklist
 
-> Full system manual: [`SYSTEM.md`](./SYSTEM.md)
+> Full system manual: [`SYSTEM.md`](./SYSTEM.md)  
+> Cockpit production serve: [`WEB_UI_LIVE_PRODUCTION_GUIDE.md`](./WEB_UI_LIVE_PRODUCTION_GUIDE.md)
 
 Keep short. Runs on gateway restart when internal hooks are enabled.
 

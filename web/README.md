@@ -16,6 +16,8 @@ Inspired by [ClawBuddy](https://clawbuddy.help) and the [OpenClaw Control UI](ht
 - **Data providers** — mock fixtures by default; live `/api/*` stubs soft-fail until backends exist
 - **Operator sections** — capital, risk, pipelines, promotions, memecoin trench, edge mesh, flash loans, in-process signing, Agent Manager (20 classical agents), and more
 
+**Production go-live (build, reverse proxy, TLS, systemd, HMAC):** see [`../WEB_UI_LIVE_PRODUCTION_GUIDE.md`](../WEB_UI_LIVE_PRODUCTION_GUIDE.md).
+
 ## Quick start
 
 ```bash
