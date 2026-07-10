@@ -58,7 +58,7 @@ Vite proxies safety services:
 
 **Intelligence:** Automations · Crypto Twitter · Goals Lab · Identity · Model Tiers · AI Log · Questions
 
-**Build:** Skill Factory · Agent Teams · Workspace
+**Build:** Skill Factory · Agent Manager · Agent Teams · Workspace
 
 **Governance:** Reports · Settings
 

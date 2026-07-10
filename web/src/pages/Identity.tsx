@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { PageHeader, Card, Tag, Btn } from "@/components/ui";
 import { SaveBar } from "@/components/SaveBar";
 import { ToastStack, useToasts } from "@/components/interactive";
@@ -17,12 +18,17 @@ export function Identity() {
         title="Identity"
         subtitle="Operator + system identity — SOUL / IDENTITY bootstrap, bounded autonomy matrix, in-process signing isolation."
         actions={
-          <Btn
-            variant={draft.showMatrix ? "primary" : "ghost"}
-            onClick={() => update({ showMatrix: !draft.showMatrix })}
-          >
-            {draft.showMatrix ? "Hide" : "Show"} autonomy matrix
-          </Btn>
+          <>
+            <Link className="btn" to="/agent-manager">
+              Agent Manager
+            </Link>
+            <Btn
+              variant={draft.showMatrix ? "primary" : "ghost"}
+              onClick={() => update({ showMatrix: !draft.showMatrix })}
+            >
+              {draft.showMatrix ? "Hide" : "Show"} autonomy matrix
+            </Btn>
+          </>
         }
       />
 
@@ -61,6 +67,11 @@ export function Identity() {
             <Tag kind="healthy">20 AGENTS</Tag>
             <Tag kind="info">47 PIPELINES</Tag>
             <Tag kind="neutral">CLASSICAL ONLY</Tag>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <Link className="btn" to="/agent-manager">
+              Open Agent Manager
+            </Link>
           </div>
         </Card>
       </div>

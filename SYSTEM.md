@@ -387,7 +387,8 @@ App: `web/` (Titan Agentik). Routes from `web/src/App.tsx` / `Sidebar.tsx`.
 | `/decisions` | Decision Log | TradingAgents-style audit view |
 | `/questions` | Questions | Escalations awaiting operator |
 | `/skills` | Skill Factory | Skills catalog |
-| `/agents` | Agent Teams | Agent roster |
+| `/agent-manager` | Agent Manager | Fleet ops console · 20-agent posture / BFT / tier map (advisory) |
+| `/agents` | Agent Teams | Lighter agent card grid · spawn |
 | `/workspace` | Workspace | Workspace files |
 | `/reports` | Reports | Reporting |
 | `/settings` | Settings | API port map / prefs |

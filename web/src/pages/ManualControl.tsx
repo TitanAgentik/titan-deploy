@@ -814,6 +814,9 @@ export function ManualControl() {
               <Link className="btn" to="/forge">
                 Forge
               </Link>
+              <Link className="btn" to="/agent-manager">
+                Agent Manager
+              </Link>
               <Link className="btn" to="/health">
                 Health & Verify
               </Link>

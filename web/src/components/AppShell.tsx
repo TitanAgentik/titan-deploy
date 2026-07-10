@@ -45,6 +45,7 @@ const TITLES: Record<string, string> = {
   "/decisions": "Decision Log",
   "/questions": "Questions",
   "/skills": "Skill Factory",
+  "/agent-manager": "Agent Manager",
   "/agents": "Agent Teams",
   "/workspace": "Workspace",
   "/reports": "Reports",

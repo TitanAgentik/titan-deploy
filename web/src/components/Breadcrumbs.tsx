@@ -33,6 +33,7 @@ const GROUP: Record<string, string> = {
   "/decisions": "Intelligence",
   "/questions": "Intelligence",
   "/skills": "Build",
+  "/agent-manager": "Build",
   "/agents": "Build",
   "/workspace": "Build",
   "/reports": "Governance",

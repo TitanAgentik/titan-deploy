@@ -43,6 +43,7 @@ export const COCKPIT_SECTION_IDS = [
   "questions",
   "skills",
   "agentTeams",
+  "agentManager",
   "workspace",
   "reports",
   "settings",

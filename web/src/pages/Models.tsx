@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import { PageHeader, Card, Tag, Btn } from "@/components/ui";
 import { SaveBar } from "@/components/SaveBar";
 import { ToastStack, useToasts } from "@/components/interactive";
@@ -23,12 +24,20 @@ export function Models() {
         title="Model Tiers"
         subtitle="Local open-weights only on the live path. No Claude / GPT / Gemini on TRENCH-OPS, GUARDIAN, or EXECUTOR."
         actions={
-          <Btn
-            variant={draft.liveOnly ? "primary" : "ghost"}
-            onClick={() => update({ liveOnly: !draft.liveOnly })}
-          >
-            {draft.liveOnly ? "Show all tiers" : "Live path only"}
-          </Btn>
+          <>
+            <Link className="btn" to="/agent-manager">
+              Agent Manager
+            </Link>
+            <Link className="btn" to="/agents">
+              Agent Teams
+            </Link>
+            <Btn
+              variant={draft.liveOnly ? "primary" : "ghost"}
+              onClick={() => update({ liveOnly: !draft.liveOnly })}
+            >
+              {draft.liveOnly ? "Show all tiers" : "Live path only"}
+            </Btn>
+          </>
         }
       />
 

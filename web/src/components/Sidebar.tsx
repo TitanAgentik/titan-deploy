@@ -11,6 +11,7 @@ import {
   MessageCircleQuestion,
   Factory,
   Users,
+  BrainCircuit,
   FolderOpen,
   FileBarChart2,
   Settings,
@@ -92,6 +93,7 @@ export const NAV = [
     label: "Build",
     items: [
       { to: "/skills", icon: Factory, label: "Skill Factory" },
+      { to: "/agent-manager", icon: BrainCircuit, label: "Agent Manager" },
       { to: "/agents", icon: Users, label: "Agent Teams" },
       { to: "/workspace", icon: FolderOpen, label: "Workspace" },
     ],

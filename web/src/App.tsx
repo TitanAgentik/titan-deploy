@@ -18,6 +18,7 @@ import { AiLog } from "@/pages/AiLog";
 import { Questions } from "@/pages/Questions";
 import { SkillFactory } from "@/pages/SkillFactory";
 import { AgentTeams } from "@/pages/AgentTeams";
+import { AgentManager } from "@/pages/AgentManager";
 import { Workspace } from "@/pages/Workspace";
 import { Reports } from "@/pages/Reports";
 import { Settings } from "@/pages/Settings";
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="questions" element={<Questions />} />
           <Route path="skills" element={<SkillFactory />} />
           <Route path="agents" element={<AgentTeams />} />
+          <Route path="agent-manager" element={<AgentManager />} />
           <Route path="workspace" element={<Workspace />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />

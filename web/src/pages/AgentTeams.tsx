@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { PageHeader, Card, Tag, Btn } from "@/components/ui";
+import { Link } from "react-router-dom";
+import { PageHeader, Tag, Btn } from "@/components/ui";
 import {
   ActionMenu,
   DetailGrid,
@@ -39,11 +40,16 @@ export function AgentTeams() {
     <>
       <PageHeader
         title="Agent Teams"
-        subtitle="20 named agents (12 TITANHOME + 8 utility). QCC/QSA/QRP removed — classical-only. Click a card for controls."
+        subtitle="Lighter team view of the 20-agent classical catalog (12 TITANHOME + 8 utility). Full ops console: Agent Manager."
         actions={
-          <Btn variant="primary" onClick={() => setSpawn(true)}>
-            Spawn sub-agent…
-          </Btn>
+          <>
+            <Link className="btn" to="/agent-manager">
+              Agent Manager
+            </Link>
+            <Btn variant="primary" onClick={() => setSpawn(true)}>
+              Spawn sub-agent…
+            </Btn>
+          </>
         }
       />
 

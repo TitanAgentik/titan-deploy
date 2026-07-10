@@ -225,12 +225,12 @@ export function CommandCenter() {
             Open Health
           </Link>
         </Card>
-        <Card title="TCA & allocator">
+        <Card title="Agent Manager">
           <p className="muted small" style={{ marginTop: 0 }}>
-            Scorecards · profit loop · plan.
+            20-agent fleet posture · BFT · tier map (advisory).
           </p>
-          <Link className="btn" to="/tca" style={{ marginTop: 8 }}>
-            Open TCA
+          <Link className="btn" to="/agent-manager" style={{ marginTop: 8 }}>
+            Open Agent Manager
           </Link>
         </Card>
         <Card title="Power / UPS">
