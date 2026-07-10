@@ -1,7 +1,8 @@
 # LIVE CAPITAL PRODUCTION GUIDE
 
 > **What this document is:** A beginner-friendly but complete walkthrough from *current deploy state* → paper → shadow → Phase 5 human YES → **real-capital live trading** on Titan.  
-> **What this document is not:** A one-liner that flips live trading on. It does **not** bypass the risk kernel (`:19001`), the ExecutionGate, the Bounded Autonomy Matrix, or Hyperion’s explicit YES gates.
+> **What this document is not:** A one-liner that flips live trading on. It does **not** bypass the risk kernel (`:19001`), the ExecutionGate, the Bounded Autonomy Matrix, or Hyperion’s explicit YES gates.  
+> Prefer the beginner narrative? See [`BEGINNER_LIVE_CAPITAL_EXPLAINED.md`](./BEGINNER_LIVE_CAPITAL_EXPLAINED.md).
 
 **Last aligned with:** deploy bundle policy `templates/risk_kernel/policy.yaml` v2.1+, `PRODUCTION_READINESS.md`, `SYSTEM.md`, `iron-laws.md`, `SOUL.md`, `AGENTS.md`.
 
