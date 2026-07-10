@@ -348,10 +348,10 @@ Control-plane mutating POSTs require `X-Titan-Auth` HMAC when `control_plane.aut
 
 App: `web/` (Titan Agentik). Routes from `web/src/App.tsx` / `Sidebar.tsx`.
 
-**Live vs demo (honest)**
+**Live vs fixture (honest)**
 
 - **Can be live** when safety services are up: Security (`:19008`), Health/Verify (aggregator), Manual Control / Settings API proxies, parts of Risk/Ops that hit `/api/*`.
-- **Often demo / localStorage / fixture data:** Dashboard metrics, Decision Log sample window, Power UPS “refresh”, QI Optimizer (explicitly advisory), many PnL/pipeline charts until wired to real feeds.
+- **Often fixture / localStorage data:** Dashboard metrics, Decision Log sample window, Power UPS “refresh”, QI Optimizer (explicitly advisory), many PnL/pipeline charts until wired to real feeds. Prefer “fixture data” over “demo data” in operator-facing copy.
 - **Save bar:** browser localStorage — not the live API.
 
 | Route | Page | Purpose |
@@ -486,7 +486,7 @@ Do **not** treat deploy as go-live. Follow these in order:
 | Mock recon/withdraw adapters on live profile | Banned at startup |
 | Auto security lockdown from LLM alone | HMAC operator required |
 | Modify `SOUL.md` / `iron-laws.md` via DGM-H | Immutable; CRITICAL + rollback |
-| Cockpit demo data as ground truth | Fixtures until APIs wired |
+| Cockpit fixture data as ground truth | Fixtures until APIs wired |
 | This repo alone making live trading “safe” | Necessary software controls ≠ sufficient ops |
 
 ---
