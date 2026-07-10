@@ -3,6 +3,8 @@
 **Last updated:** deploy bundle v2.3 — bounded autonomy + portfolio risk + MRM + **profit engine** (capital allocator, execution-quality/TCA, statistical promotion gates)  
 **Honest assessment:** This bundle adds real, tested software controls for both **capital preservation** and **profit compounding**. It does **not** make live trading with real capital safe or profitable by itself. Treat everything below as necessary but not sufficient.
 
+**Operator walkthrough for real capital:** [`LIVE_CAPITAL_PRODUCTION_GUIDE.md`](./LIVE_CAPITAL_PRODUCTION_GUIDE.md) — beginner-complete path from paper/shadow → Phase 5 human YES → first live trade. Does **not** bypass `:19001` or auto-promote on TIMEOUT. Cockpit `VITE_DATA_MODE=live` is UI data mode only (see [`WEB_UI_LIVE_PRODUCTION_GUIDE.md`](./WEB_UI_LIVE_PRODUCTION_GUIDE.md)).
+
 **v2.3 profit-engine additions (all deterministic, out-of-process, unit-tested):**
 - **Capital allocator** (`allocator.py`, `:19006`) — turns per-lane cost-adjusted edge into forward fractional-Kelly allocation within a human-set gross envelope; per-lane / correlation-cluster / capacity caps; regime scaling; drawdown de-grossing ladder. Winners get fed, losers starved — automatically, inside bounds.
 - **Execution-quality / TCA** (`tca.py`, `:19007`) — per-lane net-of-cost scorecards: realized slippage, gas+tip drag, revert/fill rate, tip efficiency, edge-decay slope, capacity pressure. Converts *claimed* edge into *measured* edge and flags bleeding lanes.

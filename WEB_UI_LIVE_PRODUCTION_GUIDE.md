@@ -10,6 +10,7 @@
 | [`web/README.md`](./web/README.md) | Quick start + provider overview |
 | [`SYSTEM.md`](./SYSTEM.md) | Full system manual (cockpit map §11, ports §10) |
 | [`PRODUCTION_READINESS.md`](./PRODUCTION_READINESS.md) | Honest go-live gates for **capital** |
+| [`LIVE_CAPITAL_PRODUCTION_GUIDE.md`](./LIVE_CAPITAL_PRODUCTION_GUIDE.md) | **Real-capital** paper → shadow → Phase 5 YES → live (not this UI guide) |
 | [`BOOT.md`](./BOOT.md) | Short gateway-restart checklist |
 | [`BOOTSTRAP.md`](./BOOTSTRAP.md) | First-run ritual |
 | [`TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md`](./TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md) | End-to-end stack setup |

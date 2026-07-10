@@ -1,7 +1,8 @@
 # BOOT.md — Gateway Restart Checklist
 
 > Full system manual: [`SYSTEM.md`](./SYSTEM.md)  
-> Cockpit production serve: [`WEB_UI_LIVE_PRODUCTION_GUIDE.md`](./WEB_UI_LIVE_PRODUCTION_GUIDE.md)
+> Cockpit production serve: [`WEB_UI_LIVE_PRODUCTION_GUIDE.md`](./WEB_UI_LIVE_PRODUCTION_GUIDE.md)  
+> Real-capital go-live: [`LIVE_CAPITAL_PRODUCTION_GUIDE.md`](./LIVE_CAPITAL_PRODUCTION_GUIDE.md) (Phase 5 YES; UI live ≠ capital live)
 
 Keep short. Runs on gateway restart when internal hooks are enabled.
 

@@ -468,6 +468,7 @@ Do **not** treat deploy as go-live. Follow these in order:
 5. **`BOOT.md`** — short gateway-restart checklist (health `:19001`–`:19008`; in-process signing; no auto-promote).
 6. **Phased rollout** — paper → micro-live → scale; calendar is **advisory** (`rollout.calendarIsNotAGate: true`); Phase 5 always needs human YES.
 7. Beginner/ops narratives: `DEPLOYMENT_GUIDE.md`, `DEPLOYMENT_GUIDE_BEGINNER.md`, `TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md`.
+8. **Live capital (real money):** [`LIVE_CAPITAL_PRODUCTION_GUIDE.md`](./LIVE_CAPITAL_PRODUCTION_GUIDE.md) — paper → shadow → Phase 5 YES → first live trade; does **not** bypass `:19001` or auto-promote.
 
 **Minimum software proof before real capital:** safety units healthy via `:19003`, kernel DENY when stopped, kill drill, DMS heartbeat, signing receipt gate, paper/shadow evidence ≥3 days + statistical promotion gate + Phase 5 YES.
 
@@ -503,6 +504,7 @@ Do **not** treat deploy as go-live. Follow these in order:
 | `templates/safety/titan_safety/` | Enforceable Python safety stack |
 | `templates/infra/` | BOM, edge, ghost, power, signing, Solana |
 | `PRODUCTION_READINESS.md` | Honest go-live gates + residual risks |
+| `LIVE_CAPITAL_PRODUCTION_GUIDE.md` | End-to-end real-capital go-live (gates documented; no silent enable) |
 | `web/` | Titan Agentik cockpit |
 
 ---
