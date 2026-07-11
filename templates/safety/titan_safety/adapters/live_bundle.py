@@ -124,9 +124,10 @@ class LiveKeyRevoker(KeyRevoker):
 
     def revoke(self, venues: list[str], operator: str, reason: str) -> dict[str, Any]:
         st = credentials_status()
-        if not any(st[k] for k in ("binance", "okx", "bybit", "hyperliquid")):
+        dex_keys = ("hyperliquid", "evm_rpc", "solana_rpc", "jito")
+        if not any(st[k] for k in dex_keys):
             raise NotConfiguredError(
-                "Live key revoker needs exchange API keys in ~/.openclaw/.env"
+                "Live key revoker needs DEX/RPC credentials in ~/.openclaw/.env"
             )
         # Fail-closed until operator implements revoke hooks per venue.
         return {
@@ -134,6 +135,6 @@ class LiveKeyRevoker(KeyRevoker):
             "venues": venues,
             "operator": operator,
             "reason": reason,
-            "note": "Disable API keys operationally at exchange UI until revoke RPC wired",
-            "configured_exchanges": {k: st[k] for k in ("binance", "okx", "bybit", "hyperliquid")},
+            "note": "Disable session keys operationally until revoke RPC wired",
+            "configured_sources": {k: st[k] for k in dex_keys},
         }

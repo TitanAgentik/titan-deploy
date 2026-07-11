@@ -28,11 +28,3 @@ under related sections.
 
 Do not block OpenClaw/Hermes startup on this file. Bootstrap context is the
 `workspace/*.md` set; this companion is reference-only.
-
-## Quantum-inspired optimizers (offline)
-
-Classical QUBO + simulated annealing for lane subset selection lives in
-`templates/safety/titan_safety/quantum_inspired.py`. Advisory only — no live
-gate wiring, no `quantum.enabled` changes. Compare via `titan-safety qi demo`.
-Memory sidecar: `workspace/memory/research/quantum-inspired.md` (from
-`scripts/extract_memory.py`).

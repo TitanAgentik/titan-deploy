@@ -7,6 +7,8 @@ from pathlib import Path
 
 from titan_safety.audit_chain import AuditChainWriter, DecisionLogEntry, build_fingerprint
 from titan_safety.decision_log import (
+    check_checkpoint_stale,
+    check_reflection_drift,
     ensure_decision_log_healthy,
     is_pending,
     load_jsonl,
@@ -120,3 +122,37 @@ def test_ensure_healthy_repairs_corrupt_log(tmp_path: Path) -> None:
     writer = AuditChainWriter(log)
     ok, _ = writer.verify()
     assert ok is True
+
+
+def test_check_reflection_drift_triggers_on_streak() -> None:
+    records = [
+        {
+            "asset": "WETH",
+            "reflection": {"alpha_pct": -6.0},
+        }
+        for _ in range(5)
+    ]
+    result = check_reflection_drift(records, asset="WETH", threshold=5)
+    assert result.triggered is True
+    assert result.code == "CB_REFLECTION_DRIFT"
+
+
+def test_check_reflection_drift_within_threshold() -> None:
+    records = [{"asset": "WETH", "reflection": {"alpha_pct": -6.0}} for _ in range(3)]
+    result = check_reflection_drift(records, asset="WETH", threshold=5)
+    assert result.triggered is False
+
+
+def test_check_checkpoint_stale_when_idle(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "checkpoint.json"
+    checkpoint.write_text(json.dumps({"updated_at": 1000.0}), encoding="utf-8")
+    result = check_checkpoint_stale(checkpoint, max_idle_seconds=60, now=5000.0)
+    assert result.triggered is True
+    assert result.code == "CB_CHECKPOINT_STALE"
+
+
+def test_check_checkpoint_stale_when_fresh(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "checkpoint.json"
+    checkpoint.write_text(json.dumps({"updated_at": 4960.0}), encoding="utf-8")
+    result = check_checkpoint_stale(checkpoint, max_idle_seconds=60, now=5000.0)
+    assert result.triggered is False

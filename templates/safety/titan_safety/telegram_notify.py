@@ -142,6 +142,22 @@ def _fmt_usd(value: float | int | None, decimals: int = 2) -> str:
     return f"{float(value):,.{decimals}f}"
 
 
+def _fmt_signed_usd(value: float | int | None, decimals: int = 2) -> str:
+    if value is None:
+        return "$0.00"
+    v = float(value)
+    sign = "+" if v >= 0 else "-"
+    return f"{sign}${_fmt_usd(abs(v), decimals)}"
+
+
+def _fmt_signed_pct(value: float | int | None, decimals: int = 2) -> str:
+    if value is None:
+        return "0.00"
+    v = float(value)
+    sign = "+" if v >= 0 else "-"
+    return f"{sign}{_fmt_pct(abs(v), decimals)}"
+
+
 def _fmt_pct(value: float | int | None, decimals: int = 2) -> str:
     if value is None:
         return "0.00"
@@ -162,29 +178,29 @@ def _format_financial_summary(
         realized = pnl.get("realized_usd")
         if realized is not None:
             pct_eq = pnl.get("pct_equity")
-            line = f"Realized: {_fmt_sign(realized)}${_fmt_usd(abs(realized))}"
+            line = f"Realized: {_fmt_signed_usd(realized)}"
             if pct_eq is not None:
-                line += f" ({_fmt_sign(pct_eq)}{_fmt_pct(abs(pct_eq))}% equity)"
+                line += f" ({_fmt_signed_pct(pct_eq)}% equity)"
             lines.append(line)
 
         unrealized = pnl.get("unrealized_usd")
         if unrealized is not None:
-            lines.append(f"Unrealized: {_fmt_sign(unrealized)}${_fmt_usd(abs(unrealized))}")
+            lines.append(f"Unrealized: {_fmt_signed_usd(unrealized)}")
 
         net = pnl.get("net_usd")
         if net is not None and net != realized:
             pct_eq = pnl.get("pct_equity")
-            line = f"Net P&L: {_fmt_sign(net)}${_fmt_usd(abs(net))}"
+            line = f"Net P&L: {_fmt_signed_usd(net)}"
             if pct_eq is not None:
-                line += f" ({_fmt_sign(pct_eq)}{_fmt_pct(abs(pct_eq))}% equity)"
+                line += f" ({_fmt_signed_pct(pct_eq)}% equity)"
             lines.append(line)
 
         daily = pnl.get("daily_pnl_usd")
         if daily is not None:
             daily_pct = pnl.get("daily_pnl_pct")
-            line = f"Daily P&L: {_fmt_sign(daily)}${_fmt_usd(abs(daily))}"
+            line = f"Daily P&L: {_fmt_signed_usd(daily)}"
             if daily_pct is not None:
-                line += f" ({_fmt_sign(daily_pct)}{_fmt_pct(abs(daily_pct))}%)"
+                line += f" ({_fmt_signed_pct(daily_pct)}%)"
             lines.append(line)
 
         fees = pnl.get("fees_usd")
@@ -215,9 +231,9 @@ def _format_financial_summary(
         port_daily = portfolio.get("daily_pnl_usd")
         if port_daily is not None and not (pnl and pnl.get("daily_pnl_usd") is not None):
             port_daily_pct = portfolio.get("daily_pnl_pct")
-            line = f"Daily P&L: {_fmt_sign(port_daily)}${_fmt_usd(abs(port_daily))}"
+            line = f"Daily P&L: {_fmt_signed_usd(port_daily)}"
             if port_daily_pct is not None:
-                line += f" ({_fmt_sign(port_daily_pct)}{_fmt_pct(abs(port_daily_pct))}%)"
+                line += f" ({_fmt_signed_pct(port_daily_pct)}%)"
             lines.append(line)
 
     return "\n".join(lines)
@@ -312,10 +328,11 @@ def notify(
     *,
     safety_dir: Path | None = None,
     send: bool | None = None,
+    enqueue: bool = True,
     config: TelegramConfig | None = None,
     http_post: HttpPostFn | None = None,
 ) -> dict[str, Any]:
-    """Format, enqueue, and optionally send an institutional notification."""
+    """Format, optionally enqueue, and optionally send an institutional notification."""
     if isinstance(event, dict):
         ev = NotifyEvent(**{k: v for k, v in event.items() if k in NotifyEvent.__dataclass_fields__})
     else:
@@ -339,7 +356,8 @@ def notify(
         "immediate": ev.severity in ("HIGH", "CRITICAL"),
         "ts": time.time(),
     }
-    enqueue_herald_event(sd, queue_record)
+    if enqueue:
+        enqueue_herald_event(sd, queue_record)
 
     cfg = config or load_config()
     should_send = send if send is not None else cfg.enabled
@@ -876,6 +894,7 @@ def notify_pnl_realized(
     portfolio: dict[str, Any] | None = None,
     safety_dir: Path | None = None,
     send: bool | None = None,
+    enqueue: bool = True,
 ) -> dict[str, Any]:
     """Notify realized PnL on position close."""
     severity = "MEDIUM" if abs(pct_equity) < 0.5 else "HIGH"
@@ -908,6 +927,7 @@ def notify_pnl_realized(
         ),
         safety_dir=safety_dir,
         send=send,
+        enqueue=enqueue,
     )
 
 

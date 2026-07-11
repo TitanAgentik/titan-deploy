@@ -14,10 +14,8 @@
 - [ ] Copy `~/.openclaw/infra/live.env.example` → `~/.openclaw/.env` and fill secrets
 - [ ] Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_USER_ID`
 - [ ] Set `TITAN_RECON_FETCHER_URL` or exchange API keys (recon fail-closed until wired)
-- [ ] Set `TITAN_LIVE_SIGNING_READY=1` only after Trezor bridge + in-process signing health OK (`titan-safety` / status aggregator `signing`)
+- [ ] Set `TITAN_LIVE_SIGNING_READY=1` only after Trezor bridge + in-process signing health OK
 - [ ] Set `HERMES_HOME=~/.hermes`
-- [ ] Honcho: set `HONCHO_API_KEY` (and `HONCHO_BASE_URL` if self-hosted) in `~/.openclaw/.env` + `~/.hermes/.env` — see `HONCHO_SETUP.md`
-- [ ] Run `hermes memory setup honcho` and `hermes profile create herald --clone --aiPeer herald-telegram --workspace ~/.openclaw/workspace`
 - [ ] Verify `capital_profile: live` in policy + openclaw; `paper` venue remains for shadow lanes
 
 ## Autonomous sign/verify (no human on trade path)
@@ -61,7 +59,7 @@
 - [ ] Deploy infra specs: `~/.openclaw/infra/` (hardware_bom, power_requirements, signing_node, gpu_schedule)
 - [ ] **UPS installed and tested** — ≥3000VA, ≥15 min runtime (REQUIRED before live capital)
 - [ ] Power-loss drill: mains disconnect → trading HALT + CRITICAL alert
-- [ ] Confirm in-process signing: `signingNode.mode: in_process` / `titan-safety gate sign` (do not require `:19010`)
+- [ ] Confirm in-process signing: `signingNode.mode: in_process` (do not require `:19010`)
 - [ ] Confirm TRENCH-OPS never signs in agent runtime (titan-safety only)
 
 ## Agent Verification

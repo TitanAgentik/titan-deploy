@@ -503,6 +503,7 @@ def cmd_notify_pnl(args: argparse.Namespace) -> int:
         else None,
         safety_dir=Path(args.safety_dir) if args.safety_dir else None,
         send=not args.no_send and not args.format_only,
+        enqueue=not args.format_only,
     )
     if args.format_only:
         print(result.get("telegram_text", ""))

@@ -70,7 +70,7 @@ def test_bft_allows_above_1pct(policy_path: Path, tmp_path: Path) -> None:
         sign_bft_vote("AUGUR", "t-big2", "ALLOW", 0.8, safety_dir=safety),
         sign_bft_vote("PREDATOR", "t-big2", "ALLOW", 0.82, safety_dir=safety),
     ]
-    kernel = RiskKernel.from_policy_path(policy_path, tmp_path / "s.json")
+    kernel = RiskKernel.from_policy_path(policy_path, tmp_path / "s.json", safety_dir=safety)
     trade = TradeRequest(
         trade_id="t-big2",
         venue="binance_spot",

@@ -33,4 +33,7 @@ def test_load_component_live_signer() -> None:
 def test_credentials_status_no_secrets() -> None:
     st = credentials_status()
     assert "live_signing_ready" in st
-    assert isinstance(st["binance"], bool)
+    # DEX-only posture — no CEX keys; recon via RPC / Hyperliquid / fetcher URL
+    for key in ("hyperliquid", "evm_rpc", "solana_rpc", "recon_fetcher_url"):
+        assert key in st
+        assert isinstance(st[key], bool)

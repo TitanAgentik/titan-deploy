@@ -1,13 +1,13 @@
 # TOOLS.md — Agent Capability Matrix (the Titan UNIFIED)
 
-## GPU TP=2 Agents (llama-server :30000, zai-org/GLM-5.2 GGUF Q4_K_M + FP8 KV + MTP native spec-decode (`--spec-type draft-mtp`), PCIe 5.0 x16, expert-offload via `--n-cpu-moe`: dense + hot experts in VRAM (\~180 GB) + cold experts overflow to DDR5-6000 (\~196 GB pinned), all signal/coding/orchestrator agents share this single deployment via `--parallel 12` multi-tenant slots)  
-**ORACLE:** Market data APIs, signal computation (108 signals + narrative, classical-only), HYDRA ML inference, multi-chain price reconciliation, confidence scoring  
+## GPU TP=2 Agents (llama-server :30000, zai-org/GLM-5.2 GGUF Q4_K_M + FP8 KV + MTP native spec-decode (`--spec-type draft-mtp`), PCIe 5.0 x16, expert-offload via `--n-cpu-moe`: dense + hot experts in VRAM (\~180 GB) + cold experts overflow to DDR5-6000 (\~196 GB pinned), all signal/coding/orchestrator agents share this single deployment via `--parallel 15` multi-tenant slots)  
+**ORACLE:** Market data APIs, signal computation (108 signals + narrative (classical-only; quantum dormant)), HYDRA ML inference, multi-chain price reconciliation, confidence scoring  
 **WRAITH:** Blockchain RPCs (14 chains), on-chain analytics, wallet tracking, MEV detection, deployer analysis  
-**PREDATOR:** DEX APIs, token scanning, rug detection, mempool monitoring (via 5-PoP edge mesh — TKY/SIN/FRA/USE/AMS), liquidity analysis, **stalking + predatory hunt** (`titan-safety security status`; honeypot lattice armed by default), **P22 memecoin trench** (six-gate filter + lifecycle; `titan-safety memecoin filter|evaluate|sim`)  
+**PREDATOR:** DEX APIs, token scanning, rug detection, mempool monitoring (via 5-PoP edge mesh — TKY/SIN/FRA/USE/AMS), liquidity analysis, memecoin snipe evaluation  
 **AUGUR:** Macro data feeds, HMM regime detection, correlation analysis, volatility regime classification  
 **NARRATIVE:** Real-time ingestion across X / Farcaster / GitHub / Discord / news wires / governance forums / on-chain vesting triggers / **Polymarket prediction probabilities** (via ClawHub `@mvanhorn/polymarket` skill). Classifies catalyst events (type, assets, direction, magnitude, time-to-crowd, novelty) via the shared GLM-5.2 model. Publishes to Redis stream narrative:events:high for ORACLE fusion. Secondary hallucination-guard pass by CORTEX (same GLM-5.2 model, distinct prompt). Browserbase-backed for stealth session monitoring.
 
-**TRENCH-OPS:** DEX execution planning, route selection (1inch/Paraswap/CoW), **ERC-7683 intent solver fulfillment (UniswapX/Across/1inch Fusion Dutch auctions)**, bridge ops (Stargate/Across), **MEV-protected / Ghost-shielded tx only on live** (kernel DENY `public_rpc`; `ghost_evasion.yaml`), gas optimization, TWAP planning, atomic pair-trades (P7), Jito bundles (memecoin), NFT floor market making (P9), tx signing on workstation, dispatch to geographically-nearest edge for broadcast. Runs on Tier 1 `:30000` Qwen3-30B-A3B FP8 (critical path — never GLM-5.2 or any cloud model). For high-throughput batch coding, ARCHON may route to Tier 2 `:30001` Qwen3-Coder-Next-80B FP8; live signing stays on Tier 1/2 local weights only.  
+**TRENCH-OPS:** DEX execution planning, route selection (1inch/Paraswap/CoW), **ERC-7683 intent solver fulfillment (UniswapX/Across/1inch Fusion Dutch auctions)**, bridge ops (Stargate/Across), MEV-protected tx construction, gas optimization, TWAP planning, atomic pair-trades (P7), Jito bundles (memecoin), NFT floor market making (P9), tx signing on workstation, dispatch to geographically-nearest edge for broadcast. Runs on Tier 1 `:30000` Qwen3-30B-A3B FP8 (critical path — never GLM-5.2 or any cloud model). For high-throughput batch coding, ARCHON may route to Tier 2 `:30001` Qwen3-Coder-Next-80B FP8; live signing stays on Tier 1/2 local weights only.  
 **LAMARCK:** Post-trade PnL attribution (alpha/beta/variance decomposition), strategy mutation (differential evolution), evolutionary learning, walk-forward validation, MGPO reward computation, asymmetric gating, proficiency vector updates, Hermes-RL rollout collection, OPD hint extraction, GEPA reflection loop  
 **DARWIN_GODEL:** Model training pipeline, **Zero-I/O In-Memory Monte Carlo Backtesting + §COSMOS MWM 64-scenario forward dynamics (\~200 GB RAM disk (reduced from 384 GB to accommodate GLM-5.2 expert offload — uses 2-window rolling state H1+H2 instead of full year; NVMe `/fast` overflow for cold historical data), Training NLP-to-DEX Correlation Matrices)**, NAS, experiment tracking, strategy genome mutation, signal model research, SAGE skill library management, compositional skill synthesis, 3-stage evolution pipeline, proficiency-based curriculum, Hermes-RL SLIME trainer, **HyEvo Architect meta-agent (workflow topology design + MAP-Elites)**, **DGM-H code-level self-modification cycle** (24h, SOUL.md-bounded), **Kronos K-Line Foundation Model** (§KRONOS, arXiv:2508.02739, AAAI 2026 — BSQ hierarchical tokenizer + decoder-only Transformer with coarse-to-fine autoregressive prediction, pre-trained on 12B K-lines from 45 exchanges; complemented by **Google TimesFM** (arXiv:2310.10688, `pip install timesfm`) as a general-purpose zero-shot forecasting backbone for non-financial time series like gas prices, network latency, and system metrics; tokenizes OHLCV candlestick data across all 14 chains into hierarchical coarse-to-fine tokens via Binary Spherical Quantization; trained on CPU utility tier for zero-shot price series + volatility forecasting; achieves 93% RankIC improvement over generic TSFMs; predictions feed into ORACLE ensemble), **Adaptive Gas Prediction LSTM** (lightweight time-series model trained on 2-3 block gas price history; predicts optimal submission windows; reduces execution cost 15-30%)  
 ## CPU Agents (llama.cpp :30001, Qwen3.6-35B-A3B Q4_K_M, 128 of 192 threads on 9995WX 96C/192T)
@@ -27,22 +27,6 @@
 **QUANT:** Statistical analysis, backtesting engine, Monte Carlo simulation (classical Monte Carlo only (quantum dormant)), walk-forward tests, **statistical pairs trading (P7 z-score + OU)**, **prediction market arbitrage (P11) model-vs-market calibration**  
 **ARBITER:** Backtest validation gate, strategy approval, conflict resolution, CB enforcement, **Red Team gauntlet judge for HyEvo/DGM-H promotions**, **3-day deployment pipeline enforcer (CB_DEPLOY_PIPELINE_BYPASS)**  
 **HORIZON:** R\&D automation metrology (CSET "When AI Builds AI" Jan 2026). Computes 5 indicators every 6h: MTH / MTS / SER / ECM / IDG. Monitors cuda:1 R\&D share vs rd_budget_pct. Cannot trade. Cannot veto. Writes only to memory/rd_automation/. Read-only on DARWIN_GODEL + LAMARCK + Hermes-RL + HyEvo telemetry buses. Owns weekly rd_automation_report workflow.
-
-### Honcho dialectic operator modeling (HYPERION + HERALD)
-
-Hermes Honcho memory provider — dual-layer context for operator **Hyperion**. Not on trade critical path.
-
-| Tool | Agent | Purpose |
-|------|-------|---------|
-| `honcho_profile` | HERALD, HYPERION | Read/update operator peer card |
-| `honcho_search` | HERALD, HYPERION | Semantic search over Honcho conclusions |
-| `honcho_context` | HERALD, HYPERION | Session summary + representation + peer cards |
-| `honcho_reasoning` | HERALD, HYPERION | Dialectic LLM synthesis (local weights only) |
-| `honcho_conclude` | HERALD | Create/delete session conclusions |
-
-- **Peers:** user `hyperion`; AI `herald-telegram` (HERALD), `hyperion-assistant` (HYPERION)
-- **Config:** `~/.hermes/honcho.json`; `observationMode`: `directional` (default) or `unified`
-- **Skill:** `honcho_operator` — see `HONCHO_SETUP.md`
 
 ```
 
@@ -293,5 +277,6 @@ phase_3_micro_live:
       Strategy:    {strategy_name}  
       Phase:       3/6 — Micro-Live Test ✅  
       Status:      PASSED — generating promotion scorecard  
+      ═══════════════════════════════════════  
 
 <!-- truncated to bootstrap char limit -->

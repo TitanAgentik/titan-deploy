@@ -107,7 +107,7 @@ checkpoint_resume_on_restart: true
 checkpoint_clear_on_success: true
 ```
 
-`CB_CHECKPOINT_STALE` — abandon checkpoint >1h with no progress (see `AGENTS.md`).
+`CB_CHECKPOINT_STALE` — abandon checkpoint >1h with no progress (`decision_log.check_checkpoint_stale`).
 
 ---
 
@@ -117,8 +117,8 @@ checkpoint_clear_on_success: true
 |----|---------|--------|
 | `CB_DECISION_LOG_CORRUPT` | JSONL parse or chain verify fail | Repair from `.bak`, alert |
 | `CB_DECISION_LOG_FULL` | >500 resolved without rotation | `audit rotate` / `audit ensure` |
-| `CB_REFLECTION_DRIFT` | >5 same-asset systematic errors | Disable pipeline for asset |
-| `CB_CHECKPOINT_STALE` | Checkpoint >1h idle | Abandon, restart fresh |
+| `CB_REFLECTION_DRIFT` | >5 same-asset systematic errors | `check_reflection_drift` → disable pipeline for asset |
+| `CB_CHECKPOINT_STALE` | Checkpoint >1h idle | `check_checkpoint_stale` → abandon, restart fresh |
 
 ---
 

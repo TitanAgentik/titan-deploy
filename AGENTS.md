@@ -9,7 +9,7 @@
 | Model/skill promotion to live | — | YES (Phase 5) |
 | Evolution deploy (DGM-H, GEPA, etc.) | Shadow only | YES for live |
 | Leverage change | — | YES |
-| Flash-loan live | YES (when policy + router enabled) | — |
+| Flash-loan live | — | YES |
 | CB tier response (within policy) | YES | — |
 | Drawdown velocity breach | HALT (kernel) | Alert operator |
 | TIMEOUT on promotion prompt | HOLD/de-risk | Never auto-promote |
@@ -46,8 +46,7 @@ Same-family voters = correlated consensus. Distinct families (Qwen3-30B ≠ Qwen
 
 ## Security
 
-Four pillars always armed: **Impenetrable** (baseline) + **Evasion** (Ghost — no public RPC live) + **Stalking** (PREDATOR hunt) + **Predatory** (honeypot lattice engaged by default). Detect adversaries; stay invisible; profit via shielded paths only. No :19001 bypass. Lockdown=HMAC. Mention≠mandate for *new* modules — core stealth/predatory posture is on by default (`ghost_evasion` policy + `titan-safety security status`).
-**P22 Memecoin Trench** (Pump.fun lifecycle): catalog until Phase 5 YES + live profile — `memecoin_trench` skill / `titan-safety memecoin *`.
+Four pillars (Impenetrable baseline; Evasion/Stalking/Predatory on demand). No :19001 bypass. Lockdown=HMAC. Mention≠mandate.
 
 ## Data Handling
 
@@ -153,11 +152,10 @@ Four pillars always armed: **Impenetrable** (baseline) + **Evasion** (Ghost — 
 
 > **Architecture rationale:** Each edge PoP is placed in the **exact same AWS region/AZ** as the target DEX / sequencer / builder. Since Hyperliquid DEX validators all run in AWS `ap-northeast-1` (Tokyo), and BSC/Sui run in AWS `ap-southeast-1` (Singapore), traffic between our edge and the exchange never leaves Amazon's backbone — achieving sub-millisecond RTT. This replaces the previous single-PoP Falkenstein design which added 130-200ms RTT to APAC exchanges. Erigon archive runs on EDGE-FRA (Frankfurt, DE-CIX peered); CRUSH pipeline and batch data processing run on TITANHOME during off-peak hours.
 
-**Total: 20 agents — 12 on TITANHOME inference tiers (4 orchestrator + 5 signal + 3 coding)
+**Total: 20 agents — 15 share the GPU TP=2 llama-server `:30000` (4 orchestrator
 
-  + 8 utility on TITANSPARK SGLang `:30002` (llama.cpp `:30001` cold fallback only)
-  + 5 stateless edge workers across 5 global PoPs (no LLM). All inference local.
-  Quantum-coordination agents (QCC/QSA/QRP) removed — classical-only posture.**
+  + 5 signal + 3 coding) + 8 utility on TITANSPARK SGLang  
+  `:30002` (llama.cpp `:30001` cold fallback only) + 5 stateless edge workers across 5 global PoPs (no LLM). All inference local.**
 
 ## Inter-Agent Protocol & Consensus Engine
 
@@ -250,22 +248,12 @@ checkpoint_clear_on_success: true
 - **Multi-Peer Setup & Cloning:** Specialized profiles are cloned from target bases using:  
   `hermes profile create <profile_name> --clone --aiPeer <ai_peer_name> --workspace <shared_workspace>`
 
-- **Dialectic User Modeling (Honcho):** Peers leverage Honcho's dual-layer context (base layer of session summary + representation + peer cards + dialectic supplement LLM reasoning). Config: `~/.hermes/honcho.json` + `memory.provider: honcho` in `config.yaml`. Setup guide: `HONCHO_SETUP.md`.  
-- **Dialectic Observation Mode:** Configured via `observationMode` (`directional` vs `unified`) in `honcho.json` — `directional` (default) enables full mutual observation for HERALD/HYPERION operator modeling; `unified` uses shared-pool semantics.  
-- **Operator peers:** User peer `hyperion`; AI peers `herald-telegram` (HERALD) and `hyperion-assistant` (HYPERION). Clone profiles: `hermes profile create herald --clone --aiPeer herald-telegram --workspace ~/.openclaw/workspace`  
+- **Dialectic User Modeling:** Peers leverage Honcho's dual-layer context (base layer of session summary + representation + peer cards + dialectic supplement LLM reasoning).  
+- **Dialectic Observation Mode:** Configured via `observationMode` (`directional` vs `unified`) to define whether the dialectic reasoner tracks peer-specific directional dialogues or a unified shared conversation history.  
 - **OpenClaw Subagents:** Spawn at ZERO context cost to parent; isolated Docker/Singularity/SSH/Modal/Local backend; parent orchestrator pays zero token overhead to track subordinate work.
+
 
 ## §TA — TradingAgents Framework Integration Layer
 
-### What Was Adopted
-
-| TradingAgents Feature | Titan Integration | Enhancement Over TradingAgents |  
-| --- | --- | --- |  
-| 4-Analyst concurrent pipeline | Multi-analyst evidence pipeline (fundamentals, sentiment, news, technical) | DeFi-native: on-chain metrics, mempool data, funding rates replace equity-centric Yahoo Finance data |  
-| Bull/Bear research debate | BULL_RESEARCHER / BEAR_RESEARCHER adversarial sub-roles | Classical-only |  
-| Structured-output agents | JSON-enforced thesis schemas for all debate participants | Integrated with existing BFT voting consensus (2-of-3 threshold) |  
-| Risk management debate | AGGRESSIVE_RISK_AGENT / CONSERVATIVE_RISK_AGENT | Classical-only |  
-| Portfolio Manager approval | GUARDIAN as final authority gate | Augmented with 44-pipeline portfolio-level constraint checking |  
-| Trading Memory Decision Log | JSONL decision audit trail with 3-phase lifecycle | Classical signal provenance tracking only |  
-
-<!-- truncated to bootstrap char limit -->
+Adopted: 4-analyst pipeline, bull/bear debate, structured JSON outputs, risk debate, GUARDIAN final gate, decision log.
+Full adoption tables + debate schemas: `~/.openclaw/refs/AGENTS_schemas.md` and `docs/MEMORY_AND_EXTRACTORS.md`.

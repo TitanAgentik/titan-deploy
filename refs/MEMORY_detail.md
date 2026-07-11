@@ -43,9 +43,11 @@ See `output/memory/` after build. Deploy copies them to `~/.openclaw/memory/`.
 - `hardware/workstation.md`
 - `rd_automation/indicators.md`
 - `research/hydra-models.md`
+- `research/quantum-inspired.md`
 - `research/skill-evolution.md`
 - `risk/circuit-breakers.md`
 - `security/README.md`
+- `security/posture.md`
 - `strategies/active-pipelines.md`
 - `strategies/endgame.md`
 - `strategies/memecoin-trench.md`

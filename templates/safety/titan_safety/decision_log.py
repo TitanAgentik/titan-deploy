@@ -3,6 +3,8 @@
 Implements AGENTS.md circuit breakers:
 - CB_DECISION_LOG_CORRUPT → repair from backup
 - CB_DECISION_LOG_FULL → force rotation when resolved entries exceed cap
+- CB_REFLECTION_DRIFT → disable pipeline for asset after systematic errors
+- CB_CHECKPOINT_STALE → abandon checkpoint idle >1h
 """
 
 from __future__ import annotations
@@ -17,8 +19,21 @@ from typing import Any
 from .audit_chain import AuditChainWriter
 
 DEFAULT_MAX_RESOLVED = 500
+DEFAULT_REFLECTION_DRIFT_THRESHOLD = 5
+DEFAULT_CHECKPOINT_STALE_SECONDS = 3600
 RESOLVED_STATUSES = frozenset({"resolved", "rejected", "cancelled", "closed"})
 PENDING_STATUSES = frozenset({"pending", "open", "in_progress", "checkpoint"})
+
+
+@dataclass
+class CircuitBreakerResult:
+    triggered: bool
+    code: str
+    message: str
+    details: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 @dataclass
@@ -238,3 +253,138 @@ def ensure_decision_log_healthy(
     result["rotation"] = rotation.to_dict()
     result["healthy"] = True
     return result
+
+
+def _reflection_alpha(entry: dict[str, Any]) -> float | None:
+    reflection = entry.get("reflection")
+    if not isinstance(reflection, dict):
+        payload = entry.get("payload")
+        if isinstance(payload, dict):
+            reflection = payload.get("reflection")
+    if not isinstance(reflection, dict):
+        return None
+    alpha = reflection.get("alpha_pct", reflection.get("alpha"))
+    if alpha is None:
+        return None
+    try:
+        return float(alpha)
+    except (TypeError, ValueError):
+        return None
+
+
+def _entry_asset(entry: dict[str, Any]) -> str:
+    for key in ("asset", "symbol"):
+        val = entry.get(key)
+        if val:
+            return str(val).strip().upper()
+    payload = entry.get("payload")
+    if isinstance(payload, dict):
+        for key in ("asset", "symbol"):
+            val = payload.get(key)
+            if val:
+                return str(val).strip().upper()
+    return ""
+
+
+def check_reflection_drift(
+    records: list[dict[str, Any]],
+    *,
+    asset: str | None = None,
+    threshold: int = DEFAULT_REFLECTION_DRIFT_THRESHOLD,
+    notable_alpha_pct: float = 5.0,
+) -> CircuitBreakerResult:
+    """CB_REFLECTION_DRIFT — >threshold same-asset reflections with notable error."""
+    target = (asset or "").strip().upper()
+    streak = 0
+    for entry in reversed(records):
+        entry_asset = _entry_asset(entry)
+        if target and entry_asset != target:
+            continue
+        alpha = _reflection_alpha(entry)
+        if alpha is None:
+            break
+        if abs(alpha) >= notable_alpha_pct:
+            streak += 1
+        else:
+            break
+    if streak >= threshold:
+        return CircuitBreakerResult(
+            triggered=True,
+            code="CB_REFLECTION_DRIFT",
+            message=(
+                f"{streak} consecutive notable reflections for {target or 'asset'} "
+                f"(threshold {threshold})"
+            ),
+            details={"asset": target, "streak": streak, "threshold": threshold},
+        )
+    return CircuitBreakerResult(
+        triggered=False,
+        code="CB_REFLECTION_DRIFT",
+        message="within reflection drift threshold",
+        details={"asset": target, "streak": streak, "threshold": threshold},
+    )
+
+
+def check_checkpoint_stale(
+    checkpoint_path: Path,
+    *,
+    max_idle_seconds: float = DEFAULT_CHECKPOINT_STALE_SECONDS,
+    now: float | None = None,
+) -> CircuitBreakerResult:
+    """CB_CHECKPOINT_STALE — abandon checkpoint when idle longer than max_idle_seconds."""
+    ts_now = time.time() if now is None else float(now)
+    if not checkpoint_path.exists():
+        return CircuitBreakerResult(
+            triggered=False,
+            code="CB_CHECKPOINT_STALE",
+            message="no checkpoint file",
+            details={"path": str(checkpoint_path)},
+        )
+    try:
+        raw = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return CircuitBreakerResult(
+            triggered=True,
+            code="CB_CHECKPOINT_STALE",
+            message=f"checkpoint unreadable: {exc}",
+            details={"path": str(checkpoint_path)},
+        )
+    if not isinstance(raw, dict):
+        return CircuitBreakerResult(
+            triggered=True,
+            code="CB_CHECKPOINT_STALE",
+            message="checkpoint payload not an object",
+            details={"path": str(checkpoint_path)},
+        )
+    updated = raw.get("updated_at", raw.get("ts", raw.get("timestamp")))
+    try:
+        updated_ts = float(updated)
+    except (TypeError, ValueError):
+        return CircuitBreakerResult(
+            triggered=True,
+            code="CB_CHECKPOINT_STALE",
+            message="checkpoint missing updated_at/ts",
+            details={"path": str(checkpoint_path)},
+        )
+    idle = ts_now - updated_ts
+    if idle > max_idle_seconds:
+        return CircuitBreakerResult(
+            triggered=True,
+            code="CB_CHECKPOINT_STALE",
+            message=f"checkpoint idle {idle:.0f}s > {max_idle_seconds:.0f}s",
+            details={
+                "path": str(checkpoint_path),
+                "idle_seconds": idle,
+                "max_idle_seconds": max_idle_seconds,
+            },
+        )
+    return CircuitBreakerResult(
+        triggered=False,
+        code="CB_CHECKPOINT_STALE",
+        message="checkpoint fresh",
+        details={
+            "path": str(checkpoint_path),
+            "idle_seconds": idle,
+            "max_idle_seconds": max_idle_seconds,
+        },
+    )

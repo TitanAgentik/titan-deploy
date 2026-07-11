@@ -1,6 +1,6 @@
 # Telegram Operations Guide
 
-> **Sole operator surface:** HERALD delivers institutional-grade Telegram messages for all Titan operational events. The web cockpit has been **archived** (`archive/cockpit-web/`). Do not run it for production operations.
+> **Sole production operator surface:** HERALD delivers institutional-grade Telegram messages for all Titan operational events. The React cockpit (`web/`) is for **local dev/reference** only — do not expose it for production operations. Frozen backup: `archive/cockpit-web/`.
 
 ## Quick setup
 

@@ -31,6 +31,7 @@ Source TITAN offloads full YAML/JSON bodies to this companion file. Bodies below
 | `~/.openclaw/workspace/*.md` | `workspace/` ← `output/bootstrap/` | OpenClaw bootstrap context |
 | `~/.hermes/SOUL.md` | `workspace/SOUL.md` | Hermes identity (slot #1) |
 | `~/.hermes/config.yaml` | `templates/config.yaml` | Hermes agent config |
+| `~/.hermes/honcho.json` | `templates/honcho.json` | Honcho dialectic operator modeling |
 | `~/.openclaw/openclaw.json` | `templates/openclaw.json` | OpenClaw gateway + agents |
 | `~/.openclaw/risk_kernel/policy.yaml` | `templates/risk_kernel/policy.yaml` | Risk / safety policy |
 | `~/.openclaw/infra/signing_node.yaml` | `templates/infra/signing_node.yaml` | Signing isolation |
@@ -198,10 +199,13 @@ terminal:
   confidence_tagging: true
 
 memory:
+  provider: honcho
+  honcho_config: ~/.hermes/honcho.json
   engine: sqlite
   path: ~/.hermes/memory/titan.db
   fts5: true
   openclaw_sync: ~/.openclaw/memory/
+  note: "Honcho dialectic user modeling — see HONCHO_SETUP.md; SQLite FTS5 remains fallback when provider != honcho"
 
 skills:
   directory: ~/.openclaw/workspace/skills
@@ -314,13 +318,15 @@ infrastructure:
 
 signing_node:
   enabled: true
-  endpoint: ""  # unused when mode=in_process
+  mode: in_process
+  endpoint: ""
   host: localhost
   port: 19010
   isolated: true
   route_agents:
     - TRENCH-OPS
     - LAMARCK
+  note: "In-process SigningNode; :19010 optional legacy only"
 
 edge_mesh:
   mode: full_mesh
@@ -700,6 +706,7 @@ capital:
       "stalking",
       "predatory"
     ],
+    "doctrine": "invisible_to_them_visible_to_us",
     "cli": "titan-safety security",
     "playbook": "~/.openclaw/playbooks/security_lockdown.yaml",
     "honeypotDir": "~/.openclaw/safety/honeypots",
@@ -717,8 +724,33 @@ capital:
     ],
     "cockpitPath": "/security",
     "requireHmacForLockdown": true,
+    "huntModeDefault": true,
+    "honeypotArmedDefault": true,
     "servicePort": 19008,
     "healthUrl": "http://127.0.0.1:19008/health"
+  },
+  "ghostEvasion": {
+    "enabled": true,
+    "infraSpec": "~/.openclaw/infra/ghost_evasion.yaml",
+    "requireShieldedPathLive": true,
+    "structuralInvisibilityMaxDetectionPct": 1.0,
+    "fingerprintRotateHours": 168,
+    "trafficJitterEnabled": true,
+    "stealthPipelines": [
+      "P22",
+      "P29",
+      "P12",
+      "P30"
+    ],
+    "denyPublicRpc": true,
+    "controls": [
+      "mev_shield_intents",
+      "edge_rtt",
+      "nostr_nip44",
+      "fingerprint_rotate",
+      "traffic_jitter",
+      "structural_invisibility_gate"
+    ]
   },
   "safetyServices": {
     "riskKernel": "http://127.0.0.1:19001/health",
@@ -757,7 +789,7 @@ capital:
   "flashLoanRouter": {
     "enabled": false,
     "requiresLiveProfile": true,
-    "requiresPromotionYes": true,
+    "requiresPromotionYes": false,
     "skill": "flash_loan_router",
     "infraSpec": "~/.openclaw/infra/flash_loan.yaml",
     "playbook": "~/.openclaw/playbooks/flash_loan_live.yaml",
@@ -776,7 +808,7 @@ capital:
       "uniswap_v4",
       "aave_v3"
     ],
-    "note": "Set enabled true only after promotion flash_loan_live YES + paper sim"
+    "note": "Set enabled true after paper sim evidence; no flash_loan_live promotion YES required"
   },
   "drawdownTiers": {
     "alert": 2.0,
@@ -808,6 +840,7 @@ capital:
   },
   "quantum": {
     "status": "dormant",
+    "enabled": false,
     "cloudQpuEnabled": false,
     "cuQuantumEnabled": false,
     "wukongBudgetActive": false,
@@ -987,7 +1020,8 @@ capital:
       "TRENCH-OPS",
       "LAMARCK"
     ],
-    "note": "Logically isolated signing \u2014 refuses POST /v1/sign without fresh X-Titan-Gate-Receipt"
+    "cli": "titan-safety gate sign",
+    "note": "In-process SigningNode in titan-safety \u2014 refuses sign without fresh X-Titan-Gate-Receipt; :19010 HTTP is optional legacy only"
   },
   "augur": {
     "regimeFeed": "stub",
@@ -1038,6 +1072,42 @@ capital:
       "note": "Growth phase below $15K \u2014 100% reinvest; no sweep until harvest threshold"
     },
     "endgame_phase_unlock": 3
+  },
+  "honcho": {
+    "enabled": true,
+    "provider": "honcho",
+    "configPath": "~/.hermes/honcho.json",
+    "operatorPeer": "hyperion",
+    "recallMode": "hybrid",
+    "observationMode": "directional",
+    "sessionStrategy": "per-repo",
+    "gatewayIdentity": {
+      "pinUserPeer": true,
+      "peerName": "hyperion",
+      "userPeerAliases": {},
+      "runtimePeerPrefix": "telegram_",
+      "note": "Single operator (Hyperion) via Telegram \u2014 all gateway users collapse to hyperion peer"
+    },
+    "agentPeers": {
+      "HYPERION": {
+        "profile": "hyperion",
+        "aiPeer": "hyperion-assistant",
+        "observationMode": "directional"
+      },
+      "HERALD": {
+        "profile": "herald",
+        "aiPeer": "herald-telegram",
+        "observationMode": "directional"
+      }
+    },
+    "tools": [
+      "honcho_profile",
+      "honcho_search",
+      "honcho_context",
+      "honcho_reasoning",
+      "honcho_conclude"
+    ],
+    "note": "Dialectic operator modeling \u2014 local Hermes Honcho only; not on trade critical path"
   }
 }
 ```
@@ -1088,7 +1158,7 @@ allowed_contracts:
 position_limits:
   max_equity_pct_per_trade: 2.0
   human_approval_above_pct: 1.0  # above this → BFT agent votes (not human) when autonomous_signing enabled
-  flash_loan_live_requires_approval: true
+  flash_loan_live_requires_approval: false  # autonomous when flash_loan_live.enabled + flashLoanRouter.enabled
   leverage_change_requires_approval: true
   new_pipeline_requires_approval: true
 
@@ -1103,7 +1173,7 @@ autonomous_signing:
   bft_voters: [AUGUR, PREDATOR, ATLAS]
   bft_threshold: 2
   require_typed_data_live: true
-  note: "Human gates remain for promotion, evolution, leverage, flash-loan live, large withdrawals"
+  note: "Human gates remain for promotion, evolution, leverage, large withdrawals; flash-loan live autonomous per policy"
 
 # Portfolio drawdown — notify-only; trading continues autonomously (no pause/halt gates).
 drawdown_notify_only: true
@@ -1244,7 +1314,7 @@ memecoin_trench:
   require_cost_model: true         # backtests with zero modeled cost are rejected
 
 flash_loan_live:
-  enabled: false  # operator + openclaw flashLoanRouter.enabled after promotion YES
+  enabled: false  # set true + flashLoanRouter.enabled for live (no human YES required)
   max_amount_usd: 500000.0
   max_fee_bps: 9.0
   paper_sim_required_days: 3
@@ -1255,7 +1325,7 @@ flash_loan_live:
     base: [morpho, balancer, aave_v3]
   infra_spec: ~/.openclaw/infra/flash_loan.yaml
   playbook: ~/.openclaw/playbooks/flash_loan_live.yaml
-  note: "Live flash loans require promotion flash_loan_live YES; paper venue always allowed"
+  note: "Live flash loans: enable policy + router; kernel enforces amount/source/pipeline caps; paper venue always allowed"
 
 promotion_gates:
   phase5_requires_human_yes: true
@@ -1288,7 +1358,7 @@ bft:
 
 quantum:
   enabled: false
-  note: "Permanently disabled for live capital — classical-only execution; no cuQuantum/Wukong/Tier 3 dispatch"
+  note: "Classical-only — quantum agents removed; no cuQuantum/Wukong/Tier 3 dispatch for live capital"
 
 power_loss:
   on_ups_battery: halt_trading
@@ -1301,9 +1371,9 @@ power_loss:
   note: "Power-loss = HALT — no discretionary signing during outage"
 
 signing:
-  mode: in_process
-  isolated_module_required: true
-  endpoint: ""  # unused when mode=in_process
+  mode: in_process  # default — SigningNode library in titan-safety (no :19010 hop)
+  isolated_module_required: true  # logical isolation in titan_safety; not a separate daemon
+  endpoint: ""  # legacy HTTP only when mode=http
   config_ref: ~/.openclaw/infra/signing_node.yaml
   blind_sign_rejected: true
   require_gate_receipt: true
@@ -1313,9 +1383,9 @@ signing:
 
 # Flatten adapters — live profile (mock banned at startup)
 flatten:
-  closer: in_process
+  closer: in_process  # alias: signing_node (same in-process SigningNode)
   revoker: "titan_safety.adapters.live_bundle:LiveKeyRevoker"
-  signing_endpoint: ""  # unused when mode=in_process
+  signing_endpoint: ""  # unused when signing.mode=in_process
 
 # Evolution freeze — set freeze_during_live true; CLI: titan-safety evolution freeze
 evolution:
@@ -1362,6 +1432,10 @@ security_ops:
       action: critical_alert_optional_pipeline_halt
     - id: CB_STALK_SEVERITY_HIGH
       action: escalate_archon_herald
+    - id: CB_STEALTH_PUBLIC_PATH
+      action: fail_closed_deny
+    - id: CB_STEALTH_UNSHIELDED_VENUE
+      action: fail_closed_deny
     - id: CB_SECURITY_LOCKDOWN
       action: kill_freeze_signing_halt_honeypot_arm
   # ENDGAME CBs — unlock Phase 3+ per openclaw capital.endgame_phase_unlock (documented for memory extract; not all wired yet).
@@ -1405,6 +1479,50 @@ security_ops:
     - edge_fail_closed
     - herald_critical
 
+ghost_evasion:
+  enabled: true
+  require_shielded_path_live: true
+  hunt_mode_default: true
+  honeypot_armed_default: true
+  structural_invisibility_max_detection_pct: 1.0
+  fingerprint_rotate_hours: 168
+  traffic_jitter_enabled: true
+  infra_spec: ~/.openclaw/infra/ghost_evasion.yaml
+  forbidden_venues:
+    - public_rpc
+    - public_mempool
+    - eth_public_rpc
+    - solana_public_rpc
+    - alchemy_public
+    - infura_public
+    - quicknode_public
+    - helius_public_unshielded
+    - jupiter_public_api
+    - binance_public
+    - cex_api_direct
+  shielded_venues:
+    - uniswap_v3
+    - curve
+    - aave_v3
+    - hyperliquid
+    - solana_jupiter
+    - solana_pumpfun
+    - solana_pumpswap
+    - jito
+    - flashbots_protect
+    - intent_solver
+    - cowswap
+    - uniswapx
+    - mev_share
+    - across_intent
+  stealth_pipelines: [P22, P29, P12, P30]
+  pipeline_required_venues:
+    P22: [jito, solana_pumpfun, solana_pumpswap]
+    P29: [flashbots_protect, jito, intent_solver, mev_share]
+    P12: [intent_solver, uniswapx, cowswap, across_intent]
+    P30: [flashbots_protect, intent_solver]
+  doctrine: invisible_to_them_visible_to_us
+
 # Millisecond hot path — combined gate validate for latency-critical pipelines
 latency:
   target: millisecond
@@ -1431,6 +1549,7 @@ service:
   allocator_port: 19006
   tca_port: 19007
   security_ops_port: 19008
+  # signing_node_port retained for optional legacy HTTP mode only (not required)
   signing_node_port: 19010
 ```
 
@@ -1439,48 +1558,56 @@ service:
 ## infra/signing_node.yaml
 
 ```yaml
-# TITAN Signing Node — logically isolated transaction signing
+# TITAN Signing — in-process module (titan_safety.SigningNode)
 # Deploy target: ~/.openclaw/infra/signing_node.yaml
-# May be co-located on TITANHOME hardware but MUST be logically isolated from evolution workloads.
+#
+# Default: signing runs in-process inside titan-safety (gate sign / flatten /
+# capital) after a fresh ExecutionGate ALLOW receipt — no separate :19010 daemon.
+# Mac Mini vault retains key metadata + Trezor ceremonies; signing execution is
+# colocated on TITANHOME in the deterministic safety process (not agent/LLM).
 
-version: "1.0"
+version: "1.1"
 enabled: true
+mode: in_process  # in_process (default) | http (legacy optional)
 
-mode: in_process
+# Legacy HTTP listener — optional; not required for deploy or verify.sh
 endpoint:
   optional_legacy: true
   host: localhost
   port: 19010
   url: http://127.0.0.1:19010
   health: http://127.0.0.1:19010/health
-  note: "Only when signing.mode=http"
+  note: "Only when signing.mode=http / TITAN_SIGNING_MODE=http"
 
 isolation:
-  minimal_os: true
+  in_process_module: titan_safety.signing_service.SigningNode
   no_evolution_workloads: true
   no_llm_inference: true
-  no_agent_runtime: true
-  power_protected: true  # UPS-backed per power_requirements.yaml
-  cgroup: openclaw-signing
+  no_agent_runtime: true  # never sign inside agent/LLM process
+  power_protected: true  # UPS-backed TITANHOME per power_requirements.yaml
+  cgroup: openclaw-safety
   allowed_processes:
+    - titan-safety
     - openclaw-trezor-bridge
-    - openclaw-signing-daemon
     - tpm-pcr-watch
-  forbidden_on_node:
+  forbidden_in_signer_process:
     - dgm-h
     - gepa
     - hyevo
     - skill_evolution
     - cuquantum
     - cudev_fuzzing
+    - llama-server
+    - agent runtime
 
 routing:
   agents:
     - TRENCH-OPS
     - LAMARCK
+  cli: titan-safety gate sign
   pre_sign_gates:
     - guardian_risk_validation
-    - execution_gate_allow_receipt  # X-Titan-Gate-Receipt required on POST /v1/sign
+    - execution_gate_allow_receipt  # X-Titan-Gate-Receipt required
     - risk_kernel_pre_trade
     - tenderly_simulation  # bridge txs
     - eip712_typed_data_only
@@ -1494,15 +1621,15 @@ routing:
     file_flag: ~/.openclaw/safety/SIGNING_HALTED
 
 hardware_options:
-  co_located:
-    description: "Dedicated VM or cgroup on TITANHOME; separate from GPU MPS partitions"
-    acceptable_for_phase1: true
-  dedicated_host:
-    description: "Minimal Ubuntu on separate NUC/RPi with USB to Trezor"
-    recommended_for_phase3_plus: true
+  colocated_in_process:
+    description: "SigningNode library inside titan-safety on TITANHOME; same machine as gate — zero extra network hop"
+    default: true
+  legacy_http_daemon:
+    description: "Optional python -m titan_safety.signing_service on :19010 — compatibility only"
+    required: false
 
 macmini_vault:
-  role: "Trezor ceremony + cold key metadata; signing requests proxied via NATS"
+  role: "Trezor ceremony + cold key metadata"
   not_a_substitute_for: "in-process SigningNode on TITANHOME — vault holds metadata, safety stack executes"
 
 # Four-pillar Impenetrable layer L2 — security lockdown sets SIGNING_HALTED

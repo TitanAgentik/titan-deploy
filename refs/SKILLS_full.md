@@ -35,6 +35,7 @@
 - `forge_infra/` — Forge Infra — TITANHOME health, UPS telemetry, GPU schedule enforcement
 - `guardian_risk/` — Guardian Risk — stub skill (full definition pending §SKILLS_full.md)
 - `herald_notify/` — HERALD institutional Telegram trade notifications — JSON-first payloads + Markdown alerts (§TGCMD.2 / §TGCMD.3)
+- `honcho_operator/` — Honcho dialectic user modeling for Hyperion operator context — peer cards, session summary, dual-layer injection
 - `horizon_rd/` — Horizon Rd — stub skill (full definition pending §SKILLS_full.md)
 - `infra_health/` — Infra Health
 - `lamarck_learning/` — Lamarck Learning — stub skill (full definition pending §SKILLS_full.md)
@@ -60,7 +61,7 @@
 - `skill_evolution/` — see SKILL.md
 - `stat_pairs_trading/` — Stat Pairs Trading
 - `trade_execution/` — Trade Execution
-- `trench_ops_execution/` — Trench Ops Execution — DEX/bridge execution with isolated signing
+- `trench_ops_execution/` — Trench Ops Execution — DEX/bridge execution with in-process signing
 - `voice_mode/` — ---
 - `wraith_onchain/` — Wraith Onchain — stub skill (full definition pending §SKILLS_full.md)
 

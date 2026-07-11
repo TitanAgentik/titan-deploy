@@ -88,7 +88,7 @@ def verify_bft_vote(vote: dict[str, Any], safety_dir: Path | None = None) -> tup
     if not token:
         return False, "missing vote token"
     parts = token.split("|")
-    if len(parts) != 8 or parts[0] != VOTE_PREFIX:
+    if len(parts) != 7 or parts[0] != VOTE_PREFIX:
         return False, "malformed vote token"
     voter, trade_id, decision, conf_s, ts_s, sig = (
         parts[1],
@@ -96,9 +96,9 @@ def verify_bft_vote(vote: dict[str, Any], safety_dir: Path | None = None) -> tup
         parts[3],
         parts[4],
         parts[5],
-        parts[7],
+        parts[6],
     )
-    payload = "|".join(parts[:7])
+    payload = "|".join(parts[:6])
     secret = ensure_control_secret(safety_dir)
     expected = hmac.new(secret, payload.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, sig):
@@ -135,13 +135,15 @@ def verify_agent_authorization(
     min_reduced = float(cfg["min_confidence_reduced"])
     min_full = float(cfg["min_confidence_full"])
     paper_min = float(cfg.get("paper_min_confidence", 0.30))
-    min_conf = paper_min if is_paper else min_reduced
 
     max_pct = float(
         (policy_raw.get("position_limits") or {}).get("max_equity_pct_per_trade", 2.0)
     )
-    needs_full_conf = pct >= max_pct * 0.5 or (not is_paper and pct > 0.5)
-    required_conf = min_full if needs_full_conf else min_conf
+    if is_paper:
+        required_conf = paper_min
+    else:
+        needs_full_conf = pct >= max_pct * 0.5 or pct > 0.5
+        required_conf = min_full if needs_full_conf else min_reduced
 
     if confidence < required_conf:
         return VerificationResult(
