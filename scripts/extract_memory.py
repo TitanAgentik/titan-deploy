@@ -9,7 +9,16 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import OUTPUT_DIR, RECONCILED_PATH, read_source, unescape_markdown, write_text
+from common import (
+    OUTPUT_DIR,
+    RECONCILED_PATH,
+    ExtractorError,
+    extractor_fail,
+    fail_on_truncated_identifiers,
+    read_source,
+    unescape_markdown,
+    write_text,
+)
 
 PIPELINE_RE = re.compile(r"^- \*\*P(\d+)\s+([^*]+)\*\*", re.MULTILINE)
 
@@ -459,7 +468,10 @@ def main() -> int:
     parser.add_argument("-o", "--output-dir", type=Path, default=OUTPUT_DIR / "memory")
     args = parser.parse_args()
 
-    text = read_source(args.input)
+    try:
+        text = read_source(args.input)
+    except ExtractorError as exc:
+        return extractor_fail(str(exc))
 
     files = {
         "strategies/active-pipelines.md": extract_pipelines(text),
@@ -481,6 +493,7 @@ def main() -> int:
     }
 
     for rel_path, content in files.items():
+        fail_on_truncated_identifiers(content, rel_path)
         write_text(args.output_dir / rel_path, content)
 
     print(f"Extracted {len(files)} memory files -> {args.output_dir}")

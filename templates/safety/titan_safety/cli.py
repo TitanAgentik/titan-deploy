@@ -133,6 +133,38 @@ def cmd_audit_verify(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
+def cmd_audit_rotate(args: argparse.Namespace) -> int:
+    from .decision_log import rotate_decision_log
+
+    result = rotate_decision_log(
+        Path(args.log),
+        max_resolved=int(args.max_resolved),
+        backup=not args.no_backup,
+    )
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0
+
+
+def cmd_audit_repair(args: argparse.Namespace) -> int:
+    from .decision_log import repair_decision_log
+
+    backup = Path(args.backup) if args.backup else None
+    result = repair_decision_log(Path(args.log), backup)
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.repaired or "valid" in result.reason else 1
+
+
+def cmd_audit_ensure(args: argparse.Namespace) -> int:
+    from .decision_log import ensure_decision_log_healthy
+
+    result = ensure_decision_log_healthy(
+        Path(args.log),
+        max_resolved=int(args.max_resolved),
+    )
+    print(json.dumps(result, indent=2))
+    return 0 if result.get("healthy") else 1
+
+
 def _capital_manager(args: argparse.Namespace) -> CapitalManager:
     cfg_path = getattr(args, "config", None)
     return CapitalManager(load_capital_config(cfg_path) if cfg_path else None)
@@ -1084,6 +1116,22 @@ def main(argv: list[str] | None = None) -> int:
     av = audit_sub.add_parser("verify")
     av.add_argument("--log", required=True)
     av.set_defaults(func=cmd_audit_verify)
+
+    ar = audit_sub.add_parser("rotate", help="Prune oldest resolved decision log entries")
+    ar.add_argument("--log", required=True)
+    ar.add_argument("--max-resolved", default="500")
+    ar.add_argument("--no-backup", action="store_true")
+    ar.set_defaults(func=cmd_audit_rotate)
+
+    arp = audit_sub.add_parser("repair", help="Restore corrupt log from .bak sibling")
+    arp.add_argument("--log", required=True)
+    arp.add_argument("--backup")
+    arp.set_defaults(func=cmd_audit_repair)
+
+    ae = audit_sub.add_parser("ensure", help="Verify, repair if corrupt, rotate if full")
+    ae.add_argument("--log", required=True)
+    ae.add_argument("--max-resolved", default="500")
+    ae.set_defaults(func=cmd_audit_ensure)
 
     p_cap = sub.add_parser("capital", help="Deposit, withdraw, balance, sweep")
     cap_sub = p_cap.add_subparsers(dest="cap_cmd", required=True)

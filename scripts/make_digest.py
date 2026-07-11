@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import OUTPUT_DIR, PROJECT_ROOT, RECONCILED_PATH, byte_len, write_text
+from common import OUTPUT_DIR, PROJECT_ROOT, RECONCILED_PATH, ExtractorError, byte_len, extractor_fail, write_text
 
 DIGEST_PATH = OUTPUT_DIR / "TITAN.digest.md"
 MAX_BYTES = 18_000
@@ -65,7 +65,14 @@ def section_map(text: str) -> list[tuple[int, int, str]]:
 
 
 def main() -> int:
-    text = RECONCILED_PATH.read_text(encoding="utf-8")
+    if not RECONCILED_PATH.exists():
+        return extractor_fail(f"reconciled source missing: {RECONCILED_PATH}")
+    try:
+        text = RECONCILED_PATH.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return extractor_fail(f"reconciled source not valid UTF-8: {RECONCILED_PATH}")
+    if not text.strip():
+        return extractor_fail(f"reconciled source empty: {RECONCILED_PATH}")
     body = HEADER
 
     refs_dir = PROJECT_ROOT / "refs"

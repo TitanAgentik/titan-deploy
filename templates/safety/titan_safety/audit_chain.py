@@ -97,7 +97,10 @@ class AuditChainWriter:
         for i, line in enumerate(self.log_path.read_text(encoding="utf-8").splitlines()):
             if not line.strip():
                 continue
-            record = json.loads(line)
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as exc:
+                return False, f"JSON parse error at entry {i + 1}: {exc.msg}"
             stored_chain = record.pop("chain_hash")
             stored_prev = record.pop("prev_hash")
             content_hash = record.pop("content_hash")

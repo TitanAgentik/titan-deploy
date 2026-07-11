@@ -13,11 +13,14 @@ from common import (
     BOOTSTRAP_FILES,
     BOOTSTRAP_MAX_CHARS,
     BOOTSTRAP_TOTAL_MAX_CHARS,
+    ExtractorError,
     MEMORY_MAX_LINES,
     OUTPUT_DIR,
     RECONCILED_PATH,
     byte_len,
+    extractor_fail,
     extract_deploy_block,
+    fail_on_truncated_identifiers,
     find_section,
     read_source,
     truncate_lines,
@@ -488,6 +491,23 @@ def patch_model_tiers(content: str) -> str:
 
 
 AGENTS_HEADROOM_TARGET = 19_000
+AGENTS_SCHEMA_POINTER = "*(full JSON schema: `~/.openclaw/refs/AGENTS_schemas.md`)*"
+TA_SECTION_POINTER = """## §TA — TradingAgents Framework Integration Layer
+
+Adopted: 4-analyst pipeline, bull/bear debate, structured JSON outputs, risk debate, GUARDIAN final gate, decision log.
+Full adoption tables + debate schemas: `~/.openclaw/refs/AGENTS_schemas.md` and `docs/MEMORY_AND_EXTRACTORS.md`.
+"""
+
+
+def _trim_agents_at_section_boundaries(content: str, target: int) -> str:
+    """Drop trailing ## sections until content fits target UTF-8 bytes."""
+    while byte_len(content) > target:
+        matches = list(re.finditer(r"^## .+$", content, flags=re.MULTILINE))
+        if len(matches) < 2:
+            break
+        cut = matches[-1].start()
+        content = content[:cut].rstrip() + "\n"
+    return content
 
 
 def compact_agents_headroom(content: str, target: int = AGENTS_HEADROOM_TARGET) -> str:
@@ -500,7 +520,7 @@ def compact_agents_headroom(content: str, target: int = AGENTS_HEADROOM_TARGET) 
     """
     if byte_len(content) <= target:
         return content
-    pointer = "*(full JSON schema: `~/.openclaw/refs/AGENTS_schemas.md`)*"
+    pointer = AGENTS_SCHEMA_POINTER
     fences = sorted(
         re.finditer(r"(?ms)^[ \t]*```json[ \t]*\n.*?\n[ \t]*```[ \t]*$", content),
         key=lambda m: len(m.group(0)),
@@ -510,6 +530,19 @@ def compact_agents_headroom(content: str, target: int = AGENTS_HEADROOM_TARGET) 
         if byte_len(content) <= target:
             break
         content = content.replace(match.group(0), pointer, 1)
+
+    if byte_len(content) > target and "## §TA — TradingAgents" in content:
+        content = re.sub(
+            r"\n## §TA — TradingAgents Framework Integration Layer.*\Z",
+            "\n\n" + TA_SECTION_POINTER.strip() + "\n",
+            content,
+            count=1,
+            flags=re.DOTALL,
+        )
+
+    if byte_len(content) > target:
+        content = _trim_agents_at_section_boundaries(content, target)
+
     return content
 
 
@@ -519,7 +552,13 @@ def build_agents(text: str) -> str:
         content = block + "\n"
     else:
         content = find_section(text, "# AGENTS.md", ["Deploy to:", "# §E"]) + "\n"
-    return compact_agents_headroom(patch_agents_survivability(content))
+    content = compact_agents_headroom(patch_agents_survivability(content))
+    if byte_len(content) > BOOTSTRAP_MAX_CHARS:
+        raise ExtractorError(
+            f"AGENTS.md still {byte_len(content)} bytes after compaction "
+            f"(limit {BOOTSTRAP_MAX_CHARS}) — tighten source or refs"
+        )
+    return content
 
 
 def build_memory_trimmed(text: str) -> str:
@@ -580,7 +619,7 @@ def build_memory_trimmed(text: str) -> str:
             lines.append(line)
 
     return patch_quantum_classical_only(
-        truncate_lines("\n".join(lines) + "\n", MEMORY_MAX_LINES)
+        truncate_lines("\n".join(lines) + "\n", MEMORY_MAX_LINES)[0]
     )
 
 
@@ -763,7 +802,7 @@ def build_tools(text: str) -> str:
     if "Independent Risk Kernel" not in content:
         content = content.rstrip() + "\n" + RISK_KERNEL_TOOLS
     content = patch_quantum_classical_only(content)
-    return truncate_to_chars(content, BOOTSTRAP_MAX_CHARS)
+    return truncate_to_chars(content, BOOTSTRAP_MAX_CHARS)[0]
 
 
 def build_identity(text: str) -> str:
@@ -1097,11 +1136,23 @@ def extract_all(text: str) -> dict[str, str]:
         "BOOT.md": lambda t: build_boot(),
     }
     result = {}
+    truncated_files: list[str] = []
     for name in BOOTSTRAP_FILES:
         content = builders[name](text)
-        if name != "MEMORY.md":
-            content = truncate_to_chars(content, BOOTSTRAP_MAX_CHARS)
+        if name != "MEMORY.md" and name != "AGENTS.md":
+            content, was_truncated = truncate_to_chars(content, BOOTSTRAP_MAX_CHARS)
+            if was_truncated:
+                truncated_files.append(name)
+        elif name == "MEMORY.md":
+            content, was_truncated = truncate_lines(content, MEMORY_MAX_LINES)
+            if was_truncated:
+                truncated_files.append(name)
+        fail_on_truncated_identifiers(content, name)
         result[name] = content
+    if truncated_files:
+        raise ExtractorError(
+            "bootstrap truncation detected (fail-closed): " + ", ".join(truncated_files)
+        )
     return result
 
 
@@ -1113,8 +1164,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    text = read_source(args.input)
-    files = extract_all(text)
+    try:
+        text = read_source(args.input)
+        files = extract_all(text)
+    except ExtractorError as exc:
+        return extractor_fail(str(exc))
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     total = 0

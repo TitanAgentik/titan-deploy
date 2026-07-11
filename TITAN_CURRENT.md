@@ -17,6 +17,7 @@
 | [`TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md`](./TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md) | End-to-end hardware + software setup |
 | [`BOOT.md`](./BOOT.md) | Gateway restart checklist |
 | [`BOOTSTRAP.md`](./BOOTSTRAP.md) | First-run ritual |
+| [`docs/MEMORY_AND_EXTRACTORS.md`](./docs/MEMORY_AND_EXTRACTORS.md) | Extractor contract, memory layout, shadow evolution boundary |
 
 ---
 
@@ -732,6 +733,15 @@ circuit_breaker_autonomy:
     LOW:
       action: "auto_log"
 ```
+
+### Memory, extractors, and shadow evolution (July 2026)
+
+- **DGM-H / Darwin-Godel** remain **shadow-only** — `evolution_freeze.py` + `promotion_gate.py` + `policy.yaml` `shadow_only_evolution`; Tier 3 off-peak only; never auto-promote on TIMEOUT.
+- **Deploy extractors** (`scripts/extract_*.py`, `make_digest.py`) are **fail-closed**: corrupt/missing input, bootstrap truncation, or `identifierPolicy=strict` violations exit non-zero.
+- **Decision log** at `/data/openclaw/memory/decision_log.jsonl` uses hash-chained JSONL; rotation at 500 resolved entries; corrupt log repair from `.bak` via `titan-safety audit ensure`.
+- **Honcho** (`~/.hermes/`) is advisory operator modeling only — does not replace local audit logs or promotion gate.
+
+Full contract: [`docs/MEMORY_AND_EXTRACTORS.md`](./docs/MEMORY_AND_EXTRACTORS.md).
 
 ---
 

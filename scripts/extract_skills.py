@@ -9,7 +9,16 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from common import OUTPUT_DIR, RECONCILED_PATH, read_source, unescape_markdown, write_text
+from common import (
+    OUTPUT_DIR,
+    RECONCILED_PATH,
+    ExtractorError,
+    extractor_fail,
+    fail_on_truncated_identifiers,
+    read_source,
+    unescape_markdown,
+    write_text,
+)
 
 SKILL_HEADER = re.compile(
     r"^#{1,3}\s+skills/([a-z0-9_]+)/SKILL\.md.*$", re.MULTILINE | re.IGNORECASE
@@ -116,7 +125,9 @@ def extract_skills(text: str) -> dict[str, str]:
     k_end = text.find("# §L — Memory Directory", k_start)
     if k_end < 0:
         k_end = text.find("# §L — MEMORY", k_start)
-    section = text[k_start:k_end] if k_start >= 0 else text
+    if k_start < 0:
+        raise ExtractorError("§K — Skills Directory section not found in source")
+    section = text[k_start:k_end]
 
     headers = list(SKILL_HEADER.finditer(section))
     for i, match in enumerate(headers):
@@ -174,6 +185,7 @@ def write_skills(
             shutil.rmtree(stale)
 
     for name, content in sorted(skills.items()):
+        fail_on_truncated_identifiers(content, f"skill:{name}")
         skill_dir = output_dir / name
         write_text(skill_dir / "SKILL.md", content)
         active += 1
@@ -189,8 +201,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    text = read_source(args.input)
-    all_skills = extract_skills(text)
+    try:
+        text = read_source(args.input)
+        all_skills = extract_skills(text)
+    except ExtractorError as exc:
+        return extractor_fail(str(exc))
     quantum_archive = {
         n: all_skills.pop(n)
         for n in list(all_skills)
