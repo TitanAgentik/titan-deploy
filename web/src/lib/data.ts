@@ -959,7 +959,7 @@ export const activityFeed = [
   {
     id: "act-0",
     title: "Flash-loan paper sim complete",
-    detail: "72% pass rate · 100 routes — awaiting flash_loan_live YES",
+    detail: "72% pass rate · 100 routes — enable router + policy for live",
     ts: "2026-07-09T11:15:00Z",
     tsLabel: "12m ago",
     tone: "info" as const,
@@ -2281,7 +2281,7 @@ export const edgePops = [
 
 export const flashLoanRouter = {
   enabled: false,
-  promotionApproved: false,
+  requiresApproval: false,
   skill: "flash_loan_router",
   composeAgent: "ALCHEMY",
   executeAgent: "TRENCH-OPS",

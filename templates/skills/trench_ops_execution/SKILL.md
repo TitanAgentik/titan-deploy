@@ -78,4 +78,4 @@ is not on the hot path.
 
 1. ALCHEMY composes via `titan-safety flashloan compose` → calldata + **typed_data**  
 2. Trade payload must set `uses_flash_loan: true`, `flash_loan_source`, `flash_loan_amount_usd`  
-3. Kernel DENY unless `flash_loan_live` promotion YES + `flashLoanRouter.enabled`  
+3. Kernel DENY unless `flash_loan_live.enabled` + `flashLoanRouter.enabled` (no human YES required)  

@@ -451,6 +451,93 @@ def cmd_notify_drain(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_notify_pnl(args: argparse.Namespace) -> int:
+    from .telegram_notify import notify_pnl_realized
+
+    result = notify_pnl_realized(
+        pipeline_id=args.pipeline,
+        asset=args.asset,
+        realized_usd=args.realized,
+        pct_equity=args.pct_equity,
+        outcome=args.outcome,
+        fees_usd=args.fees,
+        trade_id=args.trade_id or "",
+        portfolio={
+            "equity_usd": args.equity,
+            "exposure_pct": args.exposure_pct,
+            "open_positions": args.open_positions,
+        }
+        if args.equity
+        else None,
+        safety_dir=Path(args.safety_dir) if args.safety_dir else None,
+        send=not args.no_send and not args.format_only,
+    )
+    if args.format_only:
+        print(result.get("telegram_text", ""))
+        return 0
+    print(json.dumps(result, indent=2))
+    return 0 if result.get("ok") else 1
+
+
+def cmd_notify_digest(args: argparse.Namespace) -> int:
+    from .telegram_notify import notify_hourly_digest, send_telegram_message, load_config, TelegramConfig
+
+    digest = {
+        "window_start": "2026-07-02T19:00",
+        "window_end": "2026-07-02T20:00",
+        "hour_pnl_usd": 127.45,
+        "hour_pnl_pct": 0.05,
+        "trades_count": 4,
+        "wins": 3,
+        "losses": 1,
+        "gas_fees_usd": 28.50,
+        "strategies": [
+            {"pipeline_id": "P3", "trades": 2, "pnl_usd": 98.20},
+            {"pipeline_id": "P30", "trades": 2, "pnl_usd": 29.25},
+        ],
+        "health": {"latency_p50_ms": 42, "cpu_pct": 38, "gpu_pct": 52},
+        "flags": [],
+    }
+    portfolio = {
+        "equity_usd": 261042.18,
+        "exposure_pct": 12.4,
+        "open_positions": 7,
+        "daily_pnl_usd": 842.33,
+        "daily_pnl_pct": 0.32,
+        "unrealized_pnl_usd": 156.20,
+    }
+    if args.format_only:
+        from .telegram_notify import _render_herald_message
+
+        text = _render_herald_message({
+            "event_type": "hourly_digest",
+            "agent_id": "HERALD",
+            "reason_codes": ["HOURLY_DIGEST"],
+            "digest": digest,
+            "portfolio": portfolio,
+        })
+        print(text or "herald renderer unavailable")
+        return 0
+    result = notify_hourly_digest(
+        digest,
+        portfolio=portfolio,
+        safety_dir=Path(args.safety_dir) if args.safety_dir else None,
+        send=not args.no_send,
+    )
+    if args.dry_run:
+        cfg = TelegramConfig(
+            bot_token=load_config().bot_token or "dry",
+            chat_id=load_config().chat_id or "0",
+            enabled=True,
+            dry_run=True,
+        )
+        send_result = send_telegram_message(result.get("telegram_text", ""), config=cfg)
+        result["send"] = send_result
+    print(result.get("telegram_text", ""))
+    print(json.dumps({"ok": result.get("ok"), "send": result.get("send")}, indent=2))
+    return 0 if result.get("ok") else 1
+
+
 def cmd_capital_verify_audit(args: argparse.Namespace) -> int:
     mgr = _capital_manager(args)
     ok, msg = mgr.verify_audit()
@@ -613,7 +700,7 @@ def cmd_flashloan_status(args: argparse.Namespace) -> int:
             {
                 "enabled": bool(fl.get("enabled", False)),
                 "requires_approval": bool(
-                    (policy.raw.get("position_limits") or {}).get("flash_loan_live_requires_approval", True)
+                    (policy.raw.get("position_limits") or {}).get("flash_loan_live_requires_approval", False)
                 ),
                 "max_amount_usd": fl.get("max_amount_usd"),
                 "pipeline_ids": fl.get("pipeline_ids", []),
@@ -1263,6 +1350,29 @@ def main(argv: list[str] | None = None) -> int:
     nd.add_argument("--safety-dir", default="")
     nd.add_argument("--max-items", type=int, default=50)
     nd.set_defaults(func=cmd_notify_drain)
+
+    np = notify_sub.add_parser("pnl", help="Send realized PnL notification")
+    np.add_argument("--realized", type=float, required=True, help="Realized PnL in USD")
+    np.add_argument("--pct-equity", type=float, default=0.0, help="PnL as % of equity")
+    np.add_argument("--pipeline", default="P?", help="Pipeline ID")
+    np.add_argument("--asset", default="—", help="Asset pair")
+    np.add_argument("--outcome", default="WIN", choices=["WIN", "LOSS", "OPEN", "BREAKEVEN"])
+    np.add_argument("--fees", type=float, default=0.0, help="Fees in USD")
+    np.add_argument("--trade-id", default="", help="Trade ID")
+    np.add_argument("--equity", type=float, default=0.0, help="Portfolio equity USD")
+    np.add_argument("--exposure-pct", type=float, default=0.0)
+    np.add_argument("--open-positions", type=int, default=0)
+    np.add_argument("--format-only", action="store_true", help="Print formatted message only")
+    np.add_argument("--no-send", action="store_true", help="Queue without Telegram API call")
+    np.add_argument("--safety-dir", default="")
+    np.set_defaults(func=cmd_notify_pnl)
+
+    ndg = notify_sub.add_parser("digest", help="Send sample hourly digest via HERALD renderer")
+    ndg.add_argument("--format-only", action="store_true", help="Print formatted message only")
+    ndg.add_argument("--no-send", action="store_true", help="Queue without Telegram API call")
+    ndg.add_argument("--dry-run", action="store_true", help="Skip Telegram API (dry run)")
+    ndg.add_argument("--safety-dir", default="")
+    ndg.set_defaults(func=cmd_notify_digest)
 
     args = parser.parse_args(argv)
     return args.func(args)

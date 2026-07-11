@@ -17,7 +17,7 @@ export function FlashLoans() {
     <>
       <PageHeader
         title="Flash Loan Router"
-        subtitle="§FL multi-source routing — ALCHEMY composes, TRENCH-OPS executes. Live requires promotion YES + typed_data signing."
+        subtitle="§FL multi-source routing — ALCHEMY composes, TRENCH-OPS executes. Live requires policy + router enabled + typed_data signing."
         actions={
           <>
             <Btn
@@ -29,10 +29,10 @@ export function FlashLoans() {
             <Btn onClick={() => push("Paper sim queued (demo)", "ok")}>Run paper sim</Btn>
             <Btn
               variant="primary"
-              disabled={!fl.promotionApproved}
-              onClick={() => push("Enable live — set flashLoanRouter.enabled in openclaw.json", "warn")}
+              disabled={fl.enabled}
+              onClick={() => push("Enable live — set flashLoanRouter.enabled + flash_loan_live.enabled", "warn")}
             >
-              Request live YES
+              Enable live
             </Btn>
           </>
         }
@@ -51,7 +51,7 @@ export function FlashLoans() {
 
       <div className="grid grid-4" style={{ marginBottom: 14 }}>
         <Metric label="Status" value={fl.enabled ? "LIVE" : "CATALOG"} />
-        <Metric label="Promotion" value={fl.promotionApproved ? "YES" : "PENDING"} />
+        <Metric label="Approval" value={fl.requiresApproval ? "LEGACY YES" : "AUTONOMOUS"} />
         <Metric label="Paper sim pass" value={`${(fl.paperSimPassRate * 100).toFixed(0)}%`} delta={`n=${fl.paperSimCount}`} />
         <Metric label="Max borrow" value={`$${(fl.maxAmountUsd / 1000).toFixed(0)}k`} />
       </div>
@@ -81,7 +81,7 @@ export function FlashLoans() {
               { k: "Execute", v: fl.executeAgent },
               { k: "Skill", v: fl.skill },
               { k: "CLI", v: "titan-safety flashloan" },
-              { k: "Kernel", v: "DENY if flash_loan_live not approved" },
+              { k: "Kernel", v: "DENY on disabled/amount/source/pipeline/CB" },
               { k: "Signing", v: "typed_data required — no blind-sign" },
             ]}
           />

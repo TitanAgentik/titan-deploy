@@ -390,8 +390,8 @@ def scenario_blind_sign_rejected_live() -> None:
     check("blind_sign_rejected_live", not ok and "BLIND" in reason, reason)
 
 
-def scenario_flash_loan_unapproved_live() -> None:
-    """Live flash-loan tx must DENY without operator flash_loan_live YES."""
+def scenario_flash_loan_autonomous_when_enabled() -> None:
+    """Live flash-loan tx ALLOWs without operator YES when approval not required."""
     with tempfile.TemporaryDirectory() as td:
         policy = {
             "version": "2.1",
@@ -407,7 +407,7 @@ def scenario_flash_loan_unapproved_live() -> None:
             },
             "allowed_venues": ["paper", "uniswap_v3"],
             "allowed_contracts": ["0xba12222222228d8ba445958a685a0a280785497"],
-            "position_limits": {"flash_loan_live_requires_approval": True},
+            "position_limits": {"flash_loan_live_requires_approval": False},
             "flash_loan_live": {
                 "enabled": True,
                 "pipeline_ids": ["P3"],
@@ -423,13 +423,14 @@ def scenario_flash_loan_unapproved_live() -> None:
             contract="0xba12222222228d8ba445958a685a0a280785497",
             side="buy",
             notional_usd=10,
+            confidence=0.75,
             uses_flash_loan=True,
             flash_loan_source="balancer",
             flash_loan_amount_usd=10,
             strategy_id="P3",
         )
         r = k.validate_trade(trade)
-        check("flash_loan_unapproved_live", r.decision == "DENY" and r.code == "FLASH_LOAN_NOT_APPROVED", r.code)
+        check("flash_loan_autonomous_live", r.decision == "ALLOW", r.code)
 
 
 def main() -> int:
@@ -448,7 +449,7 @@ def main() -> int:
     scenario_autonomous_low_confidence_deny()
     scenario_autonomous_bft_required()
     scenario_blind_sign_rejected_live()
-    scenario_flash_loan_unapproved_live()
+    scenario_flash_loan_autonomous_when_enabled()
     print(f"[adversarial] {PASS} passed, {FAIL} failed")
     return 1 if FAIL else 0
 

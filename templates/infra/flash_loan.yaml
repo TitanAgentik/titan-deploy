@@ -38,5 +38,4 @@ execution:
 
 bootstrap:
   - "Run paper sim: titan-safety flashloan sim --count 100"
-  - "Promotion YES: titan-safety promotion approve --category flash_loan_live --subject flash_loan_global --response YES"
   - "Enable flashLoanRouter.enabled in openclaw.json + flash_loan_live.enabled in policy.yaml"

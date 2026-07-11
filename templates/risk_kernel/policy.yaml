@@ -39,7 +39,7 @@ allowed_contracts:
 position_limits:
   max_equity_pct_per_trade: 2.0
   human_approval_above_pct: 1.0  # above this → BFT agent votes (not human) when autonomous_signing enabled
-  flash_loan_live_requires_approval: true
+  flash_loan_live_requires_approval: false  # autonomous when flash_loan_live.enabled + flashLoanRouter.enabled
   leverage_change_requires_approval: true
   new_pipeline_requires_approval: true
 
@@ -54,7 +54,7 @@ autonomous_signing:
   bft_voters: [AUGUR, PREDATOR, ATLAS]
   bft_threshold: 2
   require_typed_data_live: true
-  note: "Human gates remain for promotion, evolution, leverage, flash-loan live, large withdrawals"
+  note: "Human gates remain for promotion, evolution, leverage, large withdrawals; flash-loan live autonomous per policy"
 
 # Portfolio drawdown — notify-only; trading continues autonomously (no pause/halt gates).
 drawdown_notify_only: true
@@ -195,7 +195,7 @@ memecoin_trench:
   require_cost_model: true         # backtests with zero modeled cost are rejected
 
 flash_loan_live:
-  enabled: false  # operator + openclaw flashLoanRouter.enabled after promotion YES
+  enabled: false  # set true + flashLoanRouter.enabled for live (no human YES required)
   max_amount_usd: 500000.0
   max_fee_bps: 9.0
   paper_sim_required_days: 3
@@ -206,7 +206,7 @@ flash_loan_live:
     base: [morpho, balancer, aave_v3]
   infra_spec: ~/.openclaw/infra/flash_loan.yaml
   playbook: ~/.openclaw/playbooks/flash_loan_live.yaml
-  note: "Live flash loans require promotion flash_loan_live YES; paper venue always allowed"
+  note: "Live flash loans: enable policy + router; kernel enforces amount/source/pipeline caps; paper venue always allowed"
 
 promotion_gates:
   phase5_requires_human_yes: true

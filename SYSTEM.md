@@ -241,7 +241,7 @@ Mock recon/withdrawal adapters are **forbidden** when `capital_profile: live`.
 | Model/skill promotion to live | — | YES (Phase 5) |
 | Evolution deploy (DGM-H, GEPA, …) | Shadow only | YES for live |
 | Leverage change | — | YES |
-| Flash-loan live | — | YES |
+| Flash-loan live | YES (when policy + router enabled) | — |
 | CB tier response (within policy) | YES | — |
 | Drawdown velocity breach | HALT (kernel) | Alert operator |
 | TIMEOUT on promotion prompt | HOLD/de-risk | Never auto-promote |
@@ -316,7 +316,7 @@ Representative lanes (from cockpit data + edge routing; not an exhaustive live e
 **Hard gates before capital**
 
 - P22: promotion YES + `memecoinTrench.enabled` + Geyser/Jito wiring (`solana_memecoin.yaml`).
-- Flash-loan live: `flashloan sim` + promotion `flash_loan_live` YES + `flashLoanRouter.enabled`.
+- Flash-loan live: `flashloan sim` + `flashLoanRouter.enabled` + `flash_loan_live.enabled`.
 - Statistical promotion: deflated Sharpe / PSR / cost realism / ≥200 trades / shadow divergence (`promotion_stats`).
 
 ---

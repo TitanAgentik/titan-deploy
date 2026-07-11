@@ -1,6 +1,6 @@
-# Flash-loan live activation — requires operator YES (flash_loan_live)
+# Flash-loan live activation — autonomous when policy + router enabled
 version: "1.0"
-note: "Mention≠mandate. Live flash loans require promotion YES + paper sim evidence."
+note: "Mention≠mandate. Live flash loans require flash_loan_live.enabled + flashLoanRouter.enabled + paper sim evidence."
 
 capital_envelope_usd:
   min: 0
@@ -31,7 +31,6 @@ agents:
 
 gates:
   - flash_loan_compose_profit_positive
-  - promotion_flash_loan_live_yes
   - risk_kernel_19001
   - execution_gate_receipt
   - signing_node_19010_typed_data

@@ -27,11 +27,11 @@ Owner: **ALCHEMY** (compose) + **TRENCH-OPS** (gate + signing_node + edge broadc
 
 ## Mandatory gates (live)
 
-1. `flashLoanRouter.enabled: true` in openclaw.json **only after** promotion YES  
+1. `flashLoanRouter.enabled: true` + `flash_loan_live.enabled: true` in policy  
 2. `titan-safety flashloan compose` → positive expected profit  
 3. `titan-safety gate check/sign` with `uses_flash_loan: true` + **typed_data** (never blind-sign)  
-4. Risk kernel `:19001` — DENY if `flash_loan_live` not approved  
-5. signing_node `:19010` — requires gate receipt  
+4. Risk kernel `:19001` — DENY on amount/source/pipeline/kill-switch/CB violations  
+5. signing_node in-process — requires gate receipt  
 
 CLI:
 
@@ -39,7 +39,6 @@ CLI:
 titan-safety flashloan route --asset WETH --amount-usd 10000 --chain ethereum --strategy P3
 titan-safety flashloan compose --request-json '{"asset":"WETH","amount_usd":5000,"chain":"ethereum","strategy_id":"P3","operations":[{"op":"swap","venue":"uniswap_v3","asset":"WETH","amount_wei":"1000000000000000000"},{"op":"repay_flash","venue":"flash_loan_router","asset":"WETH","amount_wei":"1000000000000000000"}]}'
 titan-safety flashloan sim --count 100
-titan-safety promotion approve --category flash_loan_live --subject flash_loan_global --response YES --operator hyperion --request-id fl-live-001
 ```
 
 ## Output schema (compose)
@@ -68,7 +67,6 @@ P1, P2, P3, P5, P6, P7, P8, P12, P15, P16, P17 — configure in `policy.yaml` �
 ## Excluded
 
 - Nested flash without explicit kernel approval  
-- Live flash without operator YES on `flash_loan_live`  
 - Blind-sign calldata (typed_data required on live path)
 
 ## Refs

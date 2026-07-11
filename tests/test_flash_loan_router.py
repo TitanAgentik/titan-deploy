@@ -36,7 +36,7 @@ def _policy_with_flash(tmp_path: Path, **fl_overrides) -> Path:
             "0xabc",
             "0xba12222222228d8ba445958a685a0a280785497",
         ],
-        "position_limits": {"flash_loan_live_requires_approval": True},
+        "position_limits": {"flash_loan_live_requires_approval": False},
         "flash_loan_live": {
             "enabled": False,
             "max_amount_usd": 100_000.0,
@@ -105,11 +105,33 @@ def test_paper_flash_loan_allowed_without_promotion(tmp_path: Path) -> None:
     assert result.decision == "ALLOW"
 
 
-def test_live_flash_loan_denied_without_promotion(tmp_path: Path) -> None:
+def test_live_flash_loan_allowed_without_promotion_when_autonomous(tmp_path: Path) -> None:
     policy_path = _policy_with_flash(tmp_path, enabled=True)
     kernel = RiskKernel.from_policy_path(policy_path, tmp_path / "state.json")
     trade = TradeRequest(
         trade_id="fl2",
+        venue="uniswap_v3",
+        contract="0xba12222222228d8ba445958a685a0a280785497",
+        side="buy",
+        notional_usd=10.0,
+        confidence=0.75,
+        uses_flash_loan=True,
+        flash_loan_source="balancer",
+        flash_loan_amount_usd=10.0,
+        strategy_id="P3",
+    )
+    result = kernel.validate_trade(trade)
+    assert result.decision == "ALLOW"
+
+
+def test_live_flash_loan_denied_when_legacy_approval_required(tmp_path: Path) -> None:
+    policy_path = _policy_with_flash(tmp_path, enabled=True)
+    data = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
+    data["position_limits"]["flash_loan_live_requires_approval"] = True
+    policy_path.write_text(yaml.dump(data), encoding="utf-8")
+    kernel = RiskKernel.from_policy_path(policy_path, tmp_path / "state.json")
+    trade = TradeRequest(
+        trade_id="fl2b",
         venue="uniswap_v3",
         contract="0xba12222222228d8ba445958a685a0a280785497",
         side="buy",

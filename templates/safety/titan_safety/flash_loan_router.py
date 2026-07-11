@@ -1,7 +1,7 @@
 """Multi-source flash-loan router — Balancer → Morpho → Uni V4 → Aave fallback.
 
 Deterministic calldata/typed-data composition for ALCHEMY → TRENCH-OPS path.
-Paper mode simulates fee + slippage; live requires promotion YES + kernel gate.
+Paper mode simulates fee + slippage; live requires flash_loan_live.enabled + kernel gate (no human YES).
 """
 
 from __future__ import annotations

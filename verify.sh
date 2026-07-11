@@ -576,7 +576,7 @@ cfg = json.load(open('$OPENCLAW_HOME/openclaw.json'))
 fl = cfg.get('flashLoanRouter') or {}
 if fl.get('enabled') is not False:
     sys.exit(1)
-if not fl.get('requiresPromotionYes', False):
+if fl.get('requiresPromotionYes', True):
     sys.exit(2)
 if fl.get('skill') != 'flash_loan_router':
     sys.exit(3)

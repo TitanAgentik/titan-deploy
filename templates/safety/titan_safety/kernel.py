@@ -176,7 +176,7 @@ class RiskKernel:
         is_paper = trade.venue.lower() == "paper"
         fl_raw = self.policy.raw.get("flash_loan_live") or {}
         requires_approval = bool(
-            self.policy.raw.get("position_limits", {}).get("flash_loan_live_requires_approval", True)
+            self.policy.raw.get("position_limits", {}).get("flash_loan_live_requires_approval", False)
         )
 
         if not is_paper:
