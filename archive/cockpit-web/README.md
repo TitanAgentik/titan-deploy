@@ -1,10 +1,10 @@
-# Archived — Titan Agentik Web Cockpit
+# Archived copy — Titan Agentik Web Cockpit
 
-**Status:** Decommissioned. **Do not use for production operations.**
+**Status:** Backup snapshot. **Do not use for production operations.**
 
 The sole operator surface is **Telegram via HERALD**. See [`../../TELEGRAM_OPS_GUIDE.md`](../../TELEGRAM_OPS_GUIDE.md).
 
-This React/Vite UI was moved from `web/` for historical reference only. It is not installed, served, or supported in the current deploy bundle.
+The active dev path is **`web/`** at the repo root (restored for local reference). This `archive/cockpit-web/` directory is a frozen copy from the decommission commit — use `web/` for day-to-day local development.
 
 ## Why archived
 
@@ -12,13 +12,15 @@ This React/Vite UI was moved from `web/` for historical reference only. It is no
 - The risk kernel (`:19001`), execution gate, and in-process signing remain authoritative — no dashboard overrides them.
 - Reduces attack surface (no browser admin console on `:5173`).
 
-## If you need to browse the old UI locally (non-production)
+## If you need to browse the UI locally (non-production)
 
 ```bash
-cd archive/cockpit-web
+cd web
 npm install
 npm run dev
 ```
+
+(Equivalent archive copy: `cd archive/cockpit-web` — prefer `web/`.)
 
 Open http://127.0.0.1:5173 on localhost only. Fixture data and advisory labels apply; **UI live ≠ capital live**.
 

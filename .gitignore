@@ -9,6 +9,7 @@ __pycache__/
 **/secrets*
 web/node_modules/
 web/dist/
+archive/cockpit-web/node_modules/
 backups/
 # Legacy root aliases — use configs_detail.md / refs/CONFIGS_detail.md
 /CONFIGS_detail.md

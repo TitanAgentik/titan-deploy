@@ -28,7 +28,7 @@
 
 ## 1. What Titan is
 
-**Titan (Titan Agentik)** is a local-first, capital-preservation-first crypto trading control plane: a multi-agent OpenClaw/Hermes runtime on operator hardware, gated by an **out-of-process risk kernel** and an **unbypassable execution gate**, with **in-process signing** in `titan-safety` after ExecutionGate ALLOW (legacy HTTP `:19010` optional only), broadcast via a **5-PoP edge mesh**. Agents propose; deterministic safety services veto. Catalog specs (pipelines, skills, pillars) are **not** a checklist to enable everything — selective activation funds a small set of HEALTHY lanes. Quantum agents (QCC/QSA/QRP) are **removed**; live path is classical GPU only (QI Optimizer is classical SA, not a quantum agent). **Telegram (HERALD)** is the sole operator surface — institutional alerts via `titan-safety notify` and the HERALD queue; the web cockpit is archived under `archive/cockpit-web/`.
+**Titan (Titan Agentik)** is a local-first, capital-preservation-first crypto trading control plane: a multi-agent OpenClaw/Hermes runtime on operator hardware, gated by an **out-of-process risk kernel** and an **unbypassable execution gate**, with **in-process signing** in `titan-safety` after ExecutionGate ALLOW (legacy HTTP `:19010` optional only), broadcast via a **5-PoP edge mesh**. Agents propose; deterministic safety services veto. Catalog specs (pipelines, skills, pillars) are **not** a checklist to enable everything — selective activation funds a small set of HEALTHY lanes. Quantum agents (QCC/QSA/QRP) are **removed**; live path is classical GPU only (QI Optimizer is classical SA, not a quantum agent). **Telegram (HERALD)** is the sole **production** operator surface — institutional alerts via `titan-safety notify` and the HERALD queue. The React web cockpit (`web/`) remains available for **local dev and reference**; a frozen backup lives under `archive/cockpit-web/`.
 
 ---
 
@@ -370,7 +370,7 @@ titan-safety capital balance --telegram
 
 Queue file: `~/.openclaw/safety/herald_queue.jsonl`. Capital commands: `/balance`, `/deposit`, `/withdraw`, `/sweep`.
 
-**Archived cockpit:** `archive/cockpit-web/` — not supported for production. Legacy web UI guides remain for reference only.
+**Web cockpit (local dev):** `web/` — `cd web && npm run dev` → http://127.0.0.1:5173. Not supported for production operations; Telegram is authoritative. Frozen backup: `archive/cockpit-web/`. Legacy web UI guides remain for reference.
 
 ---
 
@@ -488,8 +488,9 @@ Do **not** treat deploy as go-live. Follow these in order:
 | `templates/infra/` | BOM, edge, ghost, power, signing, Solana |
 | `PRODUCTION_READINESS.md` | Honest go-live gates + residual risks |
 | `LIVE_CAPITAL_PRODUCTION_GUIDE.md` | End-to-end real-capital go-live (gates documented; no silent enable) |
-| `TELEGRAM_OPS_GUIDE.md` | Telegram operator surface (sole UI) |
-| `archive/cockpit-web/` | Archived web cockpit (reference only) |
+| `TELEGRAM_OPS_GUIDE.md` | Telegram operator surface (production) |
+| `web/` | Web cockpit (local dev / reference; not production ops) |
+| `archive/cockpit-web/` | Frozen backup of web cockpit |
 
 ---
 
