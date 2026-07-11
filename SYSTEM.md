@@ -1,6 +1,7 @@
 # SYSTEM.md — Titan / Titan Agentik System Manual
 
 > **Primary system documentation.** Start here for architecture, agents, safety, trading flow, edge, stealth, capital, Telegram operations, and CLI.  
+> **July 2026 long-form state:** [`TITAN_CURRENT.md`](./TITAN_CURRENT.md) — full evolution snapshot (Telegram ops, Honcho, flash loans, cockpit archive/restore, commit changelog).  
 > Immutable constitutions remain in `SOUL.md` and `iron-laws.md`. Agent protocol detail lives in `AGENTS.md` / `TOOLS.md`.  
 > This file synthesizes the deploy bundle; it does not replace those sources of truth.
 

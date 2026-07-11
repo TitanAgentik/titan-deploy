@@ -1,6 +1,7 @@
 # BOOT.md — Gateway Restart Checklist
 
 > Full system manual: [`SYSTEM.md`](./SYSTEM.md)  
+> July 2026 long-form state: [`TITAN_CURRENT.md`](./TITAN_CURRENT.md)  
 > Telegram operations: [`TELEGRAM_OPS_GUIDE.md`](./TELEGRAM_OPS_GUIDE.md)  
 > Real-capital go-live: [`LIVE_CAPITAL_PRODUCTION_GUIDE.md`](./LIVE_CAPITAL_PRODUCTION_GUIDE.md) (Phase 5 YES)
 
