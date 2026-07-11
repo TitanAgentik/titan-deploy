@@ -126,6 +126,7 @@ See: https://hermes-agent.nousresearch.com/docs/user-guide/features/context-file
 ## Runtime configs
 
 - Hermes: `~/.hermes/config.yaml` ← `templates/config.yaml`
+- Honcho: `~/.hermes/honcho.json` ← `templates/honcho.json` (dialectic operator modeling — see `HONCHO_SETUP.md`)
 - OpenClaw: `~/.openclaw/openclaw.json` ← `templates/openclaw.json`
 - Risk policy: `~/.openclaw/risk_kernel/policy.yaml`
 - Readable dump: `configs_detail.md` (regenerated on every build)
@@ -253,6 +254,7 @@ def regenerate_configs_detail() -> None:
 | `~/.openclaw/workspace/*.md` | `workspace/` ← `output/bootstrap/` | OpenClaw bootstrap context |
 | `~/.hermes/SOUL.md` | `workspace/SOUL.md` | Hermes identity (slot #1) |
 | `~/.hermes/config.yaml` | `templates/config.yaml` | Hermes agent config |
+| `~/.hermes/honcho.json` | `templates/honcho.json` | Honcho dialectic operator modeling |
 | `~/.openclaw/openclaw.json` | `templates/openclaw.json` | OpenClaw gateway + agents |
 | `~/.openclaw/risk_kernel/policy.yaml` | `templates/risk_kernel/policy.yaml` | Risk / safety policy |
 | `~/.openclaw/infra/signing_node.yaml` | `templates/infra/signing_node.yaml` | Signing isolation |

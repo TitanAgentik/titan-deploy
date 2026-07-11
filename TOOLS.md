@@ -28,6 +28,22 @@
 **ARBITER:** Backtest validation gate, strategy approval, conflict resolution, CB enforcement, **Red Team gauntlet judge for HyEvo/DGM-H promotions**, **3-day deployment pipeline enforcer (CB_DEPLOY_PIPELINE_BYPASS)**  
 **HORIZON:** R\&D automation metrology (CSET "When AI Builds AI" Jan 2026). Computes 5 indicators every 6h: MTH / MTS / SER / ECM / IDG. Monitors cuda:1 R\&D share vs rd_budget_pct. Cannot trade. Cannot veto. Writes only to memory/rd_automation/. Read-only on DARWIN_GODEL + LAMARCK + Hermes-RL + HyEvo telemetry buses. Owns weekly rd_automation_report workflow.
 
+### Honcho dialectic operator modeling (HYPERION + HERALD)
+
+Hermes Honcho memory provider — dual-layer context for operator **Hyperion**. Not on trade critical path.
+
+| Tool | Agent | Purpose |
+|------|-------|---------|
+| `honcho_profile` | HERALD, HYPERION | Read/update operator peer card |
+| `honcho_search` | HERALD, HYPERION | Semantic search over Honcho conclusions |
+| `honcho_context` | HERALD, HYPERION | Session summary + representation + peer cards |
+| `honcho_reasoning` | HERALD, HYPERION | Dialectic LLM synthesis (local weights only) |
+| `honcho_conclude` | HERALD | Create/delete session conclusions |
+
+- **Peers:** user `hyperion`; AI `herald-telegram` (HERALD), `hyperion-assistant` (HYPERION)
+- **Config:** `~/.hermes/honcho.json`; `observationMode`: `directional` (default) or `unified`
+- **Skill:** `honcho_operator` — see `HONCHO_SETUP.md`
+
 ```
 
 ### §BACKTEST_GATE — Mandatory Multi-Phase Deployment Validation

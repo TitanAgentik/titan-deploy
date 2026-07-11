@@ -153,7 +153,7 @@ Total: **12** LLM agents on TITANHOME tiers (4 orch + 5 signal + 3 coding) + **8
 
 | Agent | Tier | Role |
 |-------|------|------|
-| **HYPERION** | Operator interface | Reporting / NATS off-critical path (operator-facing) |
+| **HYPERION** | Operator interface | Reporting / NATS off-critical path; Honcho peer `hyperion-assistant` models operator preferences |
 | **ARCHON** | Tier 2 `:30001` | Orchestrator + A2A coordinator (BFT voter A at orchestrator layer) |
 | **CORTEX** | `:30005` → fallback `:30001` | Meta-cognitive / GEPA / PRM; deep votes when available |
 | **GUARDIAN** | Tier 1 `:30000` | Risk validation / Kelly sizing (critical path) |
@@ -166,7 +166,7 @@ Total: **12** LLM agents on TITANHOME tiers (4 orch + 5 signal + 3 coding) + **8
 | **TRENCH-OPS** | Tier 1 | Execution planning + edge dispatch; signs via in-process titan-safety |
 | **LAMARCK** | Tier 2 | Post-trade learning / OPD / GEPA |
 | **DARWIN_GODEL** | Tier 2 / R&D | Auto-research / DGM-H (**shadow only** until YES) |
-| **HERALD** | Utility `:30002` | Telegram notifications |
+| **HERALD** | Utility `:30002` | Telegram notifications; Honcho peer `herald-telegram` for operator dialectic context |
 | **NEXUS** | Utility | Data feeds / funding / AVS registry |
 | **FORGE** | Utility | Infra / strategy-health / inference health |
 | **ALCHEMY** | Utility | DeFi ops / liquidations / flash-loan compose |
@@ -369,6 +369,28 @@ titan-safety capital balance --telegram
 | Security lockdown | CRITICAL via herald queue |
 
 Queue file: `~/.openclaw/safety/herald_queue.jsonl`. Capital commands: `/balance`, `/deposit`, `/withdraw`, `/sweep`.
+
+### Honcho operator modeling (HERALD + HYPERION)
+
+Hermes **Honcho** provides dialectic user modeling for operator **Hyperion** — not on the trade critical path.
+
+| Layer | Content |
+|-------|---------|
+| Base context | Session summary, user representation, peer cards, AI identity |
+| Dialectic supplement | LLM-synthesized "what matters right now" for the operator |
+
+- **Config:** `~/.hermes/honcho.json` (deployed from `templates/honcho.json`) + `memory.provider: honcho` in `~/.hermes/config.yaml`
+- **User peer:** `hyperion` (gateway `pinUserPeer: true` — single operator)
+- **AI peers:** `herald-telegram` (HERALD), `hyperion-assistant` (HYPERION)
+- **Observation mode:** `directional` (default) — full mutual observation; switch to `unified` for shared-pool semantics
+- **Env vars:** `HONCHO_API_KEY`, `HONCHO_BASE_URL` (self-hosted), `HONCHO_PEER_NAME` — see `HONCHO_SETUP.md`
+- **Tools:** `honcho_profile`, `honcho_search`, `honcho_context`, `honcho_reasoning`, `honcho_conclude`
+
+```bash
+hermes memory setup honcho
+hermes profile create herald --clone --aiPeer herald-telegram --workspace ~/.openclaw/workspace
+hermes honcho status
+```
 
 **Web cockpit (local dev):** `web/` — `cd web && npm run dev` → http://127.0.0.1:5173. Not supported for production operations; Telegram is authoritative. Frozen backup: `archive/cockpit-web/`. Legacy web UI guides remain for reference.
 

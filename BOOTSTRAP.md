@@ -16,6 +16,8 @@
 - [ ] Set `TITAN_RECON_FETCHER_URL` or exchange API keys (recon fail-closed until wired)
 - [ ] Set `TITAN_LIVE_SIGNING_READY=1` only after Trezor bridge + in-process signing health OK (`titan-safety` / status aggregator `signing`)
 - [ ] Set `HERMES_HOME=~/.hermes`
+- [ ] Honcho: set `HONCHO_API_KEY` (and `HONCHO_BASE_URL` if self-hosted) in `~/.openclaw/.env` + `~/.hermes/.env` — see `HONCHO_SETUP.md`
+- [ ] Run `hermes memory setup honcho` and `hermes profile create herald --clone --aiPeer herald-telegram --workspace ~/.openclaw/workspace`
 - [ ] Verify `capital_profile: live` in policy + openclaw; `paper` venue remains for shadow lanes
 
 ## Autonomous sign/verify (no human on trade path)

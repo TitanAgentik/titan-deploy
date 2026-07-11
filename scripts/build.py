@@ -24,6 +24,10 @@ def run_script(name: str, *args: str) -> None:
 def copy_templates() -> None:
     shutil.copy(TEMPLATES / "openclaw.json", OUTPUT / "openclaw.json")
     shutil.copy(TEMPLATES / "config.yaml", OUTPUT / "config.yaml")
+    honcho_tpl = TEMPLATES / "honcho.json"
+    if honcho_tpl.exists():
+        shutil.copy(honcho_tpl, OUTPUT / "honcho.json")
+        print(f"Copied honcho.json -> {OUTPUT / 'honcho.json'}")
     systemd_out = OUTPUT / "systemd"
     systemd_out.mkdir(parents=True, exist_ok=True)
     for svc in (TEMPLATES / "systemd").glob("*.service"):
@@ -127,6 +131,7 @@ def overlay_infra_skills() -> None:
         "predator_scanner",
         "memecoin_trench",
         "flash_loan_router",
+        "honcho_operator",
     ):
         src = TEMPLATES / "skills" / skill_name
         if not src.exists():

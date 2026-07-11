@@ -1,0 +1,38 @@
+{
+  "peerName": "hyperion",
+  "recallMode": "hybrid",
+  "observationMode": "directional",
+  "sessionStrategy": "per-repo",
+  "contextCadence": 1,
+  "dialecticCadence": 3,
+  "dialecticDepth": 2,
+  "dialecticReasoningLevel": "low",
+  "dialecticMaxChars": 600,
+  "contextTokens": 1200,
+  "saveMessages": true,
+  "writeFrequency": "async",
+  "pinUserPeer": true,
+  "userPeerAliases": {},
+  "runtimePeerPrefix": "telegram_",
+  "hosts": {
+    "default": {
+      "baseUrl": "${HONCHO_BASE_URL}",
+      "apiKey": "${HONCHO_API_KEY}"
+    }
+  },
+  "profiles": {
+    "hyperion": {
+      "aiPeer": "hyperion-assistant",
+      "observationMode": "directional",
+      "agents": ["HYPERION"],
+      "note": "Operator interface — NATS reporting, off-critical path"
+    },
+    "herald": {
+      "aiPeer": "herald-telegram",
+      "observationMode": "directional",
+      "agents": ["HERALD"],
+      "note": "Telegram gateway — primary production operator surface"
+    }
+  },
+  "note": "TITAN operator modeling — local Hermes Honcho only; dialectic LLM uses Tier 2/utility local weights, never cloud. See HONCHO_SETUP.md."
+}

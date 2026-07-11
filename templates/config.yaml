@@ -156,10 +156,13 @@ terminal:
   confidence_tagging: true
 
 memory:
+  provider: honcho
+  honcho_config: ~/.hermes/honcho.json
   engine: sqlite
   path: ~/.hermes/memory/titan.db
   fts5: true
   openclaw_sync: ~/.openclaw/memory/
+  note: "Honcho dialectic user modeling — see HONCHO_SETUP.md; SQLite FTS5 remains fallback when provider != honcho"
 
 skills:
   directory: ~/.openclaw/workspace/skills

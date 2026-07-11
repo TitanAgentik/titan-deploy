@@ -479,5 +479,41 @@
       "note": "Growth phase below $15K — 100% reinvest; no sweep until harvest threshold"
     },
     "endgame_phase_unlock": 3
+  },
+  "honcho": {
+    "enabled": true,
+    "provider": "honcho",
+    "configPath": "~/.hermes/honcho.json",
+    "operatorPeer": "hyperion",
+    "recallMode": "hybrid",
+    "observationMode": "directional",
+    "sessionStrategy": "per-repo",
+    "gatewayIdentity": {
+      "pinUserPeer": true,
+      "peerName": "hyperion",
+      "userPeerAliases": {},
+      "runtimePeerPrefix": "telegram_",
+      "note": "Single operator (Hyperion) via Telegram — all gateway users collapse to hyperion peer"
+    },
+    "agentPeers": {
+      "HYPERION": {
+        "profile": "hyperion",
+        "aiPeer": "hyperion-assistant",
+        "observationMode": "directional"
+      },
+      "HERALD": {
+        "profile": "herald",
+        "aiPeer": "herald-telegram",
+        "observationMode": "directional"
+      }
+    },
+    "tools": [
+      "honcho_profile",
+      "honcho_search",
+      "honcho_context",
+      "honcho_reasoning",
+      "honcho_conclude"
+    ],
+    "note": "Dialectic operator modeling — local Hermes Honcho only; not on trade critical path"
   }
 }

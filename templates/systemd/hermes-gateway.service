@@ -9,6 +9,7 @@ User=%i
 Environment=HOME=%h
 Environment=HERMES_HOME=%h/.hermes
 EnvironmentFile=-%h/.openclaw/.env
+EnvironmentFile=-%h/.hermes/.env
 ExecStart=/usr/bin/hermes gateway start --config %h/.hermes/config.yaml
 Restart=on-failure
 RestartSec=10

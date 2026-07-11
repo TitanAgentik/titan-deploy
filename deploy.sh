@@ -180,6 +180,10 @@ install_files() {
 
   cp "$OUTPUT/openclaw.json" "$OPENCLAW_HOME/openclaw.json"
   cp "$OUTPUT/config.yaml" "$HERMES_HOME/config.yaml"
+  if [[ -f "$OUTPUT/honcho.json" ]]; then
+    cp "$OUTPUT/honcho.json" "$HERMES_HOME/honcho.json"
+    log "Installed $HERMES_HOME/honcho.json (Honcho dialectic user modeling)"
+  fi
 
   # Risk kernel policy + safety services
   if [[ -d "$OUTPUT/risk_kernel" ]]; then

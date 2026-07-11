@@ -250,8 +250,9 @@ checkpoint_clear_on_success: true
 - **Multi-Peer Setup & Cloning:** Specialized profiles are cloned from target bases using:  
   `hermes profile create <profile_name> --clone --aiPeer <ai_peer_name> --workspace <shared_workspace>`
 
-- **Dialectic User Modeling:** Peers leverage Honcho's dual-layer context (base layer of session summary + representation + peer cards + dialectic supplement LLM reasoning).  
-- **Dialectic Observation Mode:** Configured via `observationMode` (`directional` vs `unified`) to define whether the dialectic reasoner tracks peer-specific directional dialogues or a unified shared conversation history.  
+- **Dialectic User Modeling (Honcho):** Peers leverage Honcho's dual-layer context (base layer of session summary + representation + peer cards + dialectic supplement LLM reasoning). Config: `~/.hermes/honcho.json` + `memory.provider: honcho` in `config.yaml`. Setup guide: `HONCHO_SETUP.md`.  
+- **Dialectic Observation Mode:** Configured via `observationMode` (`directional` vs `unified`) in `honcho.json` — `directional` (default) enables full mutual observation for HERALD/HYPERION operator modeling; `unified` uses shared-pool semantics.  
+- **Operator peers:** User peer `hyperion`; AI peers `herald-telegram` (HERALD) and `hyperion-assistant` (HYPERION). Clone profiles: `hermes profile create herald --clone --aiPeer herald-telegram --workspace ~/.openclaw/workspace`  
 - **OpenClaw Subagents:** Spawn at ZERO context cost to parent; isolated Docker/Singularity/SSH/Modal/Local backend; parent orchestrator pays zero token overhead to track subordinate work.
 
 ## §TA — TradingAgents Framework Integration Layer
