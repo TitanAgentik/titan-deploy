@@ -1717,7 +1717,7 @@ Deploy to: \`\~/.openclaw/USER.md\`
 \`\`\`markdown  
 \# Hyperion — Operator Profile
 
-\*\*Email:\*\* mnemosyne.agent@gmail.com  
+\*\*Email:\*\* titan.agentik@protonmail.com  
 \*\*Channel:\*\* Telegram (primary — EDGE-FRA bot), Web Dashboard (secondary — LAN-only on workstation)  
 \*\*Role:\*\* Sole human operator & decision authority  
 \*\*Timezone:\*\* UTC  
