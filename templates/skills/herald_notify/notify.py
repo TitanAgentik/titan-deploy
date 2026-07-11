@@ -182,8 +182,25 @@ def render_trade_execution(raw: dict[str, Any]) -> RenderedMessage:
         )
 
     pf = ""
-    if payload.get("material") and payload.get("portfolio"):
+    if payload.get("portfolio"):
         pf = _portfolio_footer(payload["portfolio"])
+
+    pnl = payload.get("pnl") or {}
+    pnl_line = ""
+    net = pnl.get("net_usd") or pnl.get("realized_usd")
+    pct_eq = pnl.get("pct_equity")
+    if net is not None or pct_eq is not None:
+        net_val = net or 0
+        pct_val = pct_eq or 0
+        outcome = pnl.get("outcome", "OPEN")
+        pnl_line = (
+            f"P&L: `{_fmt_sign(net_val)}{_fmt_usd(abs(net_val))}` "
+            f"(`{_fmt_sign(pct_val)}{_fmt_pct(abs(pct_val))}%` equity) | "
+            f"Outcome: `{outcome}`"
+        )
+        fees = pnl.get("fees_usd")
+        if fees is not None:
+            pnl_line += f" | Fees: `${_fmt_usd(fees)}`"
 
     ctx = {
         "json_block": json_block(payload),
@@ -204,6 +221,7 @@ def render_trade_execution(raw: dict[str, Any]) -> RenderedMessage:
         "reason_codes_inline": ", ".join(payload["reason_codes"]),
         "tx_line": tx_line,
         "risk_line": risk_line,
+        "pnl_line": pnl_line,
         "portfolio_footer": pf,
     }
 
@@ -225,7 +243,7 @@ def render_pnl_close(raw: dict[str, Any]) -> RenderedMessage:
     headline = f"{'PROFIT' if outcome == 'WIN' else 'LOSS' if outcome == 'LOSS' else 'PNL'} — {payload.get('pipeline_id', 'P?')}"
 
     pf = ""
-    if payload.get("material") and payload.get("portfolio"):
+    if payload.get("portfolio"):
         pf = _portfolio_footer(payload["portfolio"])
 
     ctx = {
@@ -508,6 +526,53 @@ def render_capital(result: Any) -> RenderedMessage:
         },
     }
     return render_capital_event(raw)
+
+
+def notify_money_summary(
+    *,
+    period: str = "Daily",
+    realized_usd: float = 0.0,
+    unrealized_usd: float = 0.0,
+    daily_pnl_usd: float = 0.0,
+    daily_pnl_pct: float = 0.0,
+    equity_usd: float = 0.0,
+    exposure_pct: float = 0.0,
+    open_positions: int = 0,
+    wins: int = 0,
+    losses: int = 0,
+    fees_usd: float = 0.0,
+) -> RenderedMessage:
+    """Build institutional PnL rollup message for periodic operator digests."""
+    total = wins + losses
+    win_rate = (100.0 * wins / total) if total else 0.0
+    net = realized_usd + unrealized_usd
+    outcome = "WIN" if net > 0 else "LOSS" if net < 0 else "OPEN"
+    raw = {
+        "event_type": "money_summary",
+        "agent_id": "HERALD",
+        "reason_codes": ["MONEY_SUMMARY"],
+        "severity": "INFO",
+        "pipeline_id": "—",
+        "notes": f"{period} rollup — win rate {_fmt_pct(win_rate)}% ({wins}W/{losses}L)",
+        "pnl": {
+            "realized_usd": realized_usd,
+            "unrealized_usd": unrealized_usd,
+            "net_usd": net,
+            "daily_pnl_usd": daily_pnl_usd,
+            "daily_pnl_pct": daily_pnl_pct,
+            "fees_usd": fees_usd,
+            "outcome": outcome,
+        },
+        "portfolio": {
+            "equity_usd": equity_usd,
+            "exposure_pct": exposure_pct,
+            "open_positions": open_positions,
+            "daily_pnl_usd": daily_pnl_usd,
+            "daily_pnl_pct": daily_pnl_pct,
+            "unrealized_pnl_usd": unrealized_usd,
+        },
+    }
+    return render_material_alert(raw)
 
 
 def sample_trade_payload() -> dict[str, Any]:

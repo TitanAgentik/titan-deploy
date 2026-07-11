@@ -49,6 +49,8 @@ class NotifyEvent:
     timestamp: str = ""
     action_required: str = ""
     reason_codes: list[str] = field(default_factory=list)
+    pnl: dict[str, Any] | None = None
+    portfolio: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if not self.timestamp:
@@ -125,10 +127,107 @@ def _format_details(details: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _fmt_sign(value: float | int | None) -> str:
+    if value is None:
+        return ""
+    try:
+        return "+" if float(value) >= 0 else ""
+    except (TypeError, ValueError):
+        return ""
+
+
+def _fmt_usd(value: float | int | None, decimals: int = 2) -> str:
+    if value is None:
+        return "0.00"
+    return f"{float(value):,.{decimals}f}"
+
+
+def _fmt_pct(value: float | int | None, decimals: int = 2) -> str:
+    if value is None:
+        return "0.00"
+    return f"{float(value):.{decimals}f}"
+
+
+def _format_financial_summary(
+    pnl: dict[str, Any] | None,
+    portfolio: dict[str, Any] | None,
+) -> str:
+    """Render Financial Summary block when PnL or portfolio data is present."""
+    if not pnl and not portfolio:
+        return ""
+
+    lines: list[str] = ["\n*Financial Summary*"]
+
+    if pnl:
+        realized = pnl.get("realized_usd")
+        if realized is not None:
+            pct_eq = pnl.get("pct_equity")
+            line = f"Realized: {_fmt_sign(realized)}${_fmt_usd(abs(realized))}"
+            if pct_eq is not None:
+                line += f" ({_fmt_sign(pct_eq)}{_fmt_pct(abs(pct_eq))}% equity)"
+            lines.append(line)
+
+        unrealized = pnl.get("unrealized_usd")
+        if unrealized is not None:
+            lines.append(f"Unrealized: {_fmt_sign(unrealized)}${_fmt_usd(abs(unrealized))}")
+
+        net = pnl.get("net_usd")
+        if net is not None and net != realized:
+            pct_eq = pnl.get("pct_equity")
+            line = f"Net P&L: {_fmt_sign(net)}${_fmt_usd(abs(net))}"
+            if pct_eq is not None:
+                line += f" ({_fmt_sign(pct_eq)}{_fmt_pct(abs(pct_eq))}% equity)"
+            lines.append(line)
+
+        daily = pnl.get("daily_pnl_usd")
+        if daily is not None:
+            daily_pct = pnl.get("daily_pnl_pct")
+            line = f"Daily P&L: {_fmt_sign(daily)}${_fmt_usd(abs(daily))}"
+            if daily_pct is not None:
+                line += f" ({_fmt_sign(daily_pct)}{_fmt_pct(abs(daily_pct))}%)"
+            lines.append(line)
+
+        fees = pnl.get("fees_usd")
+        if fees is not None:
+            lines.append(f"Fees: ${_fmt_usd(fees)}")
+
+        outcome = pnl.get("outcome")
+        if outcome:
+            lines.append(f"Outcome: `{escape_markdown(str(outcome))}`")
+
+    if portfolio:
+        parts: list[str] = []
+        equity = portfolio.get("equity_usd")
+        if equity is not None:
+            parts.append(f"Equity: ${_fmt_usd(equity)}")
+        available = portfolio.get("available_usd")
+        if available is not None:
+            parts.append(f"Available: ${_fmt_usd(available)}")
+        exposure = portfolio.get("exposure_pct")
+        if exposure is not None:
+            parts.append(f"Exposure: {_fmt_pct(exposure)}%")
+        open_pos = portfolio.get("open_positions")
+        if open_pos is not None:
+            parts.append(f"Open: {open_pos}")
+        if parts:
+            lines.append(" | ".join(parts))
+
+        port_daily = portfolio.get("daily_pnl_usd")
+        if port_daily is not None and not (pnl and pnl.get("daily_pnl_usd") is not None):
+            port_daily_pct = portfolio.get("daily_pnl_pct")
+            line = f"Daily P&L: {_fmt_sign(port_daily)}${_fmt_usd(abs(port_daily))}"
+            if port_daily_pct is not None:
+                line += f" ({_fmt_sign(port_daily_pct)}{_fmt_pct(abs(port_daily_pct))}%)"
+            lines.append(line)
+
+    return "\n".join(lines)
+
+
 def format_institutional_message(event: NotifyEvent) -> str:
     """Render institutional-grade Telegram Markdown (no emoji)."""
     action = event.action_required.strip() or "None — informational only."
     codes = ", ".join(event.reason_codes)
+    financial = _format_financial_summary(event.pnl, event.portfolio)
     return (
         f"*TITAN — {escape_markdown(event.name)}*\n"
         f"Severity: `{event.severity}`\n"
@@ -136,6 +235,7 @@ def format_institutional_message(event: NotifyEvent) -> str:
         f"Agent: `{escape_markdown(event.agent_id)}`\n"
         f"Event: `{escape_markdown(event.event_type)}`\n"
         f"\n*Description*\n{escape_markdown(event.description)}\n"
+        f"{financial}"
         f"\n*Details*\n{_format_details(event.details)}\n"
         f"\n*Action Required*\n{escape_markdown(action)}\n"
         f"\nReason codes: `{escape_markdown(codes)}`"
@@ -233,6 +333,8 @@ def notify(
         "details": ev.details,
         "action_required": ev.action_required,
         "reason_codes": ev.reason_codes,
+        "pnl": ev.pnl,
+        "portfolio": ev.portfolio,
         "telegram_text": text,
         "immediate": ev.severity in ("HIGH", "CRITICAL"),
         "ts": time.time(),
@@ -252,6 +354,53 @@ def notify(
         "queued": True,
         "send": send_result,
     }
+
+
+HERALD_RENDER_EVENTS = frozenset({
+    "trade_entry",
+    "trade_exit",
+    "trade_execution",
+    "pnl_realized",
+    "pnl_unrealized",
+    "hourly_digest",
+    "material_alert",
+    "capital_deposit",
+    "capital_withdraw",
+    "capital_balance",
+    "capital_sweep",
+})
+
+
+def _render_herald_message(record: dict[str, Any]) -> str | None:
+    """Delegate to herald_notify renderer when record is HERALD-format."""
+    event_type = str(record.get("event_type", record.get("event", "")))
+    if event_type not in HERALD_RENDER_EVENTS and not record.get("pnl") and not record.get("portfolio"):
+        return None
+    if event_type not in HERALD_RENDER_EVENTS:
+        return None
+    try:
+        import importlib.util
+        import sys
+
+        herald_paths = [
+            Path.home() / ".openclaw" / "workspace" / "skills" / "herald_notify" / "notify.py",
+            Path(__file__).resolve().parents[2] / "skills" / "herald_notify" / "notify.py",
+        ]
+        herald_mod = None
+        for hp in herald_paths:
+            if hp.exists():
+                spec = importlib.util.spec_from_file_location("herald_notify", hp)
+                if spec and spec.loader:
+                    herald_mod = importlib.util.module_from_spec(spec)
+                    sys.modules["herald_notify"] = herald_mod
+                    spec.loader.exec_module(herald_mod)
+                    break
+        if herald_mod is None:
+            return None
+        msg = herald_mod.render(record)
+        return msg.telegram_text
+    except Exception:
+        return None
 
 
 def process_herald_queue(
@@ -288,32 +437,43 @@ def process_herald_queue(
             continue
         text = record.get("telegram_text")
         if not text:
-            ev = NotifyEvent(
-                name=str(record.get("name", record.get("event", "ALERT"))),
-                event_type=str(record.get("event_type", record.get("event", "alert"))),
-                severity=str(record.get("level", "INFO")),
-                agent_id=str(record.get("source", "HERALD")),
-                description=str(record.get("message", record.get("description", ""))),
-                details={
-                    k: v
-                    for k, v in record.items()
-                    if k
-                    not in {
-                        "telegram_text",
-                        "message",
-                        "description",
-                        "level",
-                        "event",
-                        "event_type",
-                        "source",
-                        "name",
-                        "ts",
-                        "timestamp",
-                    }
-                },
-                reason_codes=list(record.get("reason_codes") or []),
-            )
-            text = format_institutional_message(ev)
+            herald_text = _render_herald_message(record)
+            if herald_text:
+                text = herald_text
+            else:
+                ev = NotifyEvent(
+                    name=str(record.get("name", record.get("event", "ALERT"))),
+                    event_type=str(record.get("event_type", record.get("event", "alert"))),
+                    severity=str(record.get("level", "INFO")),
+                    agent_id=str(record.get("source", "HERALD")),
+                    description=str(record.get("message", record.get("description", ""))),
+                    details={
+                        k: v
+                        for k, v in record.items()
+                        if k
+                        not in {
+                            "telegram_text",
+                            "message",
+                            "description",
+                            "level",
+                            "event",
+                            "event_type",
+                            "source",
+                            "name",
+                            "ts",
+                            "timestamp",
+                            "pnl",
+                            "portfolio",
+                            "action_required",
+                            "reason_codes",
+                        }
+                    },
+                    pnl=record.get("pnl"),
+                    portfolio=record.get("portfolio"),
+                    action_required=str(record.get("action_required", "")),
+                    reason_codes=list(record.get("reason_codes") or []),
+                )
+                text = format_institutional_message(ev)
         send_result = send_telegram_message(text, config=cfg, http_post=http_post)
         results.append({"record": record, "send": send_result})
         if not send_result.get("ok"):
@@ -337,6 +497,7 @@ def notify_risk_kernel_decision(
     code: str = "",
     *,
     trade: dict[str, Any] | None = None,
+    portfolio: dict[str, Any] | None = None,
     safety_dir: Path | None = None,
     send: bool | None = None,
 ) -> dict[str, Any]:
@@ -356,6 +517,7 @@ def notify_risk_kernel_decision(
                 "trade_id": trade_id,
                 **(trade or {}),
             },
+            portfolio=portfolio if decision == "DENY" else None,
             action_required=(
                 "Review deny reason before resubmitting trade."
                 if decision == "DENY"
@@ -454,16 +616,23 @@ def notify_trade_intent(
     venue: str = "",
     notional_usd: float = 0.0,
     details: dict[str, Any] | None = None,
+    pnl: dict[str, Any] | None = None,
+    portfolio: dict[str, Any] | None = None,
     safety_dir: Path | None = None,
 ) -> dict[str, Any]:
     severity = "HIGH" if status == "failed" else "MEDIUM" if status == "filled" else "INFO"
+    desc = f"Trade {trade_id} status: {status}."
+    if pnl and pnl.get("net_usd") is not None:
+        desc += f" Net P&L: {_fmt_sign(pnl['net_usd'])}${_fmt_usd(abs(pnl['net_usd']))}."
+    elif pnl and pnl.get("realized_usd") is not None:
+        desc += f" Realized: {_fmt_sign(pnl['realized_usd'])}${_fmt_usd(abs(pnl['realized_usd']))}."
     return notify(
         NotifyEvent(
             name=f"Trade Intent {status.replace('_', ' ').title()}",
             event_type=f"trade_{status}",
             severity=severity,
             agent_id="TRENCH-OPS",
-            description=f"Trade {trade_id} status: {status}.",
+            description=desc,
             details={
                 "trade_id": trade_id,
                 "pipeline_id": pipeline_id,
@@ -471,6 +640,8 @@ def notify_trade_intent(
                 "notional_usd": notional_usd,
                 **(details or {}),
             },
+            pnl=pnl if status in ("filled", "failed") else None,
+            portfolio=portfolio,
             action_required="Investigate failure logs." if status == "failed" else "",
             reason_codes=["TRADE_INTENT", status.upper()],
         ),
@@ -682,10 +853,210 @@ def notify_trezor_sweep(
             event_type="trezor_sweep",
             severity="HIGH" if outcome == "executed" else "INFO",
             agent_id="ATLAS",
-            description=message,
+            description=f"{message} Sweep amount: ${_fmt_usd(sweep_amount_usd)}.",
             details={"sweep_amount_usd": sweep_amount_usd, "outcome": outcome},
+            pnl={"realized_usd": sweep_amount_usd, "outcome": "WIN" if outcome == "executed" else "OPEN"},
             action_required="Confirm Trezor Safe 7 receipt." if outcome == "executed" else "",
             reason_codes=["TREZOR_SWEEP", outcome.upper()],
+        ),
+        safety_dir=safety_dir,
+    )
+
+
+def notify_pnl_realized(
+    *,
+    pipeline_id: str,
+    asset: str,
+    realized_usd: float,
+    pct_equity: float = 0.0,
+    outcome: str = "WIN",
+    fees_usd: float = 0.0,
+    trade_id: str = "",
+    details: dict[str, Any] | None = None,
+    portfolio: dict[str, Any] | None = None,
+    safety_dir: Path | None = None,
+    send: bool | None = None,
+) -> dict[str, Any]:
+    """Notify realized PnL on position close."""
+    severity = "MEDIUM" if abs(pct_equity) < 0.5 else "HIGH"
+    return notify(
+        NotifyEvent(
+            name=f"Realized P&L — {outcome}",
+            event_type="pnl_realized",
+            severity=severity,
+            agent_id="ATLAS",
+            description=(
+                f"{asset} closed on {pipeline_id}: "
+                f"{_fmt_sign(realized_usd)}${_fmt_usd(abs(realized_usd))} "
+                f"({_fmt_sign(pct_equity)}{_fmt_pct(abs(pct_equity))}% equity)."
+            ),
+            details={
+                "pipeline_id": pipeline_id,
+                "asset": asset,
+                "trade_id": trade_id,
+                **(details or {}),
+            },
+            pnl={
+                "realized_usd": realized_usd,
+                "net_usd": realized_usd,
+                "pct_equity": pct_equity,
+                "fees_usd": fees_usd,
+                "outcome": outcome,
+            },
+            portfolio=portfolio,
+            reason_codes=["PNL_REALIZED", outcome],
+        ),
+        safety_dir=safety_dir,
+        send=send,
+    )
+
+
+def notify_pnl_unrealized(
+    *,
+    unrealized_usd: float,
+    pct_equity: float = 0.0,
+    pipeline_id: str = "",
+    asset: str = "",
+    portfolio: dict[str, Any] | None = None,
+    safety_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Notify unrealized PnL mark-to-market snapshot."""
+    return notify(
+        NotifyEvent(
+            name="Unrealized P&L Update",
+            event_type="pnl_unrealized",
+            severity="INFO",
+            agent_id="ATLAS",
+            description=(
+                f"Mark-to-market{f' for {asset}' if asset else ''}"
+                f"{f' ({pipeline_id})' if pipeline_id else ''}: "
+                f"{_fmt_sign(unrealized_usd)}${_fmt_usd(abs(unrealized_usd))} "
+                f"({_fmt_sign(pct_equity)}{_fmt_pct(abs(pct_equity))}% equity)."
+            ),
+            details={"pipeline_id": pipeline_id, "asset": asset},
+            pnl={
+                "unrealized_usd": unrealized_usd,
+                "pct_equity": pct_equity,
+                "outcome": "OPEN",
+            },
+            portfolio=portfolio,
+            reason_codes=["PNL_UNREALIZED"],
+        ),
+        safety_dir=safety_dir,
+    )
+
+
+def notify_hourly_digest(
+    digest: dict[str, Any],
+    *,
+    portfolio: dict[str, Any] | None = None,
+    safety_dir: Path | None = None,
+    send: bool | None = None,
+) -> dict[str, Any]:
+    """Send hourly digest — delegates to herald renderer when available."""
+    record = {
+        "event_type": "hourly_digest",
+        "agent_id": "HERALD",
+        "reason_codes": ["HOURLY_DIGEST"],
+        "severity": "INFO",
+        "digest": digest,
+        "portfolio": portfolio or {},
+    }
+    herald_text = _render_herald_message(record)
+    if herald_text:
+        sd = safety_dir or DEFAULT_SAFETY_DIR
+        queue_record = {**record, "telegram_text": herald_text, "ts": time.time()}
+        enqueue_herald_event(sd, queue_record)
+        cfg = load_config()
+        should_send = send if send is not None else cfg.enabled
+        send_result: dict[str, Any] | None = None
+        if should_send:
+            send_result = send_telegram_message(herald_text, config=cfg)
+        return {
+            "ok": True,
+            "telegram_text": herald_text,
+            "queued": True,
+            "send": send_result,
+            "renderer": "herald",
+        }
+
+    hour_pnl = digest.get("hour_pnl_usd", 0)
+    wins = digest.get("wins", 0)
+    losses = digest.get("losses", 0)
+    return notify(
+        NotifyEvent(
+            name="Hourly Performance Digest",
+            event_type="hourly_digest",
+            severity="INFO",
+            agent_id="HERALD",
+            description=(
+                f"Hour {_fmt_sign(hour_pnl)}${_fmt_usd(abs(hour_pnl))} | "
+                f"{digest.get('trades_count', 0)} trades (W:{wins} L:{losses})"
+            ),
+            details=digest,
+            pnl={
+                "daily_pnl_usd": (portfolio or {}).get("daily_pnl_usd"),
+                "daily_pnl_pct": (portfolio or {}).get("daily_pnl_pct"),
+            },
+            portfolio=portfolio,
+            reason_codes=["HOURLY_DIGEST"],
+        ),
+        safety_dir=safety_dir,
+        send=send,
+    )
+
+
+def notify_money_summary(
+    *,
+    period: str,
+    realized_usd: float = 0.0,
+    unrealized_usd: float = 0.0,
+    daily_pnl_usd: float = 0.0,
+    daily_pnl_pct: float = 0.0,
+    equity_usd: float = 0.0,
+    wins: int = 0,
+    losses: int = 0,
+    fees_usd: float = 0.0,
+    portfolio: dict[str, Any] | None = None,
+    safety_dir: Path | None = None,
+) -> dict[str, Any]:
+    """Periodic PnL rollup for operator visibility."""
+    total = wins + losses
+    win_rate = (100.0 * wins / total) if total else 0.0
+    net = realized_usd + unrealized_usd
+    outcome = "WIN" if net > 0 else "LOSS" if net < 0 else "OPEN"
+    port = portfolio or {
+        "equity_usd": equity_usd,
+        "daily_pnl_usd": daily_pnl_usd,
+        "daily_pnl_pct": daily_pnl_pct,
+    }
+    return notify(
+        NotifyEvent(
+            name=f"Money Summary — {period}",
+            event_type="money_summary",
+            severity="INFO",
+            agent_id="HERALD",
+            description=(
+                f"{period} rollup: net {_fmt_sign(net)}${_fmt_usd(abs(net))}, "
+                f"win rate {_fmt_pct(win_rate)}% ({wins}W/{losses}L)."
+            ),
+            details={
+                "period": period,
+                "wins": wins,
+                "losses": losses,
+                "win_rate_pct": win_rate,
+            },
+            pnl={
+                "realized_usd": realized_usd,
+                "unrealized_usd": unrealized_usd,
+                "net_usd": net,
+                "daily_pnl_usd": daily_pnl_usd,
+                "daily_pnl_pct": daily_pnl_pct,
+                "fees_usd": fees_usd,
+                "outcome": outcome,
+            },
+            portfolio=port,
+            reason_codes=["MONEY_SUMMARY", period.upper().replace(" ", "_")],
         ),
         safety_dir=safety_dir,
     )
@@ -719,8 +1090,24 @@ def sample_test_event() -> NotifyEvent:
         event_type="notify_test",
         severity="INFO",
         agent_id="HERALD",
-        description="Institutional notification path verified.",
-        details={"environment": "test", "module": "telegram_notify"},
+        description="Institutional notification path verified with financial summary.",
+        details={"environment": "test", "module": "telegram_notify", "pipeline_id": "P3"},
+        pnl={
+            "realized_usd": 142.88,
+            "unrealized_usd": 156.20,
+            "net_usd": 142.88,
+            "pct_equity": 0.55,
+            "daily_pnl_usd": 842.33,
+            "daily_pnl_pct": 0.32,
+            "fees_usd": 5.55,
+            "outcome": "WIN",
+        },
+        portfolio={
+            "equity_usd": 261042.18,
+            "available_usd": 228500.00,
+            "exposure_pct": 12.4,
+            "open_positions": 7,
+        },
         action_required="None — smoke test only.",
         reason_codes=["NOTIFY_TEST"],
     )

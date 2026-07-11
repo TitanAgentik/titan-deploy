@@ -13,4 +13,5 @@ Reason: _{reason_summary}_
 Codes: `{reason_codes_inline}`
 {tx_line}
 {risk_line}
+{pnl_line}
 {portfolio_footer}
