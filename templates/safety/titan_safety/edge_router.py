@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .v1_surface import V1SurfaceLockdown, load_v1_surface_config
+
 try:
     import yaml
 except ImportError:  # pragma: no cover
@@ -60,8 +62,13 @@ def load_edge_mesh(path: Path | None = None) -> dict[str, Any]:
 
 
 class EdgeRouter:
-    def __init__(self, mesh: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        mesh: dict[str, Any],
+        v1_lockdown: V1SurfaceLockdown | None = None,
+    ) -> None:
         self.mesh = mesh
+        self.v1 = v1_lockdown or V1SurfaceLockdown(load_v1_surface_config())
         self.pops: dict[str, PopInfo] = {}
         for pop_id, cfg in (mesh.get("pops") or {}).items():
             if not isinstance(cfg, dict):
@@ -112,6 +119,18 @@ class EdgeRouter:
 
         if primary not in self.pops:
             primary = "EDGE-FRA" if "EDGE-FRA" in self.pops else next(iter(self.pops), "EDGE-FRA")
+
+        if self.v1.is_active() and self.v1.config.disabled.get("full_edge_mesh_5_pop", True):
+            allowed = self.v1.config.allowed_pops
+            if allowed and primary not in allowed:
+                primary = allowed[0]
+                reason = f"v1_single_pop:{primary}"
+            fallback = [p for p in fallback if p in allowed]
+
+        pop_check = self.v1.check_edge_pop(primary)
+        if not pop_check.allowed and self.v1.config.allowed_pops:
+            primary = self.v1.config.allowed_pops[0]
+            reason = pop_check.reason
 
         wg_ip, worker_url = self._pop_url(primary)
         return RouteDecision(

@@ -3,6 +3,15 @@
 from __future__ import annotations
 
 from titan_safety.allocator import AllocatorConfig, CapitalAllocator, LaneEdge
+from titan_safety.v1_surface import V1SurfaceConfig, V1SurfaceLockdown
+
+
+def _allocator(**cfg_kw) -> CapitalAllocator:
+    """Allocator with v1 lockdown off — generic unit tests."""
+    return CapitalAllocator(
+        AllocatorConfig(**cfg_kw),
+        v1_lockdown=V1SurfaceLockdown(V1SurfaceConfig(enabled=False)),
+    )
 
 
 def _lanes() -> list[LaneEdge]:
@@ -14,7 +23,7 @@ def _lanes() -> list[LaneEdge]:
 
 
 def test_allocates_within_gross_budget() -> None:
-    alloc = CapitalAllocator(AllocatorConfig(kelly_fraction=1.0, max_lane_pct=100, max_cluster_pct=100))
+    alloc = _allocator(kelly_fraction=1.0, max_lane_pct=100, max_cluster_pct=100)
     plan = alloc.allocate(10000.0, _lanes(), regime="neutral", drawdown_pct=0.0)
     assert plan.gross_budget_usd == 10000.0
     assert plan.deployed_usd <= plan.gross_budget_usd + 1e-6
@@ -22,7 +31,7 @@ def test_allocates_within_gross_budget() -> None:
 
 
 def test_higher_edge_gets_more_capital() -> None:
-    alloc = CapitalAllocator(AllocatorConfig(kelly_fraction=1.0, max_lane_pct=100, max_cluster_pct=100))
+    alloc = _allocator(kelly_fraction=1.0, max_lane_pct=100, max_cluster_pct=100)
     plan = alloc.allocate(10000.0, _lanes())
     by_id = {a.pipeline_id: a for a in plan.allocations}
     # P5: edge/var = 0.0015/0.0001 = 15 ; P29: 0.003/0.0009 = 3.33 ; P34: 0.0008/0.0004 = 2
@@ -31,7 +40,7 @@ def test_higher_edge_gets_more_capital() -> None:
 
 
 def test_min_edge_and_min_trades_exclusion() -> None:
-    alloc = CapitalAllocator(AllocatorConfig(min_net_bps=5.0, min_trades=100))
+    alloc = _allocator(min_net_bps=5.0, min_trades=100)
     lanes = [
         LaneEdge("weak", net_bps=2.0, return_std=0.01, trade_count=500),
         LaneEdge("thin", net_bps=20.0, return_std=0.01, trade_count=10),
@@ -44,7 +53,7 @@ def test_min_edge_and_min_trades_exclusion() -> None:
 
 
 def test_decaying_lane_defunded() -> None:
-    alloc = CapitalAllocator()
+    alloc = _allocator()
     lanes = [LaneEdge("dead", net_bps=50.0, return_std=0.01, trade_count=999, decaying=True)]
     plan = alloc.allocate(10000.0, lanes)
     assert not plan.allocations
@@ -52,7 +61,7 @@ def test_decaying_lane_defunded() -> None:
 
 
 def test_drawdown_degrossing() -> None:
-    alloc = CapitalAllocator()
+    alloc = _allocator()
     assert alloc.degross_multiplier(0.0) == 1.0
     assert alloc.degross_multiplier(4.0) == 0.75
     assert alloc.degross_multiplier(6.0) == 0.5
@@ -64,13 +73,11 @@ def test_drawdown_degrossing() -> None:
 
 
 def test_max_active_pipelines_cap() -> None:
-    alloc = CapitalAllocator(
-        AllocatorConfig(
-            kelly_fraction=1.0,
-            max_lane_pct=100,
-            max_cluster_pct=100,
-            max_active_pipelines=2,
-        )
+    alloc = _allocator(
+        kelly_fraction=1.0,
+        max_lane_pct=100,
+        max_cluster_pct=100,
+        max_active_pipelines=2,
     )
     lanes = [
         LaneEdge(f"P{i}", net_bps=20.0 - i, return_std=0.01, trade_count=500)
@@ -82,9 +89,7 @@ def test_max_active_pipelines_cap() -> None:
 
 
 def test_cluster_cap_enforced() -> None:
-    alloc = CapitalAllocator(
-        AllocatorConfig(kelly_fraction=1.0, max_lane_pct=100, max_cluster_pct=15.0)
-    )
+    alloc = _allocator(kelly_fraction=1.0, max_lane_pct=100, max_cluster_pct=15.0)
     lanes = [
         LaneEdge("A", net_bps=20.0, return_std=0.01, trade_count=500, cluster="same"),
         LaneEdge("B", net_bps=20.0, return_std=0.01, trade_count=500, cluster="same"),
@@ -95,7 +100,7 @@ def test_cluster_cap_enforced() -> None:
 
 
 def test_capacity_cap_enforced() -> None:
-    alloc = CapitalAllocator(AllocatorConfig(kelly_fraction=1.0, max_lane_pct=100, max_cluster_pct=100))
+    alloc = _allocator(kelly_fraction=1.0, max_lane_pct=100, max_cluster_pct=100)
     lanes = [LaneEdge("cap", net_bps=30.0, return_std=0.01, trade_count=500, capacity_usd=250.0)]
     plan = alloc.allocate(10000.0, lanes)
     assert plan.allocations[0].target_notional_usd == 250.0
@@ -103,7 +108,7 @@ def test_capacity_cap_enforced() -> None:
 
 
 def test_regime_scales_budget() -> None:
-    alloc = CapitalAllocator()
+    alloc = _allocator()
     off = alloc.gross_budget(10000.0, "risk_off", 0.0)
     neutral = alloc.gross_budget(10000.0, "neutral", 0.0)
     on = alloc.gross_budget(10000.0, "risk_on", 0.0)
@@ -123,7 +128,7 @@ def test_from_policy_raw() -> None:
 
 
 def test_advisory_mode_defaults_true_on_plan() -> None:
-    alloc = CapitalAllocator()
+    alloc = _allocator()
     assert alloc.config.advisory_mode is True
     assert alloc.is_enforced() is False
     plan = alloc.allocate(10000.0, _lanes())
@@ -136,7 +141,10 @@ def test_advisory_mode_defaults_true_on_plan() -> None:
 def test_advisory_mode_from_raw_and_enforced() -> None:
     cfg = AllocatorConfig.from_raw({"allocator": {"advisory_mode": False}})
     assert cfg.advisory_mode is False
-    alloc = CapitalAllocator(cfg)
+    alloc = CapitalAllocator(
+        cfg,
+        v1_lockdown=V1SurfaceLockdown(V1SurfaceConfig(enabled=False)),
+    )
     assert alloc.is_enforced() is True
     plan = alloc.allocate(10000.0, _lanes())
     assert plan.advisory is False

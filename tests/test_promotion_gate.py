@@ -32,6 +32,12 @@ def _strong_stats() -> dict:
         "cost_bps": 3.0,
         "backtest_sharpe": 1.8,
         "shadow_sharpe": 1.7,
+        "walk_forward_folds_passed": 5,
+        "purged_cv_passed": True,
+        "fat_slippage_bps": 8.0,
+        "capacity_curve_ok": True,
+        "shadow_days": 7,
+        "shadow_gas_tip_simulated": True,
     }
 
 

@@ -131,6 +131,15 @@ class StrategyStats:
     cost_bps: float = 0.0  # modeled gas+tip+slippage; must be > 0 to prove realism
     backtest_sharpe: float = 0.0
     shadow_sharpe: float = 0.0  # live/shadow period Sharpe
+    # Tier 2 promotion evidence (walk-forward / purged CV / shadow / capacity)
+    walk_forward_folds_passed: int = 0
+    walk_forward_folds_required: int = 5
+    purged_cv_passed: bool = False
+    fat_slippage_bps: float = 0.0  # fat-tail slippage component in cost model
+    capacity_curve_ok: bool = False  # edge holds across size curve
+    shadow_days: int = 0
+    shadow_gas_tip_simulated: bool = False
+    shadow_divergence_pct: float | None = None  # explicit override; else computed from SR
 
 
 @dataclass
@@ -141,6 +150,13 @@ class StatsGateConfig:
     max_shadow_divergence_pct: float = 15.0
     min_net_bps: float = 1.0
     require_cost_model: bool = True
+    require_walk_forward: bool = True
+    min_walk_forward_folds: int = 5
+    require_purged_cv: bool = True
+    min_fat_slippage_bps: float = 5.0
+    require_capacity_curve: bool = True
+    min_shadow_days: int = 3
+    require_shadow_gas_tip_sim: bool = True
 
     @classmethod
     def from_raw(cls, raw: dict[str, Any]) -> StatsGateConfig:
@@ -155,6 +171,21 @@ class StatsGateConfig:
             ),
             min_net_bps=float(s.get("min_net_bps", d.min_net_bps)),
             require_cost_model=bool(s.get("require_cost_model", d.require_cost_model)),
+            require_walk_forward=bool(s.get("require_walk_forward", d.require_walk_forward)),
+            min_walk_forward_folds=int(
+                s.get("min_walk_forward_folds", d.min_walk_forward_folds)
+            ),
+            require_purged_cv=bool(s.get("require_purged_cv", d.require_purged_cv)),
+            min_fat_slippage_bps=float(
+                s.get("min_fat_slippage_bps", d.min_fat_slippage_bps)
+            ),
+            require_capacity_curve=bool(
+                s.get("require_capacity_curve", d.require_capacity_curve)
+            ),
+            min_shadow_days=int(s.get("min_shadow_days", d.min_shadow_days)),
+            require_shadow_gas_tip_sim=bool(
+                s.get("require_shadow_gas_tip_sim", d.require_shadow_gas_tip_sim)
+            ),
         )
 
 
@@ -185,7 +216,11 @@ class StrategyStatsGate:
             else 0.0
         )
         net_bps = stats.gross_bps - stats.cost_bps
-        divergence = self._divergence_pct(stats.backtest_sharpe, stats.shadow_sharpe)
+        divergence = (
+            stats.shadow_divergence_pct
+            if stats.shadow_divergence_pct is not None
+            else self._divergence_pct(stats.backtest_sharpe, stats.shadow_sharpe)
+        )
 
         metrics = {
             "psr": round(psr, 4),
@@ -194,6 +229,9 @@ class StrategyStatsGate:
             "shadow_divergence_pct": round(divergence, 4),
             "num_trades": float(stats.num_trades),
             "trials": float(stats.trials),
+            "walk_forward_folds_passed": float(stats.walk_forward_folds_passed),
+            "shadow_days": float(stats.shadow_days),
+            "fat_slippage_bps": float(stats.fat_slippage_bps),
         }
 
         if stats.num_trades < cfg.min_trades:
@@ -213,6 +251,26 @@ class StrategyStatsGate:
             reasons.append(
                 f"shadow divergence {divergence:.1f}% > max {cfg.max_shadow_divergence_pct}%"
             )
+        if cfg.require_walk_forward and stats.walk_forward_folds_passed < cfg.min_walk_forward_folds:
+            reasons.append(
+                f"walk-forward {stats.walk_forward_folds_passed}/{cfg.min_walk_forward_folds} folds passed"
+            )
+        if cfg.require_purged_cv and not stats.purged_cv_passed:
+            reasons.append("purged cross-validation not passed")
+        if cfg.min_fat_slippage_bps > 0 and stats.fat_slippage_bps < cfg.min_fat_slippage_bps:
+            reasons.append(
+                f"fat_slippage_bps {stats.fat_slippage_bps:.1f} < min {cfg.min_fat_slippage_bps} "
+                "(cost model must include fat-tail slippage)"
+            )
+        if cfg.require_capacity_curve and not stats.capacity_curve_ok:
+            reasons.append("capacity curve not validated (edge must hold across sizes)")
+        if cfg.min_shadow_days > 0 and stats.shadow_days < cfg.min_shadow_days:
+            reasons.append(
+                f"shadow_days {stats.shadow_days} < min {cfg.min_shadow_days} "
+                "(live market + gas/tip sim required)"
+            )
+        if cfg.require_shadow_gas_tip_sim and not stats.shadow_gas_tip_simulated:
+            reasons.append("shadow period missing live gas/tip simulation")
 
         return StatsGateResult(passed=not reasons, reasons=reasons, metrics=metrics)
 

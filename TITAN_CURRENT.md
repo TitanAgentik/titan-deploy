@@ -16,6 +16,7 @@
 | [`LIVE_CAPITAL_PRODUCTION_GUIDE.md`](./LIVE_CAPITAL_PRODUCTION_GUIDE.md) | Paper → shadow → Phase 5 YES → live capital |
 | [`docs/TIER0_MONEY_PATH.md`](./docs/TIER0_MONEY_PATH.md) | **Tier 0 money path** — broadcast authority, Hyperliquid adapter, recon HALT |
 | [`docs/TIER1_CAPITAL_RISK.md`](./docs/TIER1_CAPITAL_RISK.md) | **Tier 1 capital risk** — drawdown enforcement, paper default, independent inputs, SLOs |
+| [`docs/TIER2_PROMOTION_QUALITY.md`](./docs/TIER2_PROMOTION_QUALITY.md) | **Tier 2 promotion quality** — walk-forward, registry DSR, micro-live caps, TCA loop, v1 lockdown |
 | [`TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md`](./TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md) | End-to-end hardware + software setup |
 | [`BOOT.md`](./BOOT.md) | Gateway restart checklist |
 | [`BOOTSTRAP.md`](./BOOTSTRAP.md) | First-run ritual |

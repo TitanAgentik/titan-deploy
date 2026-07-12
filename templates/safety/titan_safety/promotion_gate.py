@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from .promotion_stats import StatsGateConfig, StrategyStats, StrategyStatsGate
+from .promotion_registry import PromotionRegistry
+from .micro_live_caps import MicroLiveCaps, MicroLiveCapsConfig
 
 
 AUDIT_FILE = "promotion_audit.jsonl"
@@ -95,11 +97,14 @@ class PromotionGate:
         self,
         safety_dir: Path | None = None,
         stats_config: StatsGateConfig | None = None,
+        micro_caps_config: MicroLiveCapsConfig | None = None,
     ) -> None:
         self.safety_dir = safety_dir or (Path.home() / ".openclaw" / "safety")
         self.safety_dir.mkdir(parents=True, exist_ok=True)
         self.audit_path = self.safety_dir / AUDIT_FILE
         self.stats_gate = StrategyStatsGate(stats_config)
+        self.registry = PromotionRegistry(self.safety_dir)
+        self.micro_caps = MicroLiveCaps(micro_caps_config)
 
     def requires_gate(self, category: str) -> bool:
         return category in GATED_CATEGORIES
@@ -117,18 +122,41 @@ class PromotionGate:
         raw = request.metadata.get("strategy_stats")
         if raw is None:
             return False, "strategy_stats required for stats-gated promotion", {}
+        strategy_id = str(raw.get("strategy_id", request.subject))
+        global_trials = self.registry.global_trials_for_dsr(strategy_id)
+        supplied_trials = int(raw.get("trials", 0))
+        trials = max(supplied_trials, global_trials)
         stats = StrategyStats(
-            strategy_id=str(raw.get("strategy_id", request.subject)),
+            strategy_id=strategy_id,
             returns=[float(r) for r in raw.get("returns", [])],
-            trials=int(raw.get("trials", 1)),
+            trials=trials,
             sr_variance=raw.get("sr_variance"),
             num_trades=int(raw.get("num_trades", 0)),
             gross_bps=float(raw.get("gross_bps", 0.0)),
             cost_bps=float(raw.get("cost_bps", 0.0)),
             backtest_sharpe=float(raw.get("backtest_sharpe", 0.0)),
             shadow_sharpe=float(raw.get("shadow_sharpe", 0.0)),
+            walk_forward_folds_passed=int(raw.get("walk_forward_folds_passed", 0)),
+            walk_forward_folds_required=int(
+                raw.get("walk_forward_folds_required", self.stats_gate.config.min_walk_forward_folds)
+            ),
+            purged_cv_passed=bool(raw.get("purged_cv_passed", False)),
+            fat_slippage_bps=float(raw.get("fat_slippage_bps", 0.0)),
+            capacity_curve_ok=bool(raw.get("capacity_curve_ok", False)),
+            shadow_days=int(raw.get("shadow_days", 0)),
+            shadow_gas_tip_simulated=bool(raw.get("shadow_gas_tip_simulated", False)),
+            shadow_divergence_pct=raw.get("shadow_divergence_pct"),
         )
         result = self.stats_gate.evaluate(stats)
+        self.registry.register_attempt(
+            strategy_id,
+            config=raw.get("config"),
+            returns=stats.returns,
+            sr_variance=stats.sr_variance,
+            num_trades=stats.num_trades,
+            promoted=result.passed,
+            metadata={"category": request.category, "request_id": request.request_id},
+        )
         reason = "stats gate passed" if result.passed else "; ".join(result.reasons)
         return result.passed, reason, result.metrics
 
@@ -211,6 +239,31 @@ class PromotionGate:
             )
             self._notify_promotion(request, decision)
             return decision
+
+        # Micro-live caps — calendar is not a gate; block scale-up without evidence
+        phase_meta = request.metadata.get("rollout_phase") or request.metadata.get("phase")
+        if phase_meta and request.category in STATS_GATED_CATEGORIES:
+            scale_ok, scale_reason = self.micro_caps.can_scale_phase(
+                current_phase=str(request.metadata.get("current_phase", "micro_live_conservative")),
+                target_phase=str(phase_meta),
+                fill_count=int(request.metadata.get("fill_count", 0)),
+                stats_gate_passed=True,
+                promotion_yes=False,
+                days_elapsed=int(request.metadata.get("days_elapsed", 0)),
+            )
+            if not scale_ok and request.category == "phase5_go_nogo":
+                pass  # phase5 YES path checked below
+            elif not scale_ok and request.metadata.get("enforce_micro_caps", True):
+                record = request.to_audit_record()
+                record["micro_caps"] = {"passed": False, "reason": scale_reason}
+                audit_hash = self._append_audit(record)
+                decision = PromotionDecision(
+                    approved=False,
+                    reason=f"Micro-live cap gate failed: {scale_reason}",
+                    audit_hash=audit_hash,
+                )
+                self._notify_promotion(request, decision)
+                return decision
 
         response = request.operator_response.strip().upper()
         if response != REQUIRED_APPROVAL:

@@ -27,6 +27,7 @@ from .memecoin_sim import run_simulation
 from .policy_loader import load_policy
 from .profit_loop import ProfitLoop
 from .tca import Fill, TCAEngine
+from .tca_daily_scorecard import publish_daily_scorecard
 from .telegram_capital import format_telegram_response, handle_capital_command
 from .wind_down import WindDownController
 
@@ -899,6 +900,67 @@ def _load_tca_engine(safety_dir: Path) -> TCAEngine:
     return engine
 
 
+def cmd_tca_daily_scorecard(args: argparse.Namespace) -> int:
+    safety_dir = Path(args.safety_dir) if args.safety_dir else Path.home() / ".openclaw" / "safety"
+    engine = _load_tca_engine(safety_dir)
+    result = publish_daily_scorecard(
+        engine,
+        safety_dir=safety_dir,
+        equity_usd=args.equity,
+        send=not args.no_send,
+    )
+    if args.format_only:
+        print(result.get("telegram_text", ""))
+        return 0 if result.get("ok") else 1
+    print(json.dumps(result, indent=2))
+    return 0 if result.get("ok") else 1
+
+
+def cmd_promotion_registry(args: argparse.Namespace) -> int:
+    from .promotion_registry import PromotionRegistry
+
+    reg = PromotionRegistry(Path(args.safety_dir) if args.safety_dir else None)
+    if args.registry_cmd == "summary":
+        print(json.dumps(reg.summary().to_dict(), indent=2))
+        return 0
+    attempts = reg.list_attempts(args.strategy_id or None)
+    print(json.dumps({"attempts": attempts, "total_trials": reg.total_trials()}, indent=2))
+    return 0
+
+
+def cmd_micro_caps_check(args: argparse.Namespace) -> int:
+    from .micro_live_caps import MicroLiveCaps, MicroLiveCapsConfig
+
+    raw: dict = {}
+    if args.policy:
+        try:
+            raw = load_policy(Path(args.policy)).raw or {}
+        except Exception:
+            raw = {}
+    caps = MicroLiveCaps(MicroLiveCapsConfig.from_raw(raw))
+    result = caps.check_trade(
+        args.notional,
+        args.equity,
+        phase=args.phase,
+        aggregate_exposure_usd=args.aggregate,
+    )
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.allowed else 1
+
+
+def cmd_v1_surface_status(args: argparse.Namespace) -> int:
+    from .v1_surface import V1SurfaceLockdown
+
+    lock = V1SurfaceLockdown.from_path(Path(args.config) if args.config else None)
+    out: dict[str, Any] = {"status": lock.status()}
+    if args.pipeline:
+        out["pipeline_check"] = lock.check_pipeline(args.pipeline).to_dict()
+    if args.venue:
+        out["venue_check"] = lock.check_venue(args.venue).to_dict()
+    print(json.dumps(out, indent=2))
+    return 0
+
+
 def cmd_tca_scorecard(args: argparse.Namespace) -> int:
     safety_dir = Path(args.safety_dir) if args.safety_dir else Path.home() / ".openclaw" / "safety"
     engine = _load_tca_engine(safety_dir)
@@ -1124,6 +1186,30 @@ def main(argv: list[str] | None = None) -> int:
     pl.add_argument("--approved-only", action="store_true")
     pl.set_defaults(func=cmd_promotion_list)
 
+    preg = promo_sub.add_parser("registry", help="Multiple-testing registry")
+    preg_sub = preg.add_subparsers(dest="registry_cmd", required=True)
+    prs = preg_sub.add_parser("summary", help="Registry trial counts + DSR summary")
+    prs.add_argument("--safety-dir", default=None)
+    prs.set_defaults(func=cmd_promotion_registry, registry_cmd="summary")
+    prl = preg_sub.add_parser("list", help="List registry attempts")
+    prl.add_argument("--strategy-id", default=None)
+    prl.add_argument("--safety-dir", default=None)
+    prl.set_defaults(func=cmd_promotion_registry, registry_cmd="list")
+
+    p_micro = sub.add_parser("micro-caps", help="Micro-live phase equity caps (calendar is NOT a gate)")
+    p_micro.add_argument("--notional", type=float, required=True)
+    p_micro.add_argument("--equity", type=float, required=True)
+    p_micro.add_argument("--phase", default="micro_live_conservative")
+    p_micro.add_argument("--aggregate", type=float, default=0.0)
+    p_micro.add_argument("--policy", default=None)
+    p_micro.set_defaults(func=cmd_micro_caps_check)
+
+    p_v1 = sub.add_parser("v1-surface", help="v1 surface lockdown status")
+    p_v1.add_argument("--config", default=None)
+    p_v1.add_argument("--pipeline", default=None)
+    p_v1.add_argument("--venue", default=None)
+    p_v1.set_defaults(func=cmd_v1_surface_status)
+
     hb = sub.add_parser("heartbeat", help="Reset dead-man's switch timer")
     hb.add_argument("--operator", default="operator")
     hb.set_defaults(func=cmd_heartbeat)
@@ -1316,6 +1402,12 @@ def main(argv: list[str] | None = None) -> int:
     tca_sub = p_tca.add_subparsers(dest="tca_cmd", required=True)
     tsc = tca_sub.add_parser("scorecard", help="Print TCA scorecard summary")
     tsc.set_defaults(func=cmd_tca_scorecard)
+    tds = tca_sub.add_parser("daily-scorecard", help="Daily TCA digest → HERALD/Telegram")
+    tds.add_argument("--equity", type=float, default=0.0)
+    tds.add_argument("--no-send", action="store_true")
+    tds.add_argument("--format-only", action="store_true")
+    tds.add_argument("--safety-dir", default=None)
+    tds.set_defaults(func=cmd_tca_daily_scorecard)
     tpl = tca_sub.add_parser("profit-loop", help="Run TCA→allocator profit loop")
     tpl.add_argument("--dry-run", action="store_true", help="Plan only; no defund/halt side effects")
     tpl.add_argument("--equity", type=float, default=10000.0)

@@ -1,0 +1,58 @@
+# v1 surface lockdown — kill fantasy surface area for first live capital.
+# Deploy: ~/.openclaw/risk_kernel/v1_surface_lockdown.yaml
+# Enforced by titan_safety.v1_surface + allocator + edge_router + openclaw flags.
+# Does NOT auto-enable live capital — Phase 5 YES still required.
+
+version: "1.0"
+enabled: true
+note: "Catalog ≠ checklist (iron law 14) — v1 funds ≤2 strategies on one chain/venue class"
+
+# One chain, one venue class for v1 live
+chain: hyperliquid
+venue_class: perp_dex
+allowed_venues:
+  - hyperliquid
+  - paper
+
+# ≤2 concurrent funded strategies (allocator enforced)
+max_active_strategies: 2
+allowed_pipeline_ids: []  # empty = any non-blocked pipeline up to max
+blocked_pipeline_ids:
+  - P22   # memecoin trench
+  - P12   # flash-loan / MEV hot lane (v1)
+  - P29   # multi-venue MEV
+  - P30   # predatory honeypot-adjacent lane
+
+disabled_for_v1:
+  memecoin_p22: true
+  flash_loans: true
+  predatory_honeypots: true
+  quantum_inspired_live: true
+  multi_cex_allowlists: true
+  full_edge_mesh_5_pop: true
+
+edge_mesh:
+  mode: single_pop
+  allowed_pops: [EDGE-FRA]
+  note: "v1 uses single PoP — expand to full_mesh only after operator unlock"
+
+flash_loan_live:
+  enabled: false
+  note: "Requires separate promotion YES + v1 unlock"
+
+memecoin_trench:
+  enabled: false
+  pipeline_id: P22
+
+quantum_inspired:
+  advisory_only: true
+  live_path: false
+
+security_ops:
+  predatory_honeypot_live: false
+  note: "SENTINEL honeypot lattice remains defensive; no predatory live honeypot lanes in v1"
+
+observability:
+  require_full_tca: true
+  require_daily_scorecard: true
+  require_gate_p99: true

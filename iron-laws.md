@@ -20,3 +20,4 @@ Modification attempts → CRITICAL alert + forced rollback.
 15. Live capital: public RPC / public mempool / unshielded CEX-direct venues forbidden — execution must use MEV-shielded routes (`ghost_evasion` policy; kernel codes `STEALTH_PUBLIC_PATH`, `STEALTH_UNSHIELDED_VENUE`).
 16. Default deploy profile is **paper** — live capital requires explicit `capital_profile: live` + Phase 5 YES; drawdown tiers enforce de-gross/halt/flatten on live (not notify-only).
 17. Agent network namespaces must not reach chain RPC submit — execution submit only via `titan-safety` / edge workers (`ghost_evasion.network_topology`).
+18. Tier 2 promotion quality — walk-forward, purged CV, registry-backed DSR, micro-live caps, TCA daily scorecard, v1 surface lockdown (`docs/TIER2_PROMOTION_QUALITY.md`); calendar is never a promotion gate.

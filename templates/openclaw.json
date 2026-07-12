@@ -442,14 +442,32 @@
     "note": "Set regimeFeed=file and have AUGUR write regimeFile for live portfolio scaling"
   },
   "allocator": {
-    "maxActivePipelines": 4,
-    "note": "Concentrate capital on ≤4 TCA-HEALTHY lanes"
+    "maxActivePipelines": 2,
+    "selectiveActivation": true,
+    "v1SurfaceEnforced": true,
+    "note": "v1: ≤2 TCA-HEALTHY lanes; catalog ≠ checklist (iron law 14)"
+  },
+  "v1SurfaceLockdown": {
+    "enabled": true,
+    "configPath": "~/.openclaw/risk_kernel/v1_surface_lockdown.yaml",
+    "chain": "hyperliquid",
+    "venueClass": "perp_dex",
+    "maxActiveStrategies": 2,
+    "disabledForV1": {
+      "memecoinP22": true,
+      "flashLoans": true,
+      "predatoryHoneypots": true,
+      "quantumInspiredLive": true,
+      "multiCexAllowlists": true,
+      "fullEdgeMesh5Pop": true
+    },
+    "note": "Does NOT auto-enable live capital — Phase 5 YES still required"
   },
   "edgeMesh": {
-    "mode": "full_mesh",
-    "phase1": "full_five_pop",
+    "mode": "single_pop",
+    "phase1": "single_pop",
     "defaultPop": "EDGE-FRA",
-    "activePops": ["EDGE-FRA", "EDGE-TKY", "EDGE-SIN", "EDGE-USE", "EDGE-AMS"],
+    "activePops": ["EDGE-FRA"],
     "paperLatencyFaithful": true,
     "meshConfigPath": "~/.openclaw/infra/edge_mesh.yaml",
     "latencyBudgetMs": {
@@ -460,9 +478,9 @@
       "nostrDispatch": 3,
       "warmPathGateP95": 150
     },
-    "phase1ApacDeferred": false,
+    "phase1ApacDeferred": true,
     "routingPolicy": "lowest_live_p50_rtt",
-    "note": "Full 5-PoP from paper — same routing as live for TCA/latency measurement"
+    "note": "v1 single PoP (EDGE-FRA) — expand to full_mesh only after operator unlock"
   },
   "capital": {
     "capital_profile": "live",

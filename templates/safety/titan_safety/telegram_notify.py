@@ -823,6 +823,36 @@ def notify_power_ups(
     )
 
 
+def notify_tca_daily_scorecard(
+    digest: dict[str, Any],
+    *,
+    telegram_text: str = "",
+    safety_dir: Path | None = None,
+    send: bool = True,
+) -> dict[str, Any]:
+    """Publish daily TCA scorecard digest via HERALD / Telegram."""
+    bleeding = digest.get("bleeding") or []
+    severity = "CRITICAL" if bleeding else "INFO"
+    return notify(
+        NotifyEvent(
+            name=f"TCA Daily Scorecard — {digest.get('date_utc', 'today')}",
+            event_type="tca_daily_scorecard",
+            severity=severity,
+            agent_id="HERALD",
+            description=telegram_text or "Daily TCA execution-quality scorecard.",
+            details=digest,
+            action_required=(
+                "Review BLEEDING lanes — profit_loop auto-defunds; refund needs promotion YES."
+                if bleeding
+                else ""
+            ),
+            reason_codes=["TCA_DAILY", "HERALD_DIGEST"],
+        ),
+        safety_dir=safety_dir,
+        send=send,
+    )
+
+
 def notify_promotion_gate(
     request_id: str,
     category: str,

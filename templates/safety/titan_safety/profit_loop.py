@@ -110,10 +110,42 @@ class ProfitLoop:
         if self.auto_halt_bleeding:
             self.ks.activate_pipeline(pipeline_id, operator, reason)
 
-    def refund(self, pipeline_id: str, operator: str, reason: str = "human YES") -> bool:
-        """Re-fund a lane — requires explicit human operator (never auto)."""
+    def refund(
+        self,
+        pipeline_id: str,
+        operator: str,
+        reason: str = "human YES",
+        *,
+        require_promotion_yes: bool = True,
+    ) -> bool:
+        """Re-fund a lane — requires explicit operator YES + promotion gate approval."""
         if pipeline_id not in self._defunded:
             return False
+        if require_promotion_yes:
+            from .promotion_gate import PromotionGate
+
+            yes = reason.strip().upper() == "YES" or reason.strip().upper().startswith("YES")
+            if not yes:
+                self._append_ledger(
+                    {
+                        "action": "refund_denied",
+                        "pipeline_id": pipeline_id,
+                        "reason": "explicit YES required in reason",
+                        "operator": operator,
+                    }
+                )
+                return False
+            pg = PromotionGate(self.safety_dir)
+            if not pg.has_approved("strategy_promotion", pipeline_id):
+                self._append_ledger(
+                    {
+                        "action": "refund_denied",
+                        "pipeline_id": pipeline_id,
+                        "reason": "no strategy_promotion YES in audit log",
+                        "operator": operator,
+                    }
+                )
+                return False
         self._defunded.discard(pipeline_id)
         self._save_defunded()
         self._append_ledger(

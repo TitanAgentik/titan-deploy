@@ -151,7 +151,7 @@ allocator:
   min_net_bps: 1.0               # lanes below this net-of-cost edge get zero capital
   min_trades: 100                # lanes below this sample size get zero capital
   max_active_pipelines: 4        # hard concentration — fund few HEALTHY lanes; catalog ≠ all-on
-  # Selective activation: pipelines/skills/security modules in TITAN docs are optional until funded/needed.
+  # v1 surface lockdown caps this to 2 when enabled (v1_surface_lockdown.yaml)
   selective_activation: true
   advisory_mode: true   # paper default; live profile sets false (enforced de-gross)
   note: "Do not enable every strategy or feature mentioned in specs — use only what is necessary"
@@ -283,6 +283,45 @@ memecoin_trench:
 
   min_net_bps: 1.0
   require_cost_model: true         # backtests with zero modeled cost are rejected
+  require_walk_forward: true
+  min_walk_forward_folds: 5
+  require_purged_cv: true
+  min_fat_slippage_bps: 5.0
+  require_capacity_curve: true
+  min_shadow_days: 3
+  require_shadow_gas_tip_sim: true
+
+# Tier 2 promotion quality — items 11–14 (research / promotion gates)
+tier2_promotion_quality:
+  version: "1.0"
+  micro_live_caps:
+    calendar_is_gate: false
+    default_phase: micro_live_conservative
+    max_jump_notional_usd: 500.0
+    phases:
+      micro_live_conservative:
+        max_equity_pct_per_trade: 0.05
+        max_aggregate_equity_pct: 0.25
+        min_fills_before_scale: 50
+      micro_live:
+        max_equity_pct_per_trade: 0.10
+        max_aggregate_equity_pct: 0.50
+        min_fills_before_scale: 50
+      validated_scale:
+        max_equity_pct_per_trade: 0.50
+        max_aggregate_equity_pct: 2.0
+        min_fills_before_scale: 200
+  promotion_registry:
+    enabled: true
+    registry_file: ~/.openclaw/safety/promotion_registry.jsonl
+    note: "Global trial count feeds deflated Sharpe multiple-testing correction"
+  tca_daily_scorecard:
+    enabled: true
+    herald_agent: HERALD
+    schedule_utc: "08:00"
+  v1_surface_lockdown:
+    enabled: true
+    config_ref: ~/.openclaw/risk_kernel/v1_surface_lockdown.yaml
 
 flash_loan_live:
   enabled: false  # set true + flashLoanRouter.enabled for live (no human YES required)

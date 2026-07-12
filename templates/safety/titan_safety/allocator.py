@@ -19,6 +19,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from .v1_surface import V1SurfaceLockdown, load_v1_surface_config
+
 
 @dataclass
 class LaneEdge:
@@ -109,8 +111,19 @@ class AllocatorConfig:
 
 
 class CapitalAllocator:
-    def __init__(self, config: AllocatorConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: AllocatorConfig | None = None,
+        v1_lockdown: V1SurfaceLockdown | None = None,
+    ) -> None:
         self.config = config or AllocatorConfig()
+        self.v1 = v1_lockdown or V1SurfaceLockdown(load_v1_surface_config())
+
+    def effective_max_active_pipelines(self) -> int:
+        base = self.config.max_active_pipelines
+        if self.v1.is_active():
+            return self.v1.apply_allocator_limits(base)
+        return base
 
     def is_enforced(self) -> bool:
         return not self.config.advisory_mode
@@ -173,6 +186,11 @@ class CapitalAllocator:
         # conservative floor so a missing/zero std can't manufacture huge leverage.
         eligible: list[tuple[LaneEdge, float]] = []
         for lane in lanes:
+            if self.v1.is_active():
+                surf = self.v1.check_pipeline(lane.pipeline_id)
+                if not surf.allowed:
+                    excluded[lane.pipeline_id] = surf.reason
+                    continue
             if lane.net_bps < cfg.min_net_bps:
                 excluded[lane.pipeline_id] = f"net_bps {lane.net_bps:.1f} < min {cfg.min_net_bps}"
                 continue
@@ -206,12 +224,13 @@ class CapitalAllocator:
         cluster_cap = equity_usd * cfg.max_cluster_pct / 100.0
         cluster_running: dict[str, float] = {}
         allocations: list[Allocation] = []
+        max_active = self.effective_max_active_pipelines()
 
         active_count = 0
         for lane, sig in sorted(eligible, key=lambda x: x[1], reverse=True):
-            if active_count >= cfg.max_active_pipelines:
+            if active_count >= max_active:
                 excluded[lane.pipeline_id] = (
-                    f"max_active_pipelines={cfg.max_active_pipelines}"
+                    f"max_active_pipelines={max_active}"
                 )
                 continue
 
@@ -250,10 +269,15 @@ class CapitalAllocator:
                 )
             )
             active_count += 1
-        if active_count >= cfg.max_active_pipelines and len(eligible) > active_count:
+        if active_count >= max_active and len(eligible) > active_count:
             notes.append(
-                f"capped to {cfg.max_active_pipelines} active pipelines "
+                f"capped to {max_active} active pipelines "
                 f"(of {len(eligible)} eligible)"
+            )
+        if self.v1.is_active() and self.config.selective_activation:
+            notes.append(
+                f"v1 surface lockdown: max {max_active} strategies, "
+                f"chain={self.v1.config.chain}"
             )
 
         deployed = sum(a.target_notional_usd for a in allocations)
