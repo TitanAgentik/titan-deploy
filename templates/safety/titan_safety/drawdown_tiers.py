@@ -1,25 +1,53 @@
-"""Drawdown tier evaluation — notify-only; never block trading on tier breach."""
+"""Drawdown tier evaluation — notify-only (paper) or enforced (live)."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from .kernel import TradeRequest
 
-# Legacy blocking actions → notify-only (trading continues autonomously).
+if TYPE_CHECKING:
+    from .kernel import RiskKernel, RiskKernelState
+
+# Paper / shadow — alert only; trading continues.
 _NOTIFY_ACTIONS = frozenset(
     {
         "notify_operator",
         "notify_continue",
         "notify_critical_continue",
         "alert_operator",
+    }
+)
+
+# Live enforcement ladder (items 6 / tier1_capital_risk).
+_ENFORCE_ACTIONS = frozenset(
+    {
+        "soft_de_gross",
+        "hard_de_gross",
+        "halt_new_risk",
+        "halt_new_entries",
+        "full_halt_flatten",
+        "flatten",
+        # Legacy names mapped to enforcement
         "soft_pause_new_entries",
         "reduce_exposure_50pct",
         "critical_alert_human_required",
         "full_halt_flatten",
     }
 )
+
+_LEGACY_NOTIFY_MAP = {
+    "soft_pause_new_entries": "soft_de_gross",
+    "reduce_exposure_50pct": "hard_de_gross",
+    "critical_alert_human_required": "halt_new_risk",
+    "full_halt_flatten": "full_halt_flatten",
+}
+
+_TIER_EXPOSURE_CAP = {
+    "soft_de_gross": 75.0,
+    "hard_de_gross": 50.0,
+}
 
 _DEFAULT_SEVERITY = {
     2.0: "MEDIUM",
@@ -57,6 +85,7 @@ class DrawdownAlert:
     drawdown_pct: float
     message: str
     trading_continues: bool = True
+    enforced: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -66,6 +95,7 @@ class DrawdownAlert:
             "drawdown_pct": self.drawdown_pct,
             "message": self.message,
             "trading_continues": self.trading_continues,
+            "enforced": self.enforced,
         }
 
 
@@ -74,6 +104,26 @@ def drawdown_notify_only(raw: dict[str, Any]) -> bool:
     if isinstance(dd, dict) and "notify_only" in dd:
         return bool(dd["notify_only"])
     return bool(raw.get("drawdown_notify_only", True))
+
+
+def normalize_tier_action(action: str, pct: float, notify_only: bool) -> str:
+    action = str(action)
+    if action in _LEGACY_NOTIFY_MAP:
+        action = _LEGACY_NOTIFY_MAP[action]
+    if notify_only:
+        if action in _ENFORCE_ACTIONS:
+            return "notify_critical_continue" if pct >= 10.0 else "notify_operator"
+        return action if action in _NOTIFY_ACTIONS else "notify_operator"
+    if action in _NOTIFY_ACTIONS:
+        if pct >= 12.0:
+            return "full_halt_flatten"
+        if pct >= 8.0:
+            return "halt_new_risk"
+        if pct >= 5.0:
+            return "hard_de_gross"
+        if pct >= 2.0:
+            return "soft_de_gross"
+    return action
 
 
 def parse_volatile_exempt(raw: dict[str, Any]) -> VolatileExempt:
@@ -91,29 +141,36 @@ def parse_volatile_exempt(raw: dict[str, Any]) -> VolatileExempt:
 
 
 def parse_drawdown_tiers(raw: dict[str, Any]) -> list[DrawdownTier]:
+    notify_only = drawdown_notify_only(raw)
     tiers_cfg = raw.get("drawdown_tiers") or []
     out: list[DrawdownTier] = []
     if isinstance(tiers_cfg, dict):
         mapping = [
             ("alert", "notify_operator", "MEDIUM"),
-            ("soft_pause", "notify_operator", "HIGH"),
-            ("reduce", "notify_operator", "HIGH"),
-            ("critical", "notify_critical_continue", "CRITICAL"),
-            ("halt", "notify_critical_continue", "CRITICAL"),
+            ("soft_pause", "soft_de_gross", "HIGH"),
+            ("reduce", "hard_de_gross", "HIGH"),
+            ("critical", "halt_new_risk", "CRITICAL"),
+            ("halt", "full_halt_flatten", "CRITICAL"),
         ]
         for key, action, sev in mapping:
             pct = tiers_cfg.get(key)
             if pct is not None and not isinstance(pct, dict):
-                out.append(DrawdownTier(pct=float(pct), action=action, severity=sev))
+                out.append(
+                    DrawdownTier(
+                        pct=float(pct),
+                        action=normalize_tier_action(action, float(pct), notify_only),
+                        severity=sev,
+                    )
+                )
         return sorted(out, key=lambda t: t.pct)
 
     for entry in tiers_cfg:
         if not isinstance(entry, dict) or "pct" not in entry:
             continue
         pct = float(entry["pct"])
-        action = str(entry.get("action", "notify_operator"))
-        if action not in _NOTIFY_ACTIONS:
-            action = "notify_critical_continue" if pct >= 10.0 else "notify_operator"
+        action = normalize_tier_action(
+            str(entry.get("action", "notify_operator")), pct, notify_only
+        )
         out.append(
             DrawdownTier(
                 pct=pct,
@@ -126,8 +183,28 @@ def parse_drawdown_tiers(raw: dict[str, Any]) -> list[DrawdownTier]:
     return sorted(out, key=lambda t: t.pct)
 
 
+def is_risk_increasing_trade(trade: TradeRequest, positions: dict[str, Any]) -> bool:
+    """True when trade adds net exposure (not a de-risk / close)."""
+    side = trade.side.lower()
+    if side in ("sell", "short", "close", "reduce"):
+        return False
+    key = f"{trade.venue}:{trade.contract}"
+    pos = positions.get(key)
+    if pos is not None:
+        notional = getattr(pos, "notional_usd", None)
+        if notional is None and isinstance(pos, dict):
+            notional = float(pos.get("notional_usd", 0))
+        else:
+            notional = float(notional or 0)
+        if notional < 0 and side in ("buy", "long"):
+            return abs(trade.notional_usd) > abs(notional)
+        if notional > 0 and side in ("sell", "short"):
+            return False
+    return True
+
+
 class DrawdownTierEngine:
-    """Drawdown tiers alert only — autonomous trading continues (no pause/halt gates)."""
+    """Drawdown tiers — notify-only (paper) or enforce de-gross / halt / flatten (live)."""
 
     def __init__(self, policy_raw: dict[str, Any]) -> None:
         self.tiers = parse_drawdown_tiers(policy_raw)
@@ -160,25 +237,120 @@ class DrawdownTierEngine:
     def tiers_newly_crossed(
         self, previous_pct: float, current_pct: float
     ) -> list[DrawdownTier]:
-        """Tiers whose boundary was crossed upward since previous_pct."""
         if current_pct <= previous_pct:
             return []
         return [t for t in self.tiers if current_pct >= t.pct > previous_pct]
 
     def build_alert(self, tier: DrawdownTier, drawdown_pct: float) -> DrawdownAlert:
+        if self.notify_only:
+            msg = (
+                f"Portfolio drawdown {drawdown_pct:.2f}% crossed {tier.pct}% tier "
+                f"({tier.action}) — trading continues autonomously; no operator ack required"
+            )
+            return DrawdownAlert(
+                tier_pct=tier.pct,
+                action=tier.action,
+                severity=tier.severity,
+                drawdown_pct=drawdown_pct,
+                message=msg,
+                trading_continues=True,
+                enforced=False,
+            )
         msg = (
             f"Portfolio drawdown {drawdown_pct:.2f}% crossed {tier.pct}% tier "
-            f"({tier.action}) — trading continues autonomously; no operator ack required"
+            f"({tier.action}) — ENFORCED"
         )
+        continues = tier.action in ("soft_de_gross", "hard_de_gross")
         return DrawdownAlert(
             tier_pct=tier.pct,
             action=tier.action,
             severity=tier.severity,
             drawdown_pct=drawdown_pct,
             message=msg,
-            trading_continues=True,
+            trading_continues=continues,
+            enforced=True,
         )
 
-    def check_trade(self, drawdown_pct: float, trade: TradeRequest) -> tuple[str, str] | None:
-        """Never deny trades on portfolio drawdown tiers (notify-only policy)."""
+    def apply_tier_enforcement(
+        self,
+        state: RiskKernelState,
+        drawdown_pct: float,
+        kernel: RiskKernel | None = None,
+    ) -> dict[str, Any]:
+        """Apply kernel state changes for active drawdown tier (live profile only)."""
+        if self.notify_only:
+            return {"enforced": False, "action": None}
+
+        tier = self.active_tier(drawdown_pct)
+        if tier is None:
+            state.safe_mode_exposure_cap_pct = None
+            state.halt_new_entries = False
+            state.save()
+            return {"enforced": False, "action": None, "drawdown_pct": drawdown_pct}
+
+        action = tier.action
+        result: dict[str, Any] = {
+            "enforced": True,
+            "action": action,
+            "tier_pct": tier.pct,
+            "drawdown_pct": drawdown_pct,
+        }
+
+        if action == "soft_de_gross":
+            state.safe_mode_exposure_cap_pct = _TIER_EXPOSURE_CAP["soft_de_gross"]
+            state.halt_new_entries = False
+        elif action == "hard_de_gross":
+            state.safe_mode_exposure_cap_pct = _TIER_EXPOSURE_CAP["hard_de_gross"]
+            state.halt_new_entries = False
+        elif action in ("halt_new_risk", "halt_new_entries"):
+            state.halt_new_entries = True
+        elif action in ("full_halt_flatten", "flatten"):
+            state.halt_new_entries = True
+            if kernel is not None:
+                flatten = kernel.trigger_flatten(revoke_keys=False)
+                result["flatten"] = flatten
+            else:
+                state.halted = True
+                state.flatten_requested = True
+
+        state.save()
+        return result
+
+    def check_trade(
+        self,
+        drawdown_pct: float,
+        trade: TradeRequest,
+        state: RiskKernelState | None = None,
+    ) -> tuple[str, str] | None:
+        """Return (code, reason) to DENY when live enforcement active."""
+        if self.notify_only:
+            return None
+        if self.is_volatile_exempt(trade):
+            return None
+
+        tier = self.active_tier(drawdown_pct)
+        if tier is None:
+            return None
+
+        positions = state.positions if state is not None else {}
+
+        if tier.action in ("full_halt_flatten", "flatten"):
+            return (
+                "DRAWDOWN_FLATTEN",
+                f"Drawdown {drawdown_pct:.1f}% >= {tier.pct}% — flatten/halt active",
+            )
+
+        if tier.action in ("halt_new_risk", "halt_new_entries"):
+            if state is not None and getattr(state, "halt_new_entries", False):
+                if is_risk_increasing_trade(trade, positions):
+                    return (
+                        "DRAWDOWN_HALT_NEW_RISK",
+                        f"Drawdown {drawdown_pct:.1f}% — no new risk until recovery",
+                    )
+            elif is_risk_increasing_trade(trade, positions):
+                return (
+                    "DRAWDOWN_HALT_NEW_RISK",
+                    f"Drawdown {drawdown_pct:.1f}% >= {tier.pct}% — new risk halted",
+                )
+
         return None

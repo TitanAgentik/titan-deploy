@@ -271,14 +271,34 @@ if [[ -f "$TEMPLATE_POLICY" ]] && command -v python3 &>/dev/null; then
   python3 -c "
 import sys, yaml
 p = yaml.safe_load(open('$TEMPLATE_POLICY')) or {}
-a = p.get('autonomous_signing') or {}
-if not a.get('enabled'):
+profile = str(p.get('capital_profile') or 'paper').lower()
+if profile != 'paper':
     sys.exit(1)
-" 2>/dev/null && pass "policy autonomous_signing enabled" \
-    || fail "policy missing autonomous_signing.enabled"
+if p.get('autonomous_signing', {}).get('enabled') is not False:
+    sys.exit(2)
+venues = [str(v).lower() for v in (p.get('allowed_venues') or [])]
+if any(v in venues for v in ('binance_spot', 'okx_spot', 'bybit_spot', 'coinbase_spot')):
+    sys.exit(3)
+tier1 = p.get('tier1_capital_risk') or {}
+if not tier1.get('profiles', {}).get('live'):
+    sys.exit(4)
+" 2>/dev/null && pass "policy: paper default + tier1 live profile + DEX-only venues" \
+    || fail "policy: expected paper default, autonomous_signing false, no CEX, tier1 profiles"
 fi
 
-# Live capital profile — mock adapters forbidden in deployed templates
+if [[ -f "$TEMPLATE_POLICY" ]] && command -v python3 &>/dev/null; then
+  python3 -c "
+import sys, yaml
+p = yaml.safe_load(open('$TEMPLATE_POLICY')) or {}
+a = p.get('autonomous_signing') or {}
+# Paper default: signing off until evidence; live profile enables via tier1 merge
+if str(p.get('capital_profile','paper')).lower() == 'paper' and a.get('enabled') is True:
+    sys.exit(1)
+" 2>/dev/null && pass "policy autonomous_signing paper-safe" \
+    || fail "policy autonomous_signing enabled on paper default"
+fi
+
+# Live capital profile — mock adapters forbidden when profile is live (deployed policy)
 POLICY="$OPENCLAW_HOME/risk_kernel/policy.yaml"
 if [[ -f "$POLICY" ]] && command -v python3 &>/dev/null; then
   python3 -c "
@@ -290,8 +310,8 @@ except ImportError:
 p = yaml.safe_load(open('$POLICY')) or {}
 profile = str(p.get('capital_profile') or 'paper').lower()
 if profile != 'live':
-    print('EXPECTED_LIVE_PROFILE', file=sys.stderr)
-    sys.exit(1)
+    print('SKIP_LIVE_PROFILE_CHECKS', file=sys.stderr)
+    sys.exit(0)
 venues = [str(v).lower() for v in (p.get('allowed_venues') or [])]
 live = [v for v in venues if v not in ('paper', 'mock', 'test')]
 adapter = ((p.get('reconciliation') or {}).get('adapter') or 'mock')
@@ -492,12 +512,28 @@ if [[ -f "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" ]]; then
   else
     fail "policy.yaml missing memecoin_trench block"
   fi
-  if grep -q "drawdown_notify_only: true" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null \
-     && grep -q "notify_critical_continue" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null; then
-    pass "policy.yaml: drawdown tiers notify-only (autonomous continue)"
+  if grep -q "tier1_capital_risk:" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null \
+     && grep -q "drawdown_notify_only: true" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null \
+     && grep -q "soft_de_gross" "$PROJECT_ROOT/templates/risk_kernel/policy.yaml" 2>/dev/null; then
+    pass "policy.yaml: tier1 drawdown paper notify + live enforce tiers"
   else
-    fail "policy.yaml missing drawdown_notify_only / notify actions"
+    fail "policy.yaml missing tier1_capital_risk / drawdown tier config"
   fi
+fi
+
+# Tier 1 — execution skills must reference ExecutionGate
+if [[ -f "$PROJECT_ROOT/scripts/ci/check_execution_gate_imports.py" ]]; then
+  if python3 "$PROJECT_ROOT/scripts/ci/check_execution_gate_imports.py" 2>/dev/null; then
+    pass "execution skills reference ExecutionGate"
+  else
+    fail "execution skills missing ExecutionGate reference"
+  fi
+fi
+
+if [[ -f "$PROJECT_ROOT/docs/TIER1_CAPITAL_RISK.md" ]]; then
+  pass "docs/TIER1_CAPITAL_RISK.md present"
+else
+  fail "Missing docs/TIER1_CAPITAL_RISK.md"
 fi
 if [[ -f "$PROJECT_ROOT/templates/safety/titan_safety/memecoin_filter.py" ]]; then
   pass "memecoin_filter module present"

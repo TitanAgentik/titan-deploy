@@ -284,8 +284,9 @@ Every position must have a **hard stop-loss**. Soft “mental stops” are not c
 ### Drawdown honesty note
 
 - **SOUL / AGENTS operational doctrine** describes a 5-tier CB ladder culminating in halt at 12%.
-- **Current template policy** sets `drawdown_notify_only: true` (notify / continue) while **velocity** breakers still DENY/HALT.
-- Before live capital, Hyperion must **consciously choose** whether notify-only is acceptable or whether halt-on-tier should be enforced in the deployed policy. Do not assume the template matches the doctrine without reading your live file.
+- **Default template** (`capital_profile: paper`) uses `drawdown_notify_only: true` — tiers alert only.
+- **Live profile** (after Phase 5 YES) enforces de-gross / halt / flatten via `tier1_capital_risk.profiles.live` — see [`docs/TIER1_CAPITAL_RISK.md`](./docs/TIER1_CAPITAL_RISK.md).
+- **Velocity** breakers still DENY/HALT on all profiles.
 
 ### Weekly profit sweep (R23)
 

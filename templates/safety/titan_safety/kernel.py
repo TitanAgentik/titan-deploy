@@ -85,6 +85,7 @@ class RiskKernelState:
         self.flatten_requested: bool = False
         self.keys_revoked: bool = False
         self.safe_mode_exposure_cap_pct: float | None = None
+        self.halt_new_entries: bool = False
         self.drawdown_pct_24h: float = 0.0
         self._load()
 
@@ -96,6 +97,7 @@ class RiskKernelState:
             self.keys_revoked = bool(data.get("keys_revoked", False))
             cap = data.get("safe_mode_exposure_cap_pct")
             self.safe_mode_exposure_cap_pct = float(cap) if cap is not None else None
+            self.halt_new_entries = bool(data.get("halt_new_entries", False))
             self.drawdown_pct_24h = float(data.get("drawdown_pct_24h", 0.0))
             for k, p in data.get("positions", {}).items():
                 self.positions[k] = Position(**p)
@@ -111,6 +113,7 @@ class RiskKernelState:
             "flatten_requested": self.flatten_requested,
             "keys_revoked": self.keys_revoked,
             "safe_mode_exposure_cap_pct": self.safe_mode_exposure_cap_pct,
+            "halt_new_entries": self.halt_new_entries,
             "drawdown_pct_24h": self.drawdown_pct_24h,
             "positions": {k: asdict(v) for k, v in self.positions.items()},
             "recent_losses": list(self.recent_losses),
@@ -414,6 +417,16 @@ class RiskKernel:
                     sim.get("reason", "Portfolio risk simulation denied"),
                     **{k: v for k, v in sim.items() if k not in ("decision", "reason", "code")},
                 )
+
+        from .drawdown_tiers import DrawdownTierEngine
+
+        dd_engine = DrawdownTierEngine(self.policy.raw or {})
+        dd_deny = dd_engine.check_trade(
+            self.state.drawdown_pct_24h, trade, state=self.state
+        )
+        if dd_deny is not None:
+            code, reason = dd_deny
+            return self._deny(code, reason, drawdown_pct=self.state.drawdown_pct_24h)
 
         return self._allow()
 

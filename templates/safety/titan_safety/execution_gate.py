@@ -8,6 +8,7 @@ This is the code-level enforcement that config URLs alone cannot provide.
 from __future__ import annotations
 
 import json
+import time
 import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass, field
@@ -20,6 +21,7 @@ from pathlib import Path
 from .auth import sign_control_command
 from .gate_receipt import GateReceipt, issue_gate_receipt
 from .kernel import TradeRequest, ValidationResult
+from .observability import METRICS
 from .policy_loader import Policy, load_policy
 from .stealth_predatory import check_stealth_evasion
 from .reconciliation import BelievedPosition, ReconciliationResult
@@ -127,6 +129,7 @@ class ExecutionGate:
         believed: list[BelievedPosition] | list[dict[str, Any]] | None = None,
         fast_path: bool | None = None,
     ) -> GateDecision:
+        t0 = time.perf_counter()
         if isinstance(trade, dict):
             trade = TradeRequest.from_dict(trade)
         use_fast = fast_path if fast_path is not None else self._hot_path_enabled(trade)
@@ -134,6 +137,13 @@ class ExecutionGate:
             decision = self._gate_fast(trade, believed)
         else:
             decision = self._gate_standard(trade, believed)
+        elapsed = time.perf_counter() - t0
+        METRICS.observe_latency("execution_gate", elapsed)
+        METRICS.inc("execution_gate_total")
+        if decision.allowed:
+            METRICS.inc("execution_gate_allow_total")
+        else:
+            METRICS.inc("execution_gate_deny_total")
         try:
             from .telegram_notify import notify_gate_decision
 

@@ -90,6 +90,8 @@ def create_app(
                 previous_pct=previous,
                 current_pct=kernel.state.drawdown_pct_24h,
                 source=str(body.get("source", "GUARDIAN")),
+                kernel=kernel,
+                kernel_state=kernel.state,
             )
         trade = TradeRequest.from_dict(body)
         result = kernel.validate_trade(trade)
@@ -155,6 +157,8 @@ def create_app(
                 previous_pct=previous,
                 current_pct=kernel.state.drawdown_pct_24h,
                 source=str(body.get("source", "GUARDIAN")),
+                kernel=kernel,
+                kernel_state=kernel.state,
             )
 
         result = kernel.validate_trade(trade)

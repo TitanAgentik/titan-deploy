@@ -220,6 +220,29 @@ class KillSwitch:
             return False, "invalid signature"
         return True, command
 
+    def _operator_from_signed(self, signed: str) -> str:
+        parts = signed.split("|")
+        return parts[1] if len(parts) >= 2 else ""
+
+    def verify_dual_resume(
+        self,
+        signed_primary: str,
+        signed_secondary: str,
+        max_age_seconds: int = 300,
+    ) -> tuple[bool, str]:
+        """Live profile dual-control: two distinct operator RESUME signatures."""
+        ok1, cmd1 = self.verify_signed_command(signed_primary, max_age_seconds)
+        if not ok1 or cmd1 != "RESUME":
+            return False, f"primary invalid: {cmd1}"
+        ok2, cmd2 = self.verify_signed_command(signed_secondary, max_age_seconds)
+        if not ok2 or cmd2 != "RESUME":
+            return False, f"secondary invalid: {cmd2}"
+        op1 = self._operator_from_signed(signed_primary)
+        op2 = self._operator_from_signed(signed_secondary)
+        if not op1 or not op2 or op1 == op2:
+            return False, "dual-control requires two distinct operators"
+        return True, "RESUME"
+
     def health(self) -> dict[str, Any]:
         state = self.load_state()
         return {

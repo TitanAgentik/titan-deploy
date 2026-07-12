@@ -112,3 +112,31 @@ verification:
   cli: titan-safety security status
   policy_block: ghost_evasion
   refs: [GHOST_detail.md, REAPER_detail.md, MEV_detail.md]
+
+# Agent network namespace — structural non-bypass (item 8).
+# STUB: full eBPF enforcement deferred; ops applies iptables/nftables from this spec.
+network_topology:
+  agent_netns:
+    description: |
+      LLM agent processes run in isolated network namespaces without chain RPC submit.
+      Only titan-safety execution_daemon / flatten_executor / trench-ops-edge may reach
+      shielded broadcast endpoints (Jito, Flashbots, Hyperliquid colo).
+    agent_submit_denied: true
+    allowed_submit_callers:
+      - trench-ops-edge
+      - execution_daemon
+      - flatten_executor
+      - titan-safety
+    denied_egress:
+      - eth_public_rpc
+      - solana_public_rpc
+      - cex_api_direct
+      - binance_public
+    allowed_egress:
+      - 127.0.0.1  # localhost safety services :19001-:19008
+      - intent_solver
+      - jito
+      - flashbots_protect
+      - hyperliquid
+  apply_script_stub: scripts/ci/apply_agent_netns_policy.sh.stub
+  note: "Operator runs netns bootstrap at deploy — see docs/TIER1_CAPITAL_RISK.md §8"

@@ -44,7 +44,7 @@ CLI: `titan-safety memecoin filter|evaluate --mint-json '{...}'` · `memecoin si
 1. Configure `~/.openclaw/infra/solana_memecoin.yaml` (Geyser + Jito)  
 2. Set `memecoinTrench.enabled: true` only after `promotion approve YES`  
 3. Policy: `capital_profile: live`, venues `solana_pumpfun`, `jito`  
-4. Every buy: gate check → receipt → signing_node → EDGE-FRA Jito bundle  
+4. Every buy: `ExecutionGate(policy).gate(trade, fast_path=True)` or `titan-safety gate check --fast` → receipt → signing_node → EDGE-FRA Jito bundle  
 
 ## Output schema
 

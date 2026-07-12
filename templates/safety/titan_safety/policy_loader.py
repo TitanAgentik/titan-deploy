@@ -82,11 +82,33 @@ def capital_profile_of(policy: "Policy") -> str:
     return str(policy.raw.get("capital_profile", "paper")).lower()
 
 
+def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
+    out = dict(base)
+    for key, val in overrides.items():
+        if isinstance(val, dict) and isinstance(out.get(key), dict):
+            out[key] = _deep_merge(out[key], val)
+        else:
+            out[key] = val
+    return out
+
+
+def apply_capital_profile(data: dict[str, Any]) -> dict[str, Any]:
+    """Merge tier1_capital_risk profile overrides for active capital_profile."""
+    profile = str(data.get("capital_profile", "paper")).lower()
+    tier1 = data.get("tier1_capital_risk") or {}
+    profiles = tier1.get("profiles") or {}
+    overrides = profiles.get(profile)
+    if isinstance(overrides, dict) and overrides:
+        data = _deep_merge(data, overrides)
+    return data
+
+
 def load_policy(path: str | Path) -> Policy:
     p = expand_path(path)
-    data = yaml.safe_load(p.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
+    raw_data = yaml.safe_load(p.read_text(encoding="utf-8"))
+    if not isinstance(raw_data, dict):
         raise ValueError(f"Invalid policy format: {p}")
+    data = apply_capital_profile(raw_data)
 
     tl = data.get("trading_limits", {})
     rc = data.get("reconciliation", {})

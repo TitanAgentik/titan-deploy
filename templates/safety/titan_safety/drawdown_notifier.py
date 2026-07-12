@@ -51,9 +51,11 @@ def enqueue_herald_alert(safety_dir: Path, alert: DrawdownAlert, source: str = "
         "tier_pct": alert.tier_pct,
         "drawdown_pct": alert.drawdown_pct,
         "action": alert.action,
-        "trading_continues": True,
+        "trading_continues": alert.trading_continues,
+        "enforced": alert.enforced,
         "immediate": True,
-        "reason_codes": ["DRAWDOWN_TIER", "AUTONOMOUS_CONTINUE"],
+        "reason_codes": ["DRAWDOWN_TIER"]
+        + (["AUTONOMOUS_CONTINUE"] if alert.trading_continues else ["ENFORCED"]),
         "message": alert.message,
         "ts": time.time(),
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -73,7 +75,11 @@ def enqueue_herald_alert(safety_dir: Path, alert: DrawdownAlert, source: str = "
                 "action": alert.action,
                 "trading_continues": True,
             },
-            action_required="Monitor exposure; trading continues autonomously.",
+            action_required=(
+                "Monitor exposure; trading continues autonomously."
+                if alert.trading_continues
+                else "Drawdown tier enforced — de-gross / halt active."
+            ),
             reason_codes=["DRAWDOWN_TIER", alert.action.upper()],
         )
         event["telegram_text"] = format_institutional_message(ev)
@@ -94,10 +100,16 @@ def process_drawdown_update(
     previous_pct: float,
     current_pct: float,
     source: str = "GUARDIAN",
+    kernel: Any | None = None,
+    kernel_state: Any | None = None,
 ) -> dict[str, Any]:
-    """Notify on newly crossed tiers; reset tracking when drawdown recovers below 2%."""
+    """Notify on newly crossed tiers; enforce state when live profile active."""
     engine = DrawdownTierEngine(policy_raw)
     state = _load_state(safety_dir)
+
+    enforcement: dict[str, Any] = {}
+    if kernel_state is not None and not engine.notify_only:
+        enforcement = engine.apply_tier_enforcement(kernel_state, current_pct, kernel=kernel)
 
     floor_reset = engine.tiers[0].pct if engine.tiers else 2.0
     if current_pct < floor_reset:
@@ -124,6 +136,9 @@ def process_drawdown_update(
     _save_state(safety_dir, state)
 
     active = engine.active_tier(current_pct)
+    trading_continues = engine.notify_only or (
+        active is not None and active.action in ("soft_de_gross", "hard_de_gross")
+    )
     return {
         "ok": True,
         "drawdown_pct_24h": current_pct,
@@ -132,5 +147,7 @@ def process_drawdown_update(
         "active_tier_action": active.action if active else None,
         "alerts_sent": len(alerts),
         "alerts": alerts,
-        "trading_continues": True,
+        "trading_continues": trading_continues,
+        "enforced": enforcement.get("enforced", False),
+        "enforcement": enforcement,
     }

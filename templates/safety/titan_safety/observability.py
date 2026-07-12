@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -39,6 +40,8 @@ def setup_logging(service: str, level: int = logging.INFO) -> logging.Logger:
 class MetricsRegistry:
     counters: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     gauges: dict[str, float] = field(default_factory=dict)
+    _latencies: dict[str, list[float]] = field(default_factory=lambda: defaultdict(list))
+    _latency_max: int = 500
     _lock: Lock = field(default_factory=Lock, repr=False)
 
     def inc(self, name: str, value: int = 1) -> None:
@@ -48,6 +51,18 @@ class MetricsRegistry:
     def set_gauge(self, name: str, value: float) -> None:
         with self._lock:
             self.gauges[name] = value
+
+    def observe_latency(self, name: str, seconds: float) -> None:
+        """Record latency sample; updates {name}_p99_ms gauge."""
+        with self._lock:
+            samples = self._latencies[name]
+            samples.append(seconds)
+            if len(samples) > self._latency_max:
+                del samples[: len(samples) - self._latency_max]
+            if samples:
+                sorted_s = sorted(samples)
+                idx = max(0, int(math.ceil(0.99 * len(sorted_s))) - 1)
+                self.gauges[f"{name}_p99_ms"] = sorted_s[idx] * 1000.0
 
     def to_prometheus(self) -> str:
         lines: list[str] = []

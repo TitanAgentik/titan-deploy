@@ -2,10 +2,10 @@
 # Deploy target: ~/.openclaw/risk_kernel/policy.yaml
 # Agents propose; kernel vetoes. Cannot be modified by agent runtime.
 
-version: "2.1"
+version: "2.2"
 mode: enforce
-# Live capital profile + paper shadow lane. Fill ~/.openclaw/.env from templates/infra/live.env.example
-capital_profile: live
+# Default deploy profile — paper until Phase 5 YES + operator checklist.
+capital_profile: paper
 
 trading_limits:
   max_notional_usd_per_trade: 500.0
@@ -17,12 +17,8 @@ trading_limits:
   equity_usd: 2500.0
 
 allowed_venues:
-  - paper  # shadow / unpromoted lanes — no real capital; live lanes use venues below
-  - binance_spot
-  - okx_spot
+  - paper  # shadow / unpromoted lanes
   - hyperliquid
-  - bybit_spot
-  - coinbase_spot
   - uniswap_v3
   - curve
   - aave_v3
@@ -31,6 +27,7 @@ allowed_venues:
   - solana_pumpswap
   - jito
   - flashbots_protect
+  # DEX-only (R02/R46) — no CEX-direct venues in default template
 
 allowed_contracts:
   - "0x0000000000000000000000000000000000000000"  # paper sentinel
@@ -46,7 +43,7 @@ position_limits:
 # Agent-autonomous sign/verify — replaces human approval on the trade path.
 # Safety retained: reconciliation → risk kernel → confidence → BFT → gate receipt → in-process sign.
 autonomous_signing:
-  enabled: true
+  enabled: false  # paper default — enable only in live profile after evidence
   min_confidence_reduced: 0.50
   min_confidence_full: 0.70
   paper_min_confidence: 0.30
@@ -56,7 +53,7 @@ autonomous_signing:
   require_typed_data_live: true
   note: "Human gates remain for promotion, evolution, leverage, large withdrawals; flash-loan live autonomous per policy"
 
-# Portfolio drawdown — notify-only; trading continues autonomously (no pause/halt gates).
+# Portfolio drawdown — paper default notify-only; live profile enforces tiers (tier1_capital_risk).
 drawdown_notify_only: true
 
 drawdown_volatile_exempt:
@@ -94,8 +91,8 @@ portfolio_risk:
   max_cvar_pct_equity: 12.0
   max_correlated_cluster_pct: 25.0
   min_return_samples: 20
-  augur_regime_stub: neutral
-  augur_feed: file
+  augur_regime_stub: neutral  # paper only — live profile uses augur_feed: file
+  augur_feed: stub
   augur_regime_file: ~/.openclaw/safety/augur_regime.json
   regime_limits:
     risk_off: 50.0
@@ -110,10 +107,8 @@ portfolio_risk:
 reconciliation:
   divergence_threshold_usd: 25.0
   divergence_threshold_pct: 1.0
-  adapter: live
-  recon_module: "titan_safety.adapters.live_bundle:build_position_fetcher"
+  adapter: mock  # paper default; live profile overrides to live adapter
   recon_halt_on_divergence: true
-  live_profile_note: "Fill TITAN_RECON_FETCHER_URL or HYPERLIQUID_WALLET_ADDRESS in ~/.openclaw/.env"
 
 # Tier 0 money path — one venue depth-first (Hyperliquid). Does NOT auto-enable live capital.
 tier0_money_path:
@@ -158,17 +153,91 @@ allocator:
   max_active_pipelines: 4        # hard concentration — fund few HEALTHY lanes; catalog ≠ all-on
   # Selective activation: pipelines/skills/security modules in TITAN docs are optional until funded/needed.
   selective_activation: true
-  advisory_mode: true   # Phase 1: log targets; Phase 2+: set false to enforce
+  advisory_mode: true   # paper default; live profile sets false (enforced de-gross)
   note: "Do not enable every strategy or feature mentioned in specs — use only what is necessary"
   regime_multipliers:
     risk_off: 0.5
     neutral: 1.0
     risk_on: 1.2
-  degross_ladder:                 # [drawdown_pct, gross_multiplier] — progressive de-grossing
-    - [3.0, 0.75]
+  degross_ladder:                 # [drawdown_pct, gross_multiplier] — enforced when advisory_mode false
+    - [2.0, 0.75]
     - [5.0, 0.5]
-    - [7.0, 0.25]
+    - [8.0, 0.25]
     - [10.0, 0.0]
+
+# Tier 1 capital risk — profile overrides (items 6–10). load_policy merges active profile.
+tier1_capital_risk:
+  version: "1.0"
+  slo:
+    gate_p99_ms: 250
+    gate_fast_p99_ms: 150
+    kill_resume_dual_control: true
+  profiles:
+    paper:
+      drawdown_notify_only: true
+      autonomous_signing:
+        enabled: false
+      reconciliation:
+        adapter: mock
+      allocator:
+        advisory_mode: true
+      portfolio_risk:
+        augur_feed: stub
+        allow_augur_stub: true
+      kill_switch:
+        dual_control_resume: false
+      drawdown_tiers:
+        - pct: 2.0
+          action: notify_operator
+          severity: MEDIUM
+        - pct: 5.0
+          action: notify_operator
+          severity: HIGH
+        - pct: 8.0
+          action: notify_operator
+          severity: HIGH
+        - pct: 10.0
+          action: notify_critical_continue
+          severity: CRITICAL
+        - pct: 12.0
+          action: notify_critical_continue
+          severity: CRITICAL
+    live:
+      drawdown_notify_only: false
+      autonomous_signing:
+        enabled: true
+      reconciliation:
+        adapter: live
+        recon_module: "titan_safety.adapters.live_bundle:build_position_fetcher"
+        recon_halt_on_divergence: true
+      allocator:
+        advisory_mode: false
+      portfolio_risk:
+        augur_feed: file
+        augur_feed_live: file
+        allow_augur_stub: false
+      kill_switch:
+        dual_control_resume: true
+      drawdown_tiers:
+        - pct: 2.0
+          action: soft_de_gross
+          severity: MEDIUM
+        - pct: 5.0
+          action: hard_de_gross
+          severity: HIGH
+        - pct: 8.0
+          action: halt_new_risk
+          severity: HIGH
+        - pct: 10.0
+          action: halt_new_risk
+          severity: CRITICAL
+        - pct: 12.0
+          action: full_halt_flatten
+          severity: CRITICAL
+          note: "Immediate flatten — operator dual-control RESUME required to clear kill"
+
+kill_switch:
+  dual_control_resume: false  # overridden to true in live profile
 
 # Execution-quality / transaction-cost analysis thresholds.
 tca:

@@ -1,0 +1,7 @@
+# STUB — operator netns policy bootstrap (item 8).
+# Copy to /usr/local/sbin/openclaw-agent-netns.sh and customize per host.
+# Agents: no chain RPC submit egress. Execution daemon only.
+
+set -euo pipefail
+echo "[STUB] apply_agent_netns_policy — wire iptables/nftables per ghost_evasion.yaml network_topology"
+echo "See docs/TIER1_CAPITAL_RISK.md section 8 for full spec."

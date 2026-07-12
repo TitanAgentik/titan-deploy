@@ -52,7 +52,31 @@ def cmd_kill_deactivate(args: argparse.Namespace) -> int:
     if not args.signed:
         print(json.dumps({"error": "signed RESUME required for deactivate", "hint": "titan-safety kill sign --command RESUME"}))
         return 1
-    ok, msg = ks.verify_signed_command(args.signed)
+
+    dual_required = False
+    policy_path = Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml"
+    if policy_path.exists():
+        try:
+            policy = load_policy(policy_path)
+            ks_cfg = (policy.raw or {}).get("kill_switch") or {}
+            tier1 = (policy.raw or {}).get("tier1_capital_risk") or {}
+            dual_required = bool(
+                ks_cfg.get("dual_control_resume")
+                or tier1.get("kill_switch", {}).get("dual_control_resume")
+            )
+        except Exception:
+            pass
+
+    if dual_required:
+        if not getattr(args, "signed_secondary", None):
+            print(json.dumps({
+                "error": "dual-control RESUME required for live profile",
+                "hint": "titan-safety kill sign --command RESUME (two distinct operators)",
+            }))
+            return 1
+        ok, msg = ks.verify_dual_resume(args.signed, args.signed_secondary)
+    else:
+        ok, msg = ks.verify_signed_command(args.signed)
     if not ok:
         print(json.dumps({"error": msg}))
         return 1
@@ -1024,6 +1048,11 @@ def main(argv: list[str] | None = None) -> int:
     kd = kill_sub.add_parser("deactivate")
     kd.add_argument("--operator", default="cli")
     kd.add_argument("--signed", default=None, help="HMAC-signed RESUME command (required)")
+    kd.add_argument(
+        "--signed-secondary",
+        default=None,
+        help="Second HMAC-signed RESUME (required for live dual-control)",
+    )
     kd.set_defaults(func=cmd_kill_deactivate)
 
     ks = kill_sub.add_parser("status")

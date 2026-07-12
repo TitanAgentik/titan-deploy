@@ -18,3 +18,5 @@ Modification attempts → CRITICAL alert + forced rollback.
 13. Closed/cloud models never on live path (TRENCH-OPS / GUARDIAN / EXECUTOR / PREDATOR live votes).
 14. Catalog ≠ checklist — agents must not enable every strategy, feature, or pillar mentioned in specs; use only what is necessary for the current task and phase.
 15. Live capital: public RPC / public mempool / unshielded CEX-direct venues forbidden — execution must use MEV-shielded routes (`ghost_evasion` policy; kernel codes `STEALTH_PUBLIC_PATH`, `STEALTH_UNSHIELDED_VENUE`).
+16. Default deploy profile is **paper** — live capital requires explicit `capital_profile: live` + Phase 5 YES; drawdown tiers enforce de-gross/halt/flatten on live (not notify-only).
+17. Agent network namespaces must not reach chain RPC submit — execution submit only via `titan-safety` / edge workers (`ghost_evasion.network_topology`).
