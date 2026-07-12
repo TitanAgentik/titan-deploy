@@ -1,0 +1,129 @@
+# TITAN Prometheus alert rules → Alertmanager → HERALD/Telegram
+# Deploy alongside prometheus.yml
+# Operator surface: TELEGRAM_OPS_GUIDE.md — no cockpit required
+
+groups:
+  - name: titan_critical
+    rules:
+      - alert: TitanRiskKernelDown
+        expr: up{job="titan_risk_kernel"} == 0
+        for: 30s
+        labels:
+          severity: CRITICAL
+          agent_id: FORGE
+          herald_route: telegram
+        annotations:
+          summary: "Risk kernel :19001 unreachable"
+          description: "Pre-trade DENY path may be bypassed or trading halted. Verify titan-risk-kernel service."
+          action_required: "Restart risk kernel; run ./verify.sh; do not trade until ALLOW path restored."
+
+      - alert: TitanReconciliationDiverge
+        expr: increase(reconciliation_deny_total[5m]) > 3
+        for: 2m
+        labels:
+          severity: CRITICAL
+          agent_id: GUARDIAN
+          herald_route: telegram
+        annotations:
+          summary: "Reconciliation diverge — pre-trade HALT"
+          description: "Believed vs exchange positions diverging. {{ $value }} denies in 5m."
+          action_required: "Halt new entries; reconcile positions; review recon ledger."
+
+      - alert: TitanSigningHalt
+        expr: security_signing_halted == 1
+        for: 0m
+        labels:
+          severity: CRITICAL
+          agent_id: TRENCH-OPS
+          herald_route: telegram
+        annotations:
+          summary: "Signing halted — no live broadcasts"
+          description: "security_signing_halted gauge active on :19008."
+          action_required: "Investigate kill switch / key revoke; operator RESUME after root cause."
+
+      - alert: TitanLossVelocityBreach
+        expr: increase(risk_kernel_deny_total{reason="loss_velocity"}[5m]) > 0
+          or increase(fast_validate_kernel_deny_total[5m]) > 2
+        for: 1m
+        labels:
+          severity: HIGH
+          agent_id: GUARDIAN
+          herald_route: telegram
+        annotations:
+          summary: "Loss velocity cap triggered"
+          description: "Kernel denying trades due to 60s/15m loss velocity."
+          action_required: "Review open positions; consider portfolio kill; verify fill ledger."
+
+      - alert: TitanServicesDegraded
+        expr: titan_services_degraded == 1
+        for: 2m
+        labels:
+          severity: HIGH
+          agent_id: FORGE
+          herald_route: telegram
+        annotations:
+          summary: "Safety services degraded"
+          description: "Status aggregator reports non-ok posture."
+          action_required: "Check :19001–:19008 health endpoints; run verify.sh."
+
+  - name: titan_ops
+    rules:
+      - alert: TitanUpsBatteryLow
+        expr: ups_battery_percent < 20
+        for: 5m
+        labels:
+          severity: CRITICAL
+          agent_id: FORGE
+          herald_route: telegram
+        annotations:
+          summary: "UPS battery low (STUB metric)"
+          description: "Wire Eaton UPS telemetry → pushgateway. Until wired, manual checks only."
+          action_required: "Verify UPS load; prepare graceful halt per power_loss runbook."
+
+      - alert: TitanEdgeRttDegraded
+        expr: edge_rtt_p99_ms > 50
+        for: 5m
+        labels:
+          severity: HIGH
+          agent_id: FORGE
+          herald_route: telegram
+        annotations:
+          summary: "Edge RTT p99 above 50ms"
+          description: "PoP latency budget breached for {{ $labels.pop }}."
+          action_required: "Review edge_mesh.yaml routing; failover per edge_hot_path.yaml."
+
+      - alert: TitanFillRateCollapse
+        expr: tca_bleeding_lanes > 0 or (avg_over_time(tca_net_bps_P3[1h]) < -5)
+        for: 15m
+        labels:
+          severity: HIGH
+          agent_id: QUANT
+          herald_route: telegram
+        annotations:
+          summary: "Fill rate / TCA collapse"
+          description: "Bleeding lanes or sustained negative net bps."
+          action_required: "Run titan-safety tca daily-scorecard; profit_loop may auto-defund."
+
+      - alert: TitanExecutionGateP99High
+        expr: execution_gate_p99_ms > 500
+        for: 5m
+        labels:
+          severity: MEDIUM
+          agent_id: TRENCH-OPS
+          herald_route: telegram
+        annotations:
+          summary: "Execution gate p99 > 500ms"
+          description: "Hot-path gate latency elevated."
+          action_required: "Check kernel load; review fast_validate path."
+
+      - alert: TitanDeadMansSwitchStale
+        expr: dms_hours_since_heartbeat > 24
+        for: 0m
+        labels:
+          severity: HIGH
+          agent_id: FORGE
+          herald_route: telegram
+        annotations:
+          summary: "Dead man's switch heartbeat stale"
+          description: "{{ $value }}h since last operator heartbeat."
+          action_required: "Send heartbeat or expect auto de-risk per policy."

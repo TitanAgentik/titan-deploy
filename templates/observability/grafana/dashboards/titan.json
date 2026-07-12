@@ -1,0 +1,212 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "TITAN safety services — :19001–:19008. Operator alerts via HERALD/Telegram; Grafana is diagnostic only.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "TELEGRAM_OPS_GUIDE",
+      "type": "link",
+      "url": "file:///TELEGRAM_OPS_GUIDE.md"
+    }
+  ],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Fleet Health",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "green", "index": 0, "text": "OK" } }, "type": "value" },
+            { "options": { "1": { "color": "red", "index": 1, "text": "DEGRADED" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
+      "targets": [{ "expr": "titan_services_degraded", "legendFormat": "degraded", "refId": "A" }],
+      "title": "Services Degraded",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "targets": [{ "expr": "up{job=~\"titan_.*\"}", "legendFormat": "{{ job }}", "refId": "A" }],
+      "title": "Scrape Targets Up",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "id": 3,
+      "targets": [{ "expr": "execution_gate_p99_ms", "legendFormat": "gate p99", "refId": "A" }],
+      "title": "Execution Gate p99",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "color": "green", "text": "ACTIVE" } }, "type": "value" },
+            { "options": { "1": { "color": "red", "text": "HALTED" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "targets": [{ "expr": "security_signing_halted", "refId": "A" }],
+      "title": "Signing Halted",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "Risk Kernel (:19001)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 10,
+      "targets": [
+        { "expr": "rate(risk_kernel_allow_total[5m])", "legendFormat": "allow/s", "refId": "A" },
+        { "expr": "rate(risk_kernel_deny_total[5m])", "legendFormat": "deny/s", "refId": "B" }
+      ],
+      "title": "Kernel Validations Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 11,
+      "targets": [
+        { "expr": "rate(fast_validate_total[5m])", "legendFormat": "fast_validate", "refId": "A" },
+        { "expr": "rate(fast_validate_recon_deny_total[5m])", "legendFormat": "recon_deny", "refId": "B" }
+      ],
+      "title": "Fast Validate Path",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "Portfolio & Reconciliation",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 15 },
+      "id": 20,
+      "targets": [
+        { "expr": "portfolio_var_95_usd", "legendFormat": "VaR 95", "refId": "A" },
+        { "expr": "portfolio_cvar_95_usd", "legendFormat": "CVaR 95", "refId": "B" }
+      ],
+      "title": "Portfolio VaR / CVaR (:19004)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 15 },
+      "id": 21,
+      "targets": [
+        { "expr": "rate(reconciliation_checks_total[5m])", "legendFormat": "checks", "refId": "A" },
+        { "expr": "rate(reconciliation_deny_total[5m])", "legendFormat": "denies", "refId": "B" }
+      ],
+      "title": "Reconciliation (:19002)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 15 },
+      "id": 22,
+      "targets": [
+        { "expr": "dms_hours_since_heartbeat", "legendFormat": "hours", "refId": "A" }
+      ],
+      "title": "Dead Man's Switch Heartbeat (:19005)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "id": 103,
+      "title": "TCA & Allocator",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "id": 30,
+      "targets": [
+        { "expr": "tca_bleeding_lanes", "legendFormat": "bleeding lanes", "refId": "A" },
+        { "expr": "profit_loop_defunded", "legendFormat": "defunded", "refId": "B" }
+      ],
+      "title": "Profit Loop / TCA (:19007)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "id": 31,
+      "targets": [
+        { "expr": "allocator_utilization", "legendFormat": "utilization", "refId": "A" },
+        { "expr": "allocator_gross_pct / 100", "legendFormat": "gross pct", "refId": "B" }
+      ],
+      "title": "Allocator (:19006)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["titan", "safety", "institutional"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "Prometheus", "value": "Prometheus" },
+        "hide": 0,
+        "label": "Datasource",
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "TITAN Safety Overview",
+  "uid": "titan-safety-overview",
+  "version": 1
+}

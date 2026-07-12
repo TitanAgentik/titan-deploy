@@ -1,0 +1,26 @@
+# Alertmanager → HERALD/Telegram bridge (operator deploy STUB)
+# Copy to ~/.openclaw/observability/alertmanager.yml and set webhook URL.
+#
+# The webhook receiver should POST to a small bridge that enqueues
+# herald_queue.jsonl or calls titan-safety notify directly.
+# See TELEGRAM_OPS_GUIDE.md for bot token / chat_id.
+
+route:
+  receiver: herald-telegram
+  group_by: [alertname, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - match:
+        severity: CRITICAL
+      receiver: herald-telegram
+      repeat_interval: 30m
+
+receivers:
+  - name: herald-telegram
+    webhook_configs:
+      - url: http://127.0.0.1:19099/v1/alertmanager
+        send_resolved: true
+        # STUB: deploy herald-alert-bridge.service or use prometheus-bot
+        # with TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID from environment.

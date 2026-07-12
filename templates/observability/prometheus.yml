@@ -1,0 +1,122 @@
+# TITAN Prometheus scrape configuration
+# Deploy: ~/.openclaw/observability/prometheus.yml
+# Operator surface for alerts: Telegram via HERALD (not Grafana)
+#
+# STUB: Prometheus server install + Alertmanager → HERALD webhook is operator-side.
+# This file is the canonical scrape target list for safety services :19001–:19008.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: titanhome
+    env: paper  # override to live in production
+
+rule_files:
+  - alert_rules.yaml
+
+# Alertmanager routes to HERALD/Telegram bridge (operator deploy).
+# See templates/observability/alertmanager_herald.yaml.example
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 127.0.0.1:9093
+
+scrape_configs:
+  - job_name: titan_risk_kernel
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:19001"]
+        labels:
+          service: risk_kernel
+          tier: critical
+
+  - job_name: titan_reconciliation
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:19002"]
+        labels:
+          service: reconciliation
+          tier: critical
+    # NOTE: :19002 returns JSON metrics today; use json_exporter sidecar or
+    # upgrade handler to _raw_prometheus (STUB — operator choice).
+
+  - job_name: titan_status_aggregator
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:19003"]
+        labels:
+          service: status_aggregator
+          tier: ops
+
+  - job_name: titan_portfolio_risk
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:19004"]
+        labels:
+          service: portfolio_risk
+          tier: critical
+
+  - job_name: titan_dead_mans_switch
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:19005"]
+        labels:
+          service: dead_mans_switch
+          tier: critical
+
+  - job_name: titan_allocator
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:19006"]
+        labels:
+          service: allocator
+          tier: ops
+
+  - job_name: titan_tca
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:19007"]
+        labels:
+          service: tca
+          tier: ops
+
+  - job_name: titan_security_ops
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:19008"]
+        labels:
+          service: security_ops
+          tier: security
+
+  # Optional legacy signing HTTP daemon (not on hot path)
+  - job_name: titan_signing_node
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:19010"]
+        labels:
+          service: signing_node
+          tier: optional
+
+  # Edge RTT probes — FORGE appends to memory/infra/rtt.jsonl (not HTTP).
+  # STUB: deploy node_exporter + custom textfile collector or pushgateway.
+  - job_name: titan_edge_rtt_textfile
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["127.0.0.1:9100"]
+        labels:
+          service: edge_rtt
+          tier: edge
+    # Requires operator-side textfile from edge_rtt_probe.yaml output.
+
+  # Execution gate latency (in-process, no dedicated port — scraped via status :19003
+  # which aggregates titan_services_degraded; gate p99 on kernel/TCA where exposed).
+  - job_name: titan_execution_gate
+    metrics_path: /metrics
+    honor_labels: true
+    static_configs:
+      - targets: ["127.0.0.1:19001"]
+        labels:
+          service: execution_gate
+          note: execution_gate_p99_ms on kernel metrics when co-located

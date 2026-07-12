@@ -1245,7 +1245,7 @@ Capital injections continue regardless. Withdraw/sweep adapters may still be moc
 | Model/skill promotion to live | — | YES (Phase 5) |
 | Evolution → live | Shadow only | YES for live |
 | Leverage change | — | YES |
-| Flash-loan live | — | YES |
+| Flash-loan live | YES (when policy + router enabled) | — |
 | TIMEOUT on promotion | HOLD | Never auto-promote |
 
 Authoritative enforcement: risk kernel `:19001` + portfolio risk `:19004`.

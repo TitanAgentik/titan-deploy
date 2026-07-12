@@ -530,6 +530,36 @@ if [[ -f "$PROJECT_ROOT/scripts/ci/check_execution_gate_imports.py" ]]; then
   fi
 fi
 
+# Tier 3 — docs must match policy.yaml bounded autonomy
+if [[ -f "$PROJECT_ROOT/scripts/ci/check_doc_policy_consistency.py" ]]; then
+  if python3 "$PROJECT_ROOT/scripts/ci/check_doc_policy_consistency.py" 2>/dev/null; then
+    pass "docs consistent with policy.yaml"
+  else
+    fail "docs contradict policy.yaml (run check_doc_policy_consistency.py)"
+  fi
+fi
+
+if [[ -f "$PROJECT_ROOT/docs/TIER3_INSTITUTIONAL_OPS.md" ]]; then
+  pass "docs/TIER3_INSTITUTIONAL_OPS.md present"
+else
+  fail "Missing docs/TIER3_INSTITUTIONAL_OPS.md"
+fi
+if [[ -f "$PROJECT_ROOT/docs/CANONICAL_RUNBOOK.md" ]]; then
+  pass "docs/CANONICAL_RUNBOOK.md present"
+else
+  fail "Missing docs/CANONICAL_RUNBOOK.md"
+fi
+if [[ -f "$PROJECT_ROOT/templates/observability/prometheus.yml" ]]; then
+  pass "observability/prometheus.yml present"
+else
+  fail "Missing templates/observability/prometheus.yml"
+fi
+if [[ -f "$PROJECT_ROOT/scripts/audit_export_worm.py" ]]; then
+  pass "scripts/audit_export_worm.py present"
+else
+  fail "Missing scripts/audit_export_worm.py"
+fi
+
 if [[ -f "$PROJECT_ROOT/docs/TIER1_CAPITAL_RISK.md" ]]; then
   pass "docs/TIER1_CAPITAL_RISK.md present"
 else

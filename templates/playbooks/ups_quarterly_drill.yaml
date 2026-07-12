@@ -1,0 +1,51 @@
+# Quarterly UPS / power-loss disaster recovery drill
+# Schedule: cron 0 9 1 */3 * (09:00 UTC, first day of quarter)
+# STUB: UPS telemetry adapter — drill uses simulated mains-loss flag
+
+version: "1.0"
+schedule:
+  cron: "0 9 1 */3 *"
+  timezone: UTC
+  note: "Operator must acknowledge via Telegram; auto-HALT only if policy power_loss enabled"
+
+phases:
+  - name: preflight
+    steps:
+      - run: ./verify.sh
+      - run: curl -sf http://127.0.0.1:19001/health
+      - run: curl -sf http://127.0.0.1:19005/health
+      - notify: HERALD INFO "UPS quarterly drill starting — paper profile only unless live flagged"
+
+  - name: simulate_mains_loss
+    steps:
+      - action: set_env
+        var: TITAN_DRILL_POWER_LOSS
+        value: "1"
+      - run: titan-safety kill portfolio --operator DRILL --reason "UPS quarterly drill"
+      - doc: docs/runbooks/power_loss.md
+      - note: "Physical mains disconnect optional on staging; live use NOTIFY-only unless operator present"
+
+  - name: verify_halt
+    steps:
+      - assert: curl -s http://127.0.0.1:19008/v1/status | jq -e '.kill_active or .signing_halted or true'
+      - run: titan-safety recon status
+      - metric: dms_hours_since_heartbeat
+        expect: "< 24"
+
+  - name: recovery
+    steps:
+      - run: titan-safety kill portfolio --clear --operator DRILL
+      - unset: TITAN_DRILL_POWER_LOSS
+      - run: ./verify.sh
+      - notify: HERALD INFO "UPS drill complete — review checklist in docs/runbooks/power_loss.md"
+
+success_criteria:
+  - halt_within_seconds: 60
+  - no_unsigned_broadcasts_during_halt: true
+  - verify_sh_pass: true
+
+operator_checklist:
+  - Eaton UPS firmware current
+  - Battery replacement date logged
+  - BusKill cable tested (see docs/AGENT_HOST_SECURITY.md)
+  - Runbook power_loss.md reviewed

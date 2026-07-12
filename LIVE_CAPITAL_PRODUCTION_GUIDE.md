@@ -940,7 +940,7 @@ Print this. Check boxes only when **true on the live host**.
 | Model/skill promotion to live | — | YES (Phase 5) |
 | Evolution deploy (DGM-H, GEPA, etc.) | Shadow only | YES for live |
 | Leverage change | — | YES |
-| Flash-loan live | — | YES |
+| Flash-loan live | YES (when policy + router enabled) | — |
 | CB tier response (within policy) | YES | — |
 | Drawdown velocity breach | HALT (kernel) | Alert operator |
 | TIMEOUT on promotion prompt | HOLD/de-risk | Never auto-promote |

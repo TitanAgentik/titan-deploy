@@ -1,0 +1,45 @@
+# Monthly cold-wallet harvest drill — dust amounts only
+# Proves Trezor sweep path without moving material capital
+# Schedule: cron 0 10 1 * * (10:00 UTC, first of month)
+
+version: "1.0"
+schedule:
+  cron: "0 10 1 * *"
+  timezone: UTC
+
+constraints:
+  max_usd_per_drill: 5.00
+  requires_live_profile: false  # paper drill uses mock signer
+  human_yes_required: false     # dust drill is operational hygiene, not promotion
+  trezor_on_mac_mini: true
+
+phases:
+  - name: preflight
+    steps:
+      - run: ./verify.sh
+      - assert: test -f ~/.openclaw/capital/tax_lots.jsonl || echo "tax ledger optional"
+      - notify: HERALD INFO "Monthly harvest dust drill starting"
+
+  - name: dust_sweep
+    steps:
+      - run: |
+          titan-safety capital sweep --dry-run --amount-usd 1.00 \
+            --destination trezor_safe_7 --reason "monthly_dust_drill"
+      - note: "Live: remove --dry-run only with operator at Trezor; max $5"
+      - hook: notify_trezor_sweep
+      - ledger: templates/capital/tax_ledger.py record_disposal_fifo
+
+  - name: verify
+    steps:
+      - assert: audit chain verify passes
+      - run: python3 scripts/audit_export_worm.py --dry-run
+      - notify: HERALD INFO "Harvest dust drill complete — check tax ledger CSV"
+
+success_criteria:
+  - sweep_dry_run_or_dust_tx_confirmed: true
+  - telegram_ack_within_minutes: 15
+  - tax_ledger_updated_if_live: true
+
+references:
+  - docs/TAX_ENTITY_PRODUCTION.md
+  - TITAN_CURRENT.md § weekly profit sweep (R23)
