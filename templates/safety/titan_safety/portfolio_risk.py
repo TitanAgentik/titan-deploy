@@ -13,6 +13,9 @@ class PipelineExposure:
     pipeline_id: str
     notional_usd: float
     returns: list[float] = field(default_factory=list)
+    borrow_rate_annual_pct: float = 0.0
+    funding_rate_8h_pct: float = 0.0
+    capacity_usd: float = 0.0
 
 
 @dataclass
@@ -60,6 +63,9 @@ class PortfolioRiskConfig:
             "liquidations": ["P6", "P11", "P18"],
         }
     )
+    borrow_rate_cap_annual_pct: float = 25.0
+    funding_rate_cap_8h_pct: float = 0.15
+    capacity_curve_enabled: bool = False
 
 
 class PortfolioRiskEngine:
@@ -163,6 +169,46 @@ class PortfolioRiskEngine:
                 decision="DENY", reason="Invalid equity", code="INVALID_EQUITY"
             )
 
+        pipe = next((p for p in snapshot.pipelines if p.pipeline_id == pipeline_id), None)
+        borrow = pipe.borrow_rate_annual_pct if pipe else 0.0
+        funding = pipe.funding_rate_8h_pct if pipe else 0.0
+        capacity = pipe.capacity_usd if pipe else 0.0
+
+        if self.config.capacity_curve_enabled and capacity > 0:
+            projected_notional = abs(add_notional_usd)
+            if pipe:
+                projected_notional = abs(pipe.notional_usd) + abs(add_notional_usd)
+            if projected_notional > capacity:
+                return PreTradeSimResult(
+                    decision="DENY",
+                    reason=(
+                        f"Capacity curve cap {capacity:.0f} USD — "
+                        f"projected {projected_notional:.0f} USD"
+                    ),
+                    code="CAPACITY_CURVE",
+                    projected_exposure_usd=projected_notional,
+                )
+
+        if borrow > self.config.borrow_rate_cap_annual_pct:
+            return PreTradeSimResult(
+                decision="DENY",
+                reason=(
+                    f"Borrow rate {borrow:.1f}% exceeds cap "
+                    f"{self.config.borrow_rate_cap_annual_pct}%"
+                ),
+                code="BORROW_RATE",
+            )
+
+        if abs(funding) > self.config.funding_rate_cap_8h_pct:
+            return PreTradeSimResult(
+                decision="DENY",
+                reason=(
+                    f"Funding rate {funding:.3f}% (8h) exceeds cap "
+                    f"{self.config.funding_rate_cap_8h_pct}%"
+                ),
+                code="FUNDING_RATE",
+            )
+
         sign = 1.0 if side.lower() in ("buy", "long") else -1.0
         projected = PortfolioSnapshot(
             equity_usd=snapshot.equity_usd,
@@ -255,6 +301,7 @@ class PortfolioRiskEngine:
     @classmethod
     def from_policy_raw(cls, raw: dict[str, Any]) -> PortfolioRiskEngine:
         pr = raw.get("portfolio_risk", {})
+        t4 = (raw.get("tier4_ultimate") or {}).get("portfolio_construction") or {}
         cfg = PortfolioRiskConfig(
             var_confidence=float(pr.get("var_confidence", 0.95)),
             max_var_pct_equity=float(pr.get("max_var_pct_equity", 8.0)),
@@ -264,6 +311,15 @@ class PortfolioRiskEngine:
             regime_limits=pr.get("regime_limits", PortfolioRiskConfig().regime_limits),
             correlation_groups=pr.get(
                 "correlation_groups", PortfolioRiskConfig().correlation_groups
+            ),
+            borrow_rate_cap_annual_pct=float(
+                t4.get("borrow_rate_cap_annual_pct", pr.get("borrow_rate_cap_annual_pct", 25.0))
+            ),
+            funding_rate_cap_8h_pct=float(
+                t4.get("funding_rate_cap_8h_pct", pr.get("funding_rate_cap_8h_pct", 0.15))
+            ),
+            capacity_curve_enabled=bool(
+                t4.get("capacity_curve_enabled", pr.get("capacity_curve_enabled", False))
             ),
         )
         engine = cls(cfg)

@@ -34,7 +34,11 @@ disabled_for_v1:
 edge_mesh:
   mode: single_pop
   allowed_pops: [EDGE-FRA]
-  note: "v1 uses single PoP — expand to full_mesh only after operator unlock"
+  note: "v1 uses single PoP — tier4_ultimate.enabled unlocks full 5-PoP mesh when tiers 0–3 complete"
+
+tier4_unlock:
+  multi_pop_when_enabled: true
+  note: "When tier4_ultimate.active, full_edge_mesh_5_pop lock is lifted — see docs/TIER4_ULTIMATE.md"
 
 flash_loan_live:
   enabled: false

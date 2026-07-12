@@ -14,8 +14,9 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-from .gate_receipt import verify_gate_receipt
+from .gate_receipt import verify_gate_receipt, consume_gate_receipt
 from .kernel import TradeRequest
+from .mev_tip_optimizer import MevTipOptimizer
 from .observability import setup_logging
 from .trade_verifier import compute_payload_hash, verify_receipt_payload_binding
 
@@ -147,7 +148,7 @@ def validate_submission_bundle(
     if not submission.gate_receipt:
         return False, "missing gate receipt", "GATE_RECEIPT_MISSING"
 
-    ok_receipt, receipt_reason = verify_gate_receipt(
+    ok_receipt, receipt_reason = consume_gate_receipt(
         submission.gate_receipt, trade, safety_dir, max_receipt_age
     )
     if not ok_receipt:
@@ -229,6 +230,19 @@ class BroadcastAuthority:
             )
             return BroadcastResult(decision="DENY", reason=reason, code=code)
 
+        tip_advisory: dict[str, Any] | None = None
+        tip_opt = MevTipOptimizer(self.policy_raw)
+        tip_rec = tip_opt.recommend(trade)
+        if tip_rec is not None:
+            tip_advisory = tip_rec.to_dict()
+            self._audit(
+                {
+                    "action": "mev_tip_advisory",
+                    "trade_id": trade.trade_id,
+                    "tip": tip_advisory,
+                }
+            )
+
         try:
             submit_fn = self._resolve_venue_submit()
             venue_result = submit_fn(submission, trade)
@@ -267,5 +281,9 @@ class BroadcastAuthority:
             reason="submitted via broadcast authority",
             code="OK",
             submit_status=status,
-            details={"payload_hash": payload_hash, "venue": venue_result},
+            details={
+                "payload_hash": payload_hash,
+                "venue": venue_result,
+                "mev_tip_advisory": tip_advisory,
+            },
         )

@@ -19,6 +19,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from .tier4_gate import tier4_active, tier4_cfg
 from .v1_surface import V1SurfaceLockdown, load_v1_surface_config
 
 
@@ -31,6 +32,8 @@ class LaneEdge:
     return_std: float = 0.0  # per-trade return std (fraction, e.g. 0.01 = 1%)
     trade_count: int = 0
     capacity_usd: float = 0.0  # 0 => unconstrained
+    borrow_rate_annual_pct: float = 0.0
+    funding_rate_8h_pct: float = 0.0
     decaying: bool = False  # TCA decay_slope < 0 sustained
     cluster: str = ""
 
@@ -115,9 +118,11 @@ class CapitalAllocator:
         self,
         config: AllocatorConfig | None = None,
         v1_lockdown: V1SurfaceLockdown | None = None,
+        policy_raw: dict[str, Any] | None = None,
     ) -> None:
         self.config = config or AllocatorConfig()
         self.v1 = v1_lockdown or V1SurfaceLockdown(load_v1_surface_config())
+        self.policy_raw = policy_raw or {}
 
     def effective_max_active_pipelines(self) -> int:
         base = self.config.max_active_pipelines
@@ -202,6 +207,20 @@ class CapitalAllocator:
             if lane.decaying:
                 excluded[lane.pipeline_id] = "edge decaying (de-funded)"
                 continue
+            pc = tier4_cfg(self.policy_raw).get("portfolio_construction") or {}
+            if tier4_active(self.policy_raw):
+                borrow_cap = float(pc.get("borrow_rate_cap_annual_pct", 25.0))
+                funding_cap = float(pc.get("funding_rate_cap_8h_pct", 0.15))
+                if lane.borrow_rate_annual_pct > borrow_cap:
+                    excluded[lane.pipeline_id] = (
+                        f"borrow_rate {lane.borrow_rate_annual_pct:.1f}% > cap {borrow_cap}%"
+                    )
+                    continue
+                if abs(lane.funding_rate_8h_pct) > funding_cap:
+                    excluded[lane.pipeline_id] = (
+                        f"funding_rate {lane.funding_rate_8h_pct:.3f}% > cap {funding_cap}%"
+                    )
+                    continue
             std = lane.return_std if lane.return_std > 0 else 0.02
             variance = std * std
             edge = lane.net_bps / 1e4

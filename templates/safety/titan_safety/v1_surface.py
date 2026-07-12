@@ -140,9 +140,11 @@ class V1SurfaceLockdown:
             return SurfaceCheckResult(False, f"venue {venue} not in v1 allowlist")
         return SurfaceCheckResult(True, "venue allowed")
 
-    def check_edge_pop(self, pop_id: str) -> SurfaceCheckResult:
+    def check_edge_pop(self, pop_id: str, *, tier4_active: bool = False) -> SurfaceCheckResult:
         if not self.config.enabled:
             return SurfaceCheckResult(True, "v1 lockdown disabled")
+        if tier4_active:
+            return SurfaceCheckResult(True, "tier4 full edge mesh unlocked")
         if self.config.disabled.get("full_edge_mesh_5_pop", True):
             if pop_id not in self.config.allowed_pops:
                 return SurfaceCheckResult(

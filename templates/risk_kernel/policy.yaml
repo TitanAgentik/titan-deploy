@@ -533,6 +533,44 @@ ghost_evasion:
     P30: [flashbots_protect, intent_solver]
   doctrine: invisible_to_them_visible_to_us
 
+# Tier 4 ultimate — gated scaffold; requires tiers 0–3 complete. Does NOT enable live capital.
+tier4_ultimate:
+  enabled: false  # operator sets true ONLY after Tier 0–3 checklists + explicit tier*_complete flags
+  requires_tiers: [0, 1, 2, 3]
+  tier_checklist:
+    tier0_complete: false
+    tier1_complete: false
+    tier2_complete: false
+    tier3_complete: false
+  shadow_twin:
+    enabled: false
+    max_divergence_pct: 15.0
+    block_live_on_divergence: true
+  multi_pop:
+    rtt_probe_interval_s: 30
+    unhealthy_rtt_p95_ms: 50.0
+    failover_enabled: true
+    rtt_routing: true
+    note: "STUB RTT probes until wireguard/HTTP probe wired on edge workers"
+  intent_solver:
+    enabled: false
+    stub_submit: true
+    networks: [cowswap, uniswapx, across_intent, mev_share]
+    note: "Honest STUB — no live solver RPC until operator wires endpoints"
+  mev_tip_optimizer:
+    enabled: false
+    advisory_only: true
+    max_tip_bps: 40.0
+  red_team_continuous:
+    enabled: false
+    interval_minutes: 60
+    note: "Runs tests/adversarial/adversarial_harness.py on schedule — not checklist YAML only"
+  portfolio_construction:
+    borrow_rate_cap_annual_pct: 25.0
+    funding_rate_cap_8h_pct: 0.15
+    capacity_curve_enabled: false
+  note: "Evolution shadow-only unchanged; kernel DENY absolute; Phase 5 YES still required for live"
+
 # Millisecond hot path — combined gate validate for latency-critical pipelines
 latency:
   target: millisecond

@@ -24,6 +24,9 @@ RECEIPT_HEADER = "X-Titan-Gate-Receipt"
 RECEIPT_PREFIX = "GATE_ALLOW"
 DEFAULT_MAX_AGE_SECONDS = 30
 
+# In-process single-use ledger (persisted optionally via safety_dir).
+_consumed_receipt_sigs: set[str] = set()
+
 
 @dataclass
 class GateReceipt:
@@ -86,6 +89,38 @@ def issue_gate_receipt(
         ts=timestamp,
         token=token,
     )
+
+
+def _receipt_signature(token: str) -> str:
+    parts = token.strip().split("|")
+    return parts[-1] if parts else ""
+
+
+def reset_consumed_receipts() -> None:
+    """Test helper — clear in-process consumed receipt ledger."""
+    _consumed_receipt_sigs.clear()
+
+
+def is_receipt_consumed(token: str) -> bool:
+    sig = _receipt_signature(token)
+    return bool(sig) and sig in _consumed_receipt_sigs
+
+
+def consume_gate_receipt(
+    token: str,
+    trade: TradeRequest | dict[str, Any],
+    safety_dir: Path | None = None,
+    max_age_seconds: int = DEFAULT_MAX_AGE_SECONDS,
+) -> tuple[bool, str]:
+    """Verify and mark receipt single-use. Returns (ok, reason)."""
+    ok, reason = verify_gate_receipt(token, trade, safety_dir, max_age_seconds)
+    if not ok:
+        return False, reason
+    sig = _receipt_signature(token)
+    if sig in _consumed_receipt_sigs:
+        return False, "gate receipt already consumed (single-use)"
+    _consumed_receipt_sigs.add(sig)
+    return True, "ok"
 
 
 def verify_gate_receipt(

@@ -23,6 +23,7 @@
 | 1 | [`docs/TIER1_CAPITAL_RISK.md`](./TIER1_CAPITAL_RISK.md) | Drawdown, loss velocity, paper default |
 | 2 | [`docs/TIER2_PROMOTION_QUALITY.md`](./TIER2_PROMOTION_QUALITY.md) | Walk-forward, micro-live, TCA loop |
 | 3 | [`docs/TIER3_INSTITUTIONAL_OPS.md`](./TIER3_INSTITUTIONAL_OPS.md) | Observability, DR, security, BFT honesty |
+| 4 | [`docs/TIER4_ULTIMATE.md`](./TIER4_ULTIMATE.md) | Multi-PoP, intent solvers, shadow twin (gated) |
 
 ---
 
@@ -93,7 +94,7 @@ Human YES still required for: Phase 5 promotion, evolution live, leverage change
 | Wrapper | Points to |
 |---------|-----------|
 | `DEPLOYMENT_GUIDE_BEGINNER.md` | This file + `TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md` |
-| `BEGINNER_LIVE_CAPITAL_EXPLAINED.md` | `LIVE_CAPITAL_PRODUCTION_GUIDE.md` + Tier 0–3 |
+| `BEGINNER_LIVE_CAPITAL_EXPLAINED.md` | `LIVE_CAPITAL_PRODUCTION_GUIDE.md` + Tier 0–4 |
 | `BEGINNER_WEB_UI_LIVE_MONEY_GUIDE.md` | § Operator surfaces above |
 | `TITAN_CURRENT.md` | Executive snapshot — defers to this SSOT on conflict |
 

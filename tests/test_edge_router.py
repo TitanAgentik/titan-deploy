@@ -8,6 +8,13 @@ import pytest
 import yaml
 
 from titan_safety.edge_router import EdgeRouter, load_edge_mesh
+from titan_safety.v1_surface import V1SurfaceConfig, V1SurfaceLockdown
+
+
+def _router(tmp_path: Path, **mesh_overrides) -> EdgeRouter:
+    mesh = load_edge_mesh(_write_mesh(tmp_path, **mesh_overrides))
+    v1 = V1SurfaceLockdown(V1SurfaceConfig(enabled=False))
+    return EdgeRouter(mesh, v1_lockdown=v1)
 
 
 def _write_mesh(tmp_path: Path, **overrides) -> Path:
@@ -42,7 +49,7 @@ def test_load_edge_mesh(tmp_path: Path) -> None:
 
 
 def test_venue_routing(tmp_path: Path) -> None:
-    router = EdgeRouter.from_path(_write_mesh(tmp_path))
+    router = _router(tmp_path)
     decision = router.route(venue="binance_spot")
     assert decision.primary == "EDGE-TKY"
     assert decision.worker_url == "http://10.0.10.101:19100"
@@ -50,7 +57,7 @@ def test_venue_routing(tmp_path: Path) -> None:
 
 
 def test_strategy_routing_overrides_venue(tmp_path: Path) -> None:
-    router = EdgeRouter.from_path(_write_mesh(tmp_path))
+    router = _router(tmp_path)
     decision = router.route(venue="jito", strategy_id="P29")
     assert decision.primary == "EDGE-TKY"
     assert decision.reason == "strategy_routing:P29"
@@ -58,21 +65,21 @@ def test_strategy_routing_overrides_venue(tmp_path: Path) -> None:
 
 
 def test_p22_memecoin_route(tmp_path: Path) -> None:
-    router = EdgeRouter.from_path(_write_mesh(tmp_path))
+    router = _router(tmp_path)
     decision = router.route(venue="jito", strategy_id="P22")
     assert decision.primary == "EDGE-FRA"
     assert decision.paper_latency_faithful is True
 
 
 def test_default_pop_when_unknown_venue(tmp_path: Path) -> None:
-    router = EdgeRouter.from_path(_write_mesh(tmp_path))
+    router = _router(tmp_path)
     decision = router.route(venue="unknown_venue")
     assert decision.primary == "EDGE-FRA"
     assert decision.reason == "default_pop"
 
 
 def test_list_pops(tmp_path: Path) -> None:
-    router = EdgeRouter.from_path(_write_mesh(tmp_path))
+    router = _router(tmp_path)
     pops = router.list_pops()
     assert len(pops) == 3
     ids = {p["id"] for p in pops}
