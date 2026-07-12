@@ -131,8 +131,12 @@ class ReconAggregator:
             logger.debug(f"recon via HTTP override: {self.fetcher_url[:48]}...")
             return _http_override_fetch(self.fetcher_url, self.venues)
 
-        merged: dict[tuple[str, str], BelievedPosition] = {}
         venue_set = set(self.venues)
+        # Paper-only profile: no on-chain fetch required.
+        if venue_set == {"paper"}:
+            return []
+
+        merged: dict[tuple[str, str], BelievedPosition] = {}
 
         if (not venue_set or "hyperliquid" in venue_set) and self.hyperliquid_wallet:
             for p in fetch_hyperliquid_positions(self.hyperliquid_wallet):

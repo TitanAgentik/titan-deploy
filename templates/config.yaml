@@ -330,7 +330,7 @@ edge_mesh:
   note: "Full 5-PoP from paper — scale instance size with capital; routing identical to live"
 
 capital:
-  capital_profile: live
+  capital_profile: paper
   state_path: ~/.openclaw/capital/portfolio_state.json
   audit_path: ~/.openclaw/capital/capital_audit.jsonl
   min_operating_capital_usd: 500

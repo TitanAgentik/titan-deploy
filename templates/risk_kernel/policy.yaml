@@ -17,17 +17,7 @@ trading_limits:
   equity_usd: 2500.0
 
 allowed_venues:
-  - paper  # shadow / unpromoted lanes
-  - hyperliquid
-  - uniswap_v3
-  - curve
-  - aave_v3
-  - solana_jupiter
-  - solana_pumpfun
-  - solana_pumpswap
-  - jito
-  - flashbots_protect
-  # DEX-only (R02/R46) — no CEX-direct venues in default template
+  - paper  # paper-only default — live profile adds DEX venues via tier1 merge
 
 allowed_contracts:
   - "0x0000000000000000000000000000000000000000"  # paper sentinel
@@ -150,7 +140,7 @@ allocator:
   max_cluster_pct: 40.0           # per-correlation-cluster cap as % equity
   min_net_bps: 1.0               # lanes below this net-of-cost edge get zero capital
   min_trades: 100                # lanes below this sample size get zero capital
-  max_active_pipelines: 4        # hard concentration — fund few HEALTHY lanes; catalog ≠ all-on
+  max_active_pipelines: 2        # hard concentration — fund few HEALTHY lanes; catalog ≠ all-on
   # v1 surface lockdown caps this to 2 when enabled (v1_surface_lockdown.yaml)
   selective_activation: true
   advisory_mode: true   # paper default; live profile sets false (enforced de-gross)
@@ -174,6 +164,8 @@ tier1_capital_risk:
     kill_resume_dual_control: true
   profiles:
     paper:
+      allowed_venues:
+        - paper
       drawdown_notify_only: true
       autonomous_signing:
         enabled: false
@@ -181,6 +173,7 @@ tier1_capital_risk:
         adapter: mock
       allocator:
         advisory_mode: true
+        max_active_pipelines: 2
       portfolio_risk:
         augur_feed: stub
         allow_augur_stub: true
@@ -203,6 +196,17 @@ tier1_capital_risk:
           action: notify_critical_continue
           severity: CRITICAL
     live:
+      allowed_venues:
+        - paper
+        - hyperliquid
+        - uniswap_v3
+        - curve
+        - aave_v3
+        - solana_jupiter
+        - solana_pumpfun
+        - solana_pumpswap
+        - jito
+        - flashbots_protect
       drawdown_notify_only: false
       autonomous_signing:
         enabled: true
@@ -212,6 +216,7 @@ tier1_capital_risk:
         recon_halt_on_divergence: true
       allocator:
         advisory_mode: false
+        max_active_pipelines: 2
       portfolio_risk:
         augur_feed: file
         augur_feed_live: file
@@ -324,7 +329,7 @@ tier2_promotion_quality:
     config_ref: ~/.openclaw/risk_kernel/v1_surface_lockdown.yaml
 
 flash_loan_live:
-  enabled: false  # set true + flashLoanRouter.enabled for live (no human YES required)
+  enabled: false  # default off — enable explicitly after boring profit; autonomous when enabled
   max_amount_usd: 500000.0
   max_fee_bps: 9.0
   paper_sim_required_days: 3

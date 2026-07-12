@@ -12,7 +12,7 @@ from .http_server import SafetyHTTPServer
 from .kill_switch import KillSwitch
 from .kernel import RiskKernel, TradeRequest
 from .observability import METRICS, setup_logging
-from .policy_loader import expand_path, load_policy
+from .policy_loader import expand_path, load_policy, validate_live_capital_readiness
 from .reconciliation import BelievedPosition
 from .reconciliation_service import build_reconciliation_service
 
@@ -31,6 +31,7 @@ def create_app(
     from .flatten_executor import validate_flatten_config_for_live
 
     validate_flatten_config_for_live(policy)
+    validate_live_capital_readiness(policy)
 
     ks = KillSwitch(safety_dir)
     kernel = RiskKernel.from_policy_path(

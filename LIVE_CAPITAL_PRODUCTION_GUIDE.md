@@ -52,7 +52,7 @@
 | Concept | Means | Does **not** mean |
 |---------|-------|-------------------|
 | Cockpit `VITE_DATA_MODE=live` | UI fetches `/api/*` from safety ports | Real capital is authorized |
-| `capital_profile: live` in policy template | Live *profile* rules apply (mock adapters banned, stealth enforced) | Every pipeline is funded and broadcasting |
+| `capital_profile: live` in deployed policy | Live *profile* rules apply (mock adapters banned, stealth enforced) | Every pipeline is funded and broadcasting |
 | Paper venue | Simulated fills; no broadcast of real txs | Strategy is “proven” |
 | Shadow / dry-run | Live market data + full gate path; **no** capital broadcast | Phase 5 already approved |
 | BFT 2-of-3 (AUGUR + PREDATOR + ATLAS) | **Advisory** trade authorization | Override of risk kernel DENY |
@@ -86,9 +86,9 @@ In Titan, **production live capital** means:
 
 - “Deploy script finished” ≠ live capital.
 - “Cockpit is green” ≠ live capital (soft-fail fixtures can look healthy).
-- “Template has `capital_profile: live`” ≠ you already said YES and wired adapters.
+- “Template has `capital_profile: live`” ≠ you already said YES and wired adapters. **Template defaults to `paper`.**
 - “BFT voted ALLOW” ≠ kernel must ALLOW.
-- Enabling every pipeline in the catalog ≠ production. **Catalog ≠ checklist.** Fund ≤ `allocator.max_active_pipelines` (default **4**) HEALTHY lanes.
+- Enabling every pipeline in the catalog ≠ production. **Catalog ≠ checklist.** Fund ≤ `allocator.max_active_pipelines` (default **2**) HEALTHY lanes.
 
 ### Mental model (one diagram)
 
@@ -139,7 +139,7 @@ These are **not** silently finished by this guide or by `deploy.sh`:
 | Gap | Status in repo | What you must do |
 |-----|----------------|------------------|
 | **Live signing RPC** | `live_signer()` raises until Trezor bridge RPC is wired | Install/wire `openclaw-trezor-bridge` per `signing_node.yaml`; set `TITAN_LIVE_SIGNING_READY=1` only after health OK |
-| **Position recon aggregator** | Needs `TITAN_RECON_FETCHER_URL` returning positions JSON; direct RPC aggregation **not** fully implemented | Run/own an aggregator HTTP endpoint or extend `live_recon_fetcher` |
+| **Position recon aggregator** | Built-in Hyperliquid clearinghouse (`recon_aggregator.py`); EVM indexer STUB | Set `HYPERLIQUID_WALLET_ADDRESS` or `TITAN_RECON_FETCHER_URL` |
 | **Key revoke at venue** | `LiveKeyRevoker` returns `revoke_pending` | Manually disable keys at venue UI until revoke RPC exists |
 | **Capital withdraw / Trezor sweep adapter** | Often still `mock` until ops wiring | Wire Trezor Safe 7 ceremony path before treating sweeps as production |
 | **AUGUR regime feed** | File/stub regime in portfolio risk | Wire live AUGUR feed for production regime limits |

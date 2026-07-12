@@ -9,7 +9,7 @@ from typing import Any
 
 from .http_server import SafetyHTTPServer
 from .observability import METRICS, setup_logging
-from .policy_loader import expand_path, load_policy
+from .policy_loader import expand_path, load_policy, validate_live_capital_readiness
 from .reconciliation import BelievedPosition, ReconciliationService, get_adapter
 
 logger = setup_logging("reconciliation")
@@ -138,6 +138,7 @@ def build_reconciliation_service(policy: Any) -> ReconciliationService:
 
 def create_app(policy_path: Path) -> SafetyHTTPServer:
     policy = load_policy(policy_path)
+    validate_live_capital_readiness(policy)
     service = build_reconciliation_service(policy)
 
     def pre_trade(body: dict[str, Any], _headers: dict[str, str]) -> tuple[int, dict[str, Any]]:

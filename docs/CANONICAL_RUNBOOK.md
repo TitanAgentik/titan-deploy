@@ -121,4 +121,6 @@ python3 scripts/audit_export_worm.py --dry-run
 
 ## Go-live checklist (summary)
 
-See [`docs/TIER3_INSTITUTIONAL_OPS.md`](./TIER3_INSTITUTIONAL_OPS.md) § Operator checklist.
+**Canonical sequence:** [`docs/GO_LIVE_SEQUENCE.md`](./GO_LIVE_SEQUENCE.md) (7 steps + drills).
+
+See also [`docs/TIER3_INSTITUTIONAL_OPS.md`](./TIER3_INSTITUTIONAL_OPS.md) § Operator checklist.

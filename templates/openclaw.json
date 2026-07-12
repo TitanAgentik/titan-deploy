@@ -483,7 +483,7 @@
     "note": "v1 single PoP (EDGE-FRA) — expand to full_mesh only after operator unlock"
   },
   "capital": {
-    "capital_profile": "live",
+    "capital_profile": "paper",
     "state_path": "~/.openclaw/capital/portfolio_state.json",
     "audit_path": "~/.openclaw/capital/capital_audit.jsonl",
     "min_operating_capital_usd": 500,

@@ -24,6 +24,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pyyaml
 
+      - name: Live config gate
+        run: python scripts/ci/check_live_config.py
+
+      - name: Doc/policy consistency
+        run: python scripts/ci/check_doc_policy_consistency.py
+
+      - name: ExecutionGate import gate
+        run: python scripts/ci/check_execution_gate_imports.py
+
       - name: Run test suite
         run: pytest tests/ -q
 

@@ -82,6 +82,45 @@ def capital_profile_of(policy: "Policy") -> str:
     return str(policy.raw.get("capital_profile", "paper")).lower()
 
 
+def validate_live_capital_readiness(policy: "Policy") -> None:
+    """Fail-closed: refuse live capital_profile unless signing is fully armed.
+
+    Blocks kernel/recon startup when ``TITAN_LIVE_SIGNING_READY`` is unset or
+    ``signing.signer_module`` (default ``live_signer``) still raises.
+    """
+    if capital_profile_of(policy) != "live":
+        return
+
+    import os
+
+    ready = os.environ.get("TITAN_LIVE_SIGNING_READY", "").strip().lower()
+    if ready not in ("1", "true", "yes"):
+        raise ValueError(
+            "capital_profile=live refused at startup: TITAN_LIVE_SIGNING_READY "
+            "not set — arm only after Trezor bridge + signing health OK"
+        )
+
+    signing_cfg = (policy.raw or {}).get("signing", {})
+    spec = str(signing_cfg.get("signer_module") or "").strip()
+    if not spec:
+        raise ValueError(
+            "capital_profile=live refused at startup: signing.signer_module required"
+        )
+
+    signer_fn = load_component(spec)
+    probe = {
+        "trade": {"notional_usd": 1.0, "venue": "paper"},
+        "typed_data": {"message": {"probe": True}},
+        "policy_raw": policy.raw,
+    }
+    try:
+        signer_fn(probe)
+    except Exception as exc:
+        raise ValueError(
+            f"capital_profile=live refused at startup: signer {spec!r} not ready — {exc}"
+        ) from exc
+
+
 def _deep_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
     out = dict(base)
     for key, val in overrides.items():

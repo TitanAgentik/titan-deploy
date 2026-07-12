@@ -67,6 +67,14 @@ def test_signing_paper_profile_allows_default_mock(tmp_path: Path) -> None:
     assert server is not None
 
 
+def test_live_startup_refused_without_signing_ready(tmp_path: Path) -> None:
+    from titan_safety.policy_loader import validate_live_capital_readiness
+
+    policy = load_policy(_write_policy(tmp_path, capital_profile="live"))
+    with pytest.raises(ValueError, match="TITAN_LIVE_SIGNING_READY"):
+        validate_live_capital_readiness(policy)
+
+
 def test_flatten_live_refuses_mock_closer(tmp_path: Path) -> None:
     policy = load_policy(_write_policy(tmp_path, capital_profile="live"))
     with pytest.raises(ValueError, match="mock closer banned"):

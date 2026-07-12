@@ -277,13 +277,17 @@ if profile != 'paper':
 if p.get('autonomous_signing', {}).get('enabled') is not False:
     sys.exit(2)
 venues = [str(v).lower() for v in (p.get('allowed_venues') or [])]
-if any(v in venues for v in ('binance_spot', 'okx_spot', 'bybit_spot', 'coinbase_spot')):
-    sys.exit(3)
+if venues != ['paper']:
+    sys.exit(5)
+if (p.get('flash_loan_live') or {}).get('enabled') is not False:
+    sys.exit(6)
+if int((p.get('allocator') or {}).get('max_active_pipelines', 0)) != 2:
+    sys.exit(7)
 tier1 = p.get('tier1_capital_risk') or {}
 if not tier1.get('profiles', {}).get('live'):
     sys.exit(4)
 " 2>/dev/null && pass "policy: paper default + tier1 live profile + DEX-only venues" \
-    || fail "policy: expected paper default, autonomous_signing false, no CEX, tier1 profiles"
+    || fail "policy: expected paper default, venues [paper], max_active_pipelines 2, tier1 profiles"
 fi
 
 if [[ -f "$TEMPLATE_POLICY" ]] && command -v python3 &>/dev/null; then
@@ -530,6 +534,15 @@ if [[ -f "$PROJECT_ROOT/scripts/ci/check_execution_gate_imports.py" ]]; then
   fi
 fi
 
+# Tier 1 — live config (template paper defaults + live mock/CEX ban)
+if [[ -f "$PROJECT_ROOT/scripts/ci/check_live_config.py" ]]; then
+  if python3 "$PROJECT_ROOT/scripts/ci/check_live_config.py" 2>/dev/null; then
+    pass "live config CI (paper defaults + live mock ban)"
+  else
+    fail "live config check failed (run scripts/ci/check_live_config.py)"
+  fi
+fi
+
 # Tier 3 — docs must match policy.yaml bounded autonomy
 if [[ -f "$PROJECT_ROOT/scripts/ci/check_doc_policy_consistency.py" ]]; then
   if python3 "$PROJECT_ROOT/scripts/ci/check_doc_policy_consistency.py" 2>/dev/null; then
@@ -543,6 +556,11 @@ if [[ -f "$PROJECT_ROOT/docs/TIER3_INSTITUTIONAL_OPS.md" ]]; then
   pass "docs/TIER3_INSTITUTIONAL_OPS.md present"
 else
   fail "Missing docs/TIER3_INSTITUTIONAL_OPS.md"
+fi
+if [[ -f "$PROJECT_ROOT/docs/GO_LIVE_SEQUENCE.md" ]]; then
+  pass "docs/GO_LIVE_SEQUENCE.md present"
+else
+  fail "Missing docs/GO_LIVE_SEQUENCE.md"
 fi
 if [[ -f "$PROJECT_ROOT/docs/CANONICAL_RUNBOOK.md" ]]; then
   pass "docs/CANONICAL_RUNBOOK.md present"

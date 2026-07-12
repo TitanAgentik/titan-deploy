@@ -62,8 +62,10 @@ def test_default_template_is_paper(tmp_path: Path) -> None:
     assert raw.get("capital_profile") == "paper"
     assert raw.get("autonomous_signing", {}).get("enabled") is False
     venues = [v.lower() for v in raw.get("allowed_venues", [])]
-    assert "binance_spot" not in venues
-    assert "okx_spot" not in venues
+    assert venues == ["paper"]
+    assert raw.get("flash_loan_live", {}).get("enabled") is False
+    assert raw.get("allocator", {}).get("max_active_pipelines") == 2
+    assert raw.get("allocator", {}).get("advisory_mode") is True
 
 
 def test_apply_capital_profile_live_enforcement(tmp_path: Path) -> None:
@@ -81,7 +83,7 @@ def test_live_drawdown_halts_new_risk(tmp_path: Path) -> None:
     engine = DrawdownTierEngine(policy.raw or {})
     engine.apply_tier_enforcement(kernel.state, 9.0, kernel=kernel)
 
-    trade = TradeRequest("t1", "hyperliquid", "0xabc", "buy", 100.0, 1.0, strategy_id="P1")
+    trade = TradeRequest("t1", "paper", "0xabc", "buy", 100.0, 1.0, strategy_id="P1")
     result = kernel.validate_trade(trade)
     assert result.decision == "DENY"
     assert result.code == "DRAWDOWN_HALT_NEW_RISK"
@@ -91,7 +93,7 @@ def test_paper_drawdown_never_blocks(tmp_path: Path) -> None:
     policy = load_policy(_tier1_policy(tmp_path, profile="paper"))
     kernel = RiskKernel(policy, RiskKernelState())
     kernel.state.drawdown_pct_24h = 15.0
-    trade = TradeRequest("t1", "hyperliquid", "0xabc", "buy", 100.0, 1.0, strategy_id="P1")
+    trade = TradeRequest("t1", "paper", "0xabc", "buy", 100.0, 1.0, strategy_id="P1")
     assert kernel.validate_trade(trade).decision == "ALLOW"
 
 

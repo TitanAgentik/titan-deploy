@@ -61,11 +61,17 @@ Deploy bundle defaults:
 capital_profile: paper
 autonomous_signing:
   enabled: false
+allowed_venues: [paper]
+flash_loan_live:
+  enabled: false
+allocator:
+  advisory_mode: true
+  max_active_pipelines: 2
 ```
 
-Live profile overrides (after Phase 5 YES) via `tier1_capital_risk.profiles.live`.
+Live profile overrides (after Phase 5 YES) via `tier1_capital_risk.profiles.live`. See [`docs/GO_LIVE_SEQUENCE.md`](./GO_LIVE_SEQUENCE.md).
 
-**DEX-only:** No `binance_spot`, `okx_spot`, `bybit_spot`, `coinbase_spot` in default `allowed_venues` (R02/R46).
+**DEX-only:** No CEX venues in live profile allow-list (R02/R46). Paper profile is `allowed_venues: [paper]` only.
 
 ---
 
