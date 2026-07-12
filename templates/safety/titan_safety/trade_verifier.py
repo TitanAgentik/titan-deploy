@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -194,12 +195,94 @@ def verify_sign_payload(
     body: dict[str, Any],
     policy_raw: dict[str, Any],
 ) -> tuple[bool, str]:
-    """Reject blind-sign on live venues."""
+    """Reject blind-sign on live venues; enforce session envelope."""
     cfg = autonomous_signing_cfg(policy_raw)
     if trade.venue.lower() == "paper":
         return True, "paper lane"
     if not cfg.get("require_typed_data_live", True):
-        return True, "typed_data not required"
-    if body.get("typed_data") or body.get("calldata"):
-        return True, "calldata present"
-    return False, "BLIND_SIGN_REJECTED — typed_data or calldata required on live venues"
+        if body.get("typed_data") or body.get("calldata"):
+            return True, "calldata present"
+        return False, "BLIND_SIGN_REJECTED — typed_data or calldata required on live venues"
+
+    typed_data = body.get("typed_data")
+    calldata = body.get("calldata")
+    if not typed_data and not calldata:
+        return False, "BLIND_SIGN_REJECTED — typed_data or calldata required on live venues"
+
+    ok_env, env_reason = _check_session_envelope(trade, body, policy_raw)
+    if not ok_env:
+        return False, env_reason
+
+    return True, "calldata present"
+
+
+def compute_payload_hash(body: dict[str, Any]) -> str:
+    """Deterministic SHA-256 over calldata + typed_data for receipt binding."""
+    material = {
+        "calldata": body.get("calldata"),
+        "typed_data": body.get("typed_data"),
+        "reduce_only": body.get("reduce_only", False),
+    }
+    canonical = json.dumps(material, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def verify_receipt_payload_binding(
+    receipt_token: str,
+    trade: TradeRequest,
+    body: dict[str, Any],
+    policy_raw: dict[str, Any],
+) -> tuple[bool, str]:
+    """Verify receipt payload_hash field matches body calldata/typed_data."""
+    tier0 = (policy_raw or {}).get("tier0_money_path") or {}
+    if not tier0.get("require_payload_hash_binding", True):
+        return True, "binding not required"
+    if trade.venue.lower() == "paper":
+        return True, "paper lane"
+
+    parts = receipt_token.strip().split("|")
+    if len(parts) == 8:
+        return True, "legacy receipt without payload hash"
+    if len(parts) != 9:
+        return False, "malformed receipt for payload binding"
+
+    receipt_hash = parts[7]
+    if not receipt_hash:
+        # Gate-time receipt without hash — require hash at submit via body
+        body_hash = compute_payload_hash(body)
+        if not body.get("calldata") and not body.get("typed_data"):
+            return False, "payload hash binding required but no calldata"
+        return True, "ok"
+
+    expected = compute_payload_hash(body)
+    if not hmac.compare_digest(receipt_hash, expected):
+        return False, "payload hash mismatch — calldata does not match gate receipt"
+    return True, "ok"
+
+
+def _check_session_envelope(
+    trade: TradeRequest,
+    body: dict[str, Any],
+    policy_raw: dict[str, Any],
+) -> tuple[bool, str]:
+    """Hot-path session keys may only sign within pre-approved notional envelopes."""
+    tier0 = (policy_raw or {}).get("tier0_money_path") or {}
+    envelope = tier0.get("session_envelope") or {}
+    if not envelope.get("enabled", False):
+        return True, "envelope not enabled"
+
+    max_notional = float(envelope.get("max_notional_usd", 0) or 0)
+    if max_notional > 0 and abs(trade.notional_usd) > max_notional:
+        return (
+            False,
+            f"SESSION_ENVELOPE_EXCEEDED — {trade.notional_usd:.2f} > {max_notional:.2f} USD",
+        )
+
+    allowed_venues = {str(v).lower() for v in envelope.get("allowed_venues", [])}
+    if allowed_venues and trade.venue.lower() not in allowed_venues:
+        return False, f"venue {trade.venue!r} outside session envelope"
+
+    if envelope.get("require_typed_data", True) and not body.get("typed_data"):
+        return False, "session envelope requires typed_data"
+
+    return True, "ok"

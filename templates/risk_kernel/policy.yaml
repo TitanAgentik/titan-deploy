@@ -112,7 +112,28 @@ reconciliation:
   divergence_threshold_pct: 1.0
   adapter: live
   recon_module: "titan_safety.adapters.live_bundle:build_position_fetcher"
-  live_profile_note: "Fill TITAN_RECON_FETCHER_URL or exchange keys in ~/.openclaw/.env"
+  recon_halt_on_divergence: true
+  live_profile_note: "Fill TITAN_RECON_FETCHER_URL or HYPERLIQUID_WALLET_ADDRESS in ~/.openclaw/.env"
+
+# Tier 0 money path — one venue depth-first (Hyperliquid). Does NOT auto-enable live capital.
+tier0_money_path:
+  enabled: false  # operator sets true after Phase 5 YES + checklist in docs/TIER0_MONEY_PATH.md
+  venue: hyperliquid
+  venue_adapter: "titan_safety.adapters.hyperliquid_live:HyperliquidLiveAdapter"
+  broadcast_authority_enforced: true
+  require_payload_hash_binding: true
+  recon_halt_on_divergence: true
+  builtin_aggregator: true
+  dual_control_withdrawals: true
+  agent_submit_denied: true
+  allowed_callers: [trench-ops, execution_daemon, flatten_executor]
+  session_envelope:
+    enabled: false  # set true when session keys armed
+    max_notional_usd: 500.0
+    allowed_venues: [hyperliquid]
+    require_typed_data: true
+  deferred_venues: [solana_jupiter, jito, solana_pumpfun, solana_pumpswap, flashbots_protect]
+  note: "Hyperliquid first — Solana/Jito/P22/Flashbots deferred explicitly"
 
 # Control-plane HMAC auth (X-Titan-Auth) required on mutating POSTs:
 # FLATTEN, REGIME, HEARTBEAT, TCA_INGEST, PROFIT_LOOP, REFUND, ALLOCATE
@@ -264,7 +285,7 @@ signing:
 
 # Flatten adapters — live profile (mock banned at startup)
 flatten:
-  closer: in_process  # alias: signing_node (same in-process SigningNode)
+  closer: broadcast_authority  # Tier 0: single submit path; aliases: signing_node, in_process, mock
   revoker: "titan_safety.adapters.live_bundle:LiveKeyRevoker"
   signing_endpoint: ""  # unused when signing.mode=in_process
 

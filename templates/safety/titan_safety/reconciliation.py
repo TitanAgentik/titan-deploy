@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable
 
 from .policy_loader import Policy, ReconciliationConfig
@@ -140,10 +141,52 @@ class ReconciliationService:
         self,
         policy: Policy,
         adapter: PositionAdapter | None = None,
+        safety_dir: Path | None = None,
     ) -> None:
         self.config: ReconciliationConfig = policy.reconciliation
         self.adapter = adapter or get_adapter(self.config.adapter)
         self._halted = False
+        self.policy = policy
+        self.safety_dir = safety_dir
+
+    def _on_divergence_halt(self, divergences: list[dict[str, Any]]) -> None:
+        """HALT on divergence — not just log. Halt signing + optional HERALD alert."""
+        raw = getattr(self.policy, "raw", {}) or {}
+        recon = raw.get("reconciliation") or {}
+        tier0 = raw.get("tier0_money_path") or {}
+        halt = recon.get("recon_halt_on_divergence", tier0.get("recon_halt_on_divergence", True))
+        if not halt:
+            return
+        safety = self.safety_dir
+        if safety is None:
+            safety = Path.home() / ".openclaw" / "safety"
+        safety = Path(safety)
+        safety.mkdir(parents=True, exist_ok=True)
+        import json
+        import time
+
+        (safety / "SIGNING_HALTED").write_text(
+            json.dumps(
+                {
+                    "ts": time.time(),
+                    "reason": "recon_divergence_halt",
+                    "divergences": divergences[:5],
+                }
+            ),
+            encoding="utf-8",
+        )
+        try:
+            from .telegram_notify import notify_signing
+
+            notify_signing(
+                "fail",
+                "recon-halt",
+                code="RECON_DIVERGENCE_HALT",
+                reason=f"position divergence HALT ({len(divergences)} mismatches)",
+                safety_dir=safety,
+            )
+        except Exception:
+            pass
 
     def reconcile(
         self,
@@ -188,6 +231,7 @@ class ReconciliationService:
         for d in divergences:
             if d["diff_usd"] > self.config.divergence_threshold_usd:
                 self._halted = True
+                self._on_divergence_halt(divergences)
                 return ReconciliationResult(
                     decision="HALT",
                     reason=f"Position divergence ${d['diff_usd']:.2f} exceeds threshold",
@@ -197,6 +241,7 @@ class ReconciliationService:
                 )
             if d["diff_pct"] > self.config.divergence_threshold_pct:
                 self._halted = True
+                self._on_divergence_halt(divergences)
                 return ReconciliationResult(
                     decision="HALT",
                     reason=f"Position divergence {d['diff_pct']:.2f}% exceeds threshold",

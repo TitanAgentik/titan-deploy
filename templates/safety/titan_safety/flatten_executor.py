@@ -22,6 +22,7 @@ logger = setup_logging("flatten_executor")
 
 FLATTEN_QUEUE = "flatten_queue.jsonl"
 KEY_REVOKE_LOG = "key_revoke.jsonl"
+FLATTEN_RESUME_STATE = "flatten_resume_state.json"
 
 
 @dataclass
@@ -125,6 +126,92 @@ class SigningNodeCloser(PositionCloser):
         return {"status": payload.get("status", "submitted"), **payload}
 
 
+class BroadcastAuthorityCloser(PositionCloser):
+    """Close positions via single broadcast authority path (Tier 0)."""
+
+    def __init__(
+        self,
+        safety_dir: Path | None = None,
+        policy_raw: dict[str, Any] | None = None,
+        policy_path: Path | None = None,
+    ) -> None:
+        from .broadcast_authority import BroadcastAuthority, BroadcastSubmission
+        from .signing_service import build_signing_node
+
+        self.safety_dir = safety_dir
+        self.policy_raw = policy_raw or {}
+        self.policy_path = policy_path
+        self._BroadcastSubmission = BroadcastSubmission
+        self._authority = BroadcastAuthority(policy_raw=self.policy_raw, safety_dir=safety_dir)
+        self._signing_node = build_signing_node(
+            policy_path=policy_path,
+            safety_dir=safety_dir,
+            policy_raw=self.policy_raw,
+            require_live_signer=False,
+        )
+
+    def close(self, order: FlattenOrder) -> dict[str, Any]:
+        import uuid
+
+        from .adapters.hyperliquid_live import HyperliquidLiveAdapter, HyperliquidOrder
+        from .gate_receipt import RECEIPT_HEADER, issue_gate_receipt
+
+        trade = {
+            "trade_id": f"flatten-{uuid.uuid4().hex[:12]}",
+            "venue": order.venue,
+            "contract": order.contract,
+            "side": order.side,
+            "notional_usd": order.notional_usd,
+            "leverage": 1.0,
+            "expected_price": 0.0,
+            "worst_price": 0.0,
+            "reduce_only": True,
+        }
+        receipt = issue_gate_receipt(trade, self.safety_dir)
+        adapter = HyperliquidLiveAdapter(safety_dir=self.safety_dir)
+        if order.venue.lower() == "hyperliquid":
+            hl_order = HyperliquidOrder(
+                trade_id=trade["trade_id"],
+                venue=order.venue,
+                contract=order.contract,
+                side=order.side,
+                notional_usd=order.notional_usd,
+                reduce_only=True,
+            )
+            quote = adapter.quote(hl_order)
+            sim = adapter.simulate(hl_order, quote)
+            signed = adapter.sign(hl_order, sim, self._signing_node, receipt.token)
+            submission = self._BroadcastSubmission(
+                caller_id="flatten_executor",
+                trade=trade,
+                gate_receipt=receipt.token,
+                typed_data=signed.get("typed_data"),
+                reduce_only=True,
+            )
+            body = submission.body()
+            body["signed"] = signed
+            submission.typed_data = signed.get("typed_data")
+            result = self._authority.submit(submission)
+            return {
+                "status": result.submit_status or result.decision.lower(),
+                "broadcast": result.to_dict(),
+                "signed": {k: v for k, v in signed.items() if k != "typed_data"},
+            }
+
+        # Non-HL venues: sign + broadcast stub
+        body = {"trade": trade, "gate_receipt": receipt.token, "reduce_only": True}
+        headers = {RECEIPT_HEADER: receipt.token}
+        _code, payload = self._signing_node.sign(body, headers)
+        submission = self._BroadcastSubmission(
+            caller_id="flatten_executor",
+            trade=trade,
+            gate_receipt=receipt.token,
+            reduce_only=True,
+        )
+        result = self._authority.submit(submission)
+        return {"status": result.submit_status or payload.get("status", "submitted"), **result.to_dict()}
+
+
 class KeyRevoker(ABC):
     @abstractmethod
     def revoke(self, venues: list[str], operator: str, reason: str) -> dict[str, Any]:
@@ -191,6 +278,12 @@ class FlattenExecutor:
         closer: PositionCloser
         if closer_spec.lower() == "mock":
             closer = MockPositionCloser()
+        elif closer_spec.lower() in ("broadcast_authority", "broadcast"):
+            closer = BroadcastAuthorityCloser(
+                safety_dir=safety_dir,
+                policy_raw=raw,
+                policy_path=getattr(policy, "source_path", None),
+            )
         elif closer_spec.lower() in ("signing_node", "in_process"):
             endpoint = str(cfg.get("signing_endpoint", "") or "")
             use_mode = "http" if mode == "http" else "in_process"
@@ -228,6 +321,90 @@ class FlattenExecutor:
         self.revoker = revoker or MockKeyRevoker()
         self.queue_path = self.safety_dir / FLATTEN_QUEUE
         self.revoke_path = self.safety_dir / KEY_REVOKE_LOG
+        self.resume_path = self.safety_dir / FLATTEN_RESUME_STATE
+
+    def _save_resume_state(
+        self,
+        run_id: str,
+        orders: list[FlattenOrder],
+        completed: list[int],
+        status: str,
+        reason: str,
+    ) -> None:
+        state = {
+            "run_id": run_id,
+            "reason": reason,
+            "status": status,
+            "completed_indices": completed,
+            "orders": [o.to_dict() for o in orders],
+            "ts": time.time(),
+        }
+        self.resume_path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+    def _load_resume_state(self) -> dict[str, Any] | None:
+        if not self.resume_path.exists():
+            return None
+        try:
+            return json.loads(self.resume_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return None
+
+    def _clear_resume_state(self) -> None:
+        if self.resume_path.exists():
+            self.resume_path.unlink()
+
+    def resume_flatten(
+        self,
+        kernel: RiskKernel | None = None,
+        operator: str = "flatten_executor",
+    ) -> dict[str, Any]:
+        """Idempotent resume after mid-flatten kill — continues pending close orders."""
+        state = self._load_resume_state()
+        if not state or state.get("status") == "completed":
+            return {"ok": True, "status": "nothing_to_resume"}
+
+        run_id = str(state.get("run_id", ""))
+        completed = list(state.get("completed_indices", []))
+        orders_raw = state.get("orders", [])
+        reason = str(state.get("reason", "resume flatten"))
+        results: list[dict[str, Any]] = []
+
+        for idx, raw in enumerate(orders_raw):
+            if idx in completed:
+                continue
+            order = FlattenOrder(
+                venue=str(raw["venue"]),
+                contract=str(raw["contract"]),
+                side=str(raw["side"]),
+                notional_usd=float(raw["notional_usd"]),
+                reason=reason,
+                status=str(raw.get("status", "pending")),
+            )
+            try:
+                close_result = self.closer.close(order)
+                order.status = str(close_result.get("status", "closed"))
+                completed.append(idx)
+                self._save_resume_state(run_id, [order], completed, "in_progress", reason)
+                self._append(
+                    self.queue_path,
+                    {"action": "resume_close", **order.to_dict(), "result": close_result},
+                )
+                results.append(close_result)
+            except Exception as exc:
+                logger.error(f"resume close failed {order.venue}:{order.contract}: {exc}")
+                self._save_resume_state(run_id, [], completed, "failed", reason)
+                return {
+                    "ok": False,
+                    "status": "failed",
+                    "completed": len(completed),
+                    "error": str(exc),
+                    "results": results,
+                }
+
+        self._save_resume_state(run_id, [], completed, "completed", reason)
+        if kernel is not None:
+            kernel.trigger_flatten(revoke_keys=False)
+        return {"ok": True, "status": "completed", "results": results, "completed": len(completed)}
 
     def _append(self, path: Path, record: dict[str, Any]) -> None:
         record = {**record, "ts": time.time()}
@@ -257,14 +434,21 @@ class FlattenExecutor:
         revoke_keys: bool = True,
     ) -> dict[str, Any]:
         """Trigger kernel flatten flags, enqueue closes, optionally revoke keys."""
+        import uuid
+
         flatten_result = kernel.trigger_flatten(revoke_keys=revoke_keys)
         orders = self.build_orders_from_kernel(kernel, reason)
+        run_id = uuid.uuid4().hex[:16]
+        completed: list[int] = []
+        self._save_resume_state(run_id, orders, completed, "in_progress", reason)
         results: list[dict[str, Any]] = []
-        for order in orders:
+        for idx, order in enumerate(orders):
             self._append(self.queue_path, {"action": "enqueue", **order.to_dict()})
             try:
                 close_result = self.closer.close(order)
                 order.status = str(close_result.get("status", "closed"))
+                completed.append(idx)
+                self._save_resume_state(run_id, orders, completed, "in_progress", reason)
                 self._append(
                     self.queue_path,
                     {"action": "close", **order.to_dict(), "result": close_result},
@@ -273,10 +457,22 @@ class FlattenExecutor:
             except Exception as exc:
                 logger.error(f"close failed {order.venue}:{order.contract}: {exc}")
                 order.status = "failed"
+                self._save_resume_state(run_id, orders, completed, "failed", reason)
                 self._append(
                     self.queue_path,
                     {"action": "close_failed", **order.to_dict(), "error": str(exc)},
                 )
+                return {
+                    "ok": False,
+                    "flatten": flatten_result,
+                    "orders": [o.to_dict() for o in orders],
+                    "close_results": results,
+                    "resume": True,
+                    "run_id": run_id,
+                    "error": str(exc),
+                }
+
+        self._save_resume_state(run_id, orders, completed, "completed", reason)
 
         revoke_result: dict[str, Any] | None = None
         if revoke_keys:

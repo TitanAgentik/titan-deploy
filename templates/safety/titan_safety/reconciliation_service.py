@@ -33,6 +33,12 @@ def _load_live_fetcher(policy: Any) -> Any:
     url = os.environ.get("TITAN_RECON_FETCHER_URL") or recon.get("fetcher_url")
     path = recon.get("positions_file")
     module_spec = str(recon.get("recon_module") or "").strip()
+    tier0 = (policy.raw or {}).get("tier0_money_path") or {}
+
+    if tier0.get("builtin_aggregator", False) and not module_spec:
+        from .recon_aggregator import build_recon_fetcher
+
+        return build_recon_fetcher(policy.raw)
 
     if module_spec:
         from .policy_loader import load_component

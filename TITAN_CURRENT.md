@@ -14,6 +14,7 @@
 | [`TELEGRAM_OPS_GUIDE.md`](./TELEGRAM_OPS_GUIDE.md) | Production operator surface (HERALD) |
 | [`HONCHO_SETUP.md`](./HONCHO_SETUP.md) | Dialectic operator modeling |
 | [`LIVE_CAPITAL_PRODUCTION_GUIDE.md`](./LIVE_CAPITAL_PRODUCTION_GUIDE.md) | Paper → shadow → Phase 5 YES → live capital |
+| [`docs/TIER0_MONEY_PATH.md`](./docs/TIER0_MONEY_PATH.md) | **Tier 0 money path** — broadcast authority, Hyperliquid adapter, recon HALT |
 | [`TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md`](./TITAN_AGENTIK_COMPLETE_SETUP_GUIDE.md) | End-to-end hardware + software setup |
 | [`BOOT.md`](./BOOT.md) | Gateway restart checklist |
 | [`BOOTSTRAP.md`](./BOOTSTRAP.md) | First-run ritual |

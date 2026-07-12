@@ -46,11 +46,13 @@ def _payload(
     notional_usd: float,
     side: str,
     ts: int,
+    payload_hash: str = "",
 ) -> str:
     # Fixed precision so float formatting cannot break HMAC verify.
+  # Optional payload_hash binds calldata/typed_data at sign/submit time (Tier 0).
     return (
         f"{RECEIPT_PREFIX}|{trade_id}|{venue}|{contract.lower()}|"
-        f"{notional_usd:.8f}|{side.lower()}|{ts}"
+        f"{notional_usd:.8f}|{side.lower()}|{ts}|{payload_hash}"
     )
 
 
@@ -58,6 +60,7 @@ def issue_gate_receipt(
     trade: TradeRequest | dict[str, Any],
     safety_dir: Path | None = None,
     ts: int | None = None,
+    payload_hash: str = "",
 ) -> GateReceipt:
     if isinstance(trade, dict):
         trade = TradeRequest.from_dict(trade)
@@ -70,6 +73,7 @@ def issue_gate_receipt(
         trade.notional_usd,
         trade.side,
         timestamp,
+        payload_hash,
     )
     sig = hmac.new(secret, payload.encode(), hashlib.sha256).hexdigest()
     token = f"{payload}|{sig}"
@@ -96,9 +100,14 @@ def verify_gate_receipt(
     if not token or not token.strip():
         return False, "missing gate receipt"
     parts = token.strip().split("|")
-    if len(parts) != 8:
+    # v1: 8 parts (no payload_hash); v2: 9 parts (payload_hash before sig)
+    if len(parts) == 8:
+        prefix, trade_id, venue, contract, notional_str, side, ts_str, sig = parts
+        receipt_payload_hash = ""
+    elif len(parts) == 9:
+        prefix, trade_id, venue, contract, notional_str, side, ts_str, receipt_payload_hash, sig = parts
+    else:
         return False, "malformed gate receipt"
-    prefix, trade_id, venue, contract, notional_str, side, ts_str, sig = parts
     if prefix != RECEIPT_PREFIX:
         return False, f"invalid receipt prefix: {prefix}"
     try:
@@ -122,8 +131,24 @@ def verify_gate_receipt(
     if abs(notional - trade.notional_usd) > 1e-6:
         return False, "notional mismatch"
     secret = ensure_control_secret(safety_dir)
-    payload = _payload(trade_id, venue, contract, notional, side, ts)
+    payload = _payload(trade_id, venue, contract, notional, side, ts, receipt_payload_hash)
     expected = hmac.new(secret, payload.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, sig):
         return False, "invalid receipt signature"
     return True, "ok"
+
+
+def bind_receipt_to_payload(
+    token: str,
+    trade: TradeRequest | dict[str, Any],
+    payload_hash: str,
+    safety_dir: Path | None = None,
+) -> GateReceipt:
+    """Re-issue receipt with payload_hash bound to calldata/typed_data (Tier 0 sign path)."""
+    if isinstance(trade, dict):
+        trade = TradeRequest.from_dict(trade)
+    parts = token.strip().split("|")
+    if len(parts) not in (8, 9):
+        raise ValueError("malformed gate receipt for rebinding")
+    ts = int(parts[6])
+    return issue_gate_receipt(trade, safety_dir, ts=ts, payload_hash=payload_hash)
