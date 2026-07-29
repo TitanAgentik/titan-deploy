@@ -131,6 +131,27 @@ control_plane:
   secret_mode: "0600"
   note: "Host compromise = auth compromise — keep secret off agent FS where possible"
 
+# Daily compound engine — day-over-day equity tracking + winner feed / loser cut.
+# Does NOT guarantee profit every calendar day; enforces measured-edge compounding.
+daily_compound:
+  enabled: true
+  growth_threshold_usd: 15000.0
+  min_green_streak_for_boost: 2
+  green_day_kelly_boost: 0.05
+  max_kelly_fraction: 0.35
+  min_kelly_fraction: 0.15
+  base_kelly_fraction: 0.25
+  red_day_degross_mult: 0.70
+  red_day_kelly_cut: 0.05
+  max_active_on_red: 1
+  max_active_on_green: 2
+  min_trades_for_deploy: 30
+  min_net_bps_for_deploy: 1.0
+  starve_marginal: true
+  marginal_weight_scale: 0.35
+  apply_tca_pnl_to_equity: false  # set true only when TCA is the sole equity source
+  note: "Green days reinvest within Kelly envelope; red days de-gross; BLEEDING auto-defund"
+
 # Capital allocator — attribution -> forward fractional-Kelly allocation.
 # Humans own the gross envelope (base_gross_pct); the machine allocates within it.
 allocator:

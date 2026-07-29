@@ -25,6 +25,7 @@ from .flash_loan_sim import run_simulation as run_flash_loan_simulation
 from .memecoin_filter import MemecoinFilter, MemecoinFilterConfig, MintCandidate
 from .memecoin_sim import run_simulation
 from .policy_loader import load_policy
+from .daily_compound import DailyCompoundConfig, run_daily_compound
 from .profit_loop import ProfitLoop
 from .tca import Fill, TCAEngine
 from .tca_daily_scorecard import publish_daily_scorecard
@@ -1017,6 +1018,54 @@ def cmd_tca_profit_loop(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tca_daily_compound(args: argparse.Namespace) -> int:
+    """Day-over-day compound: cut bleeders, feed winners, track equity streaks."""
+    import yaml
+
+    safety_dir = Path(args.safety_dir) if args.safety_dir else Path.home() / ".openclaw" / "safety"
+    engine = _load_tca_engine(safety_dir)
+    cfg = DailyCompoundConfig()
+    policy_candidates: list[Path] = []
+    if args.policy:
+        policy_candidates.append(Path(args.policy).expanduser())
+    policy_candidates.extend(
+        [
+            Path.home() / ".openclaw" / "risk_kernel" / "policy.yaml",
+            Path(__file__).resolve().parents[2] / "risk_kernel" / "policy.yaml",
+        ]
+    )
+    for pp in policy_candidates:
+        if pp.exists():
+            try:
+                raw = yaml.safe_load(pp.read_text(encoding="utf-8")) or {}
+                cfg = DailyCompoundConfig.from_raw(raw)
+                break
+            except Exception:
+                continue
+    equity = args.equity
+    if equity is None or equity <= 0:
+        try:
+            bal = CapitalManager(load_capital_config()).balance()
+            equity = float(bal.get("equity_usd") or 0.0) or None
+        except Exception:
+            equity = None
+    result = run_daily_compound(
+        engine,
+        safety_dir=safety_dir,
+        equity_usd=equity,
+        regime=args.regime,
+        drawdown_pct=args.drawdown_pct,
+        dry_run=args.dry_run,
+        config=cfg,
+        send_telegram=not args.no_send and not args.dry_run,
+    )
+    if args.format_only:
+        print(result.get("telegram_text", ""))
+        return 0
+    print(json.dumps(result, indent=2))
+    return 0
+
+
 def _lanes_from_json(lanes_raw: list[dict[str, Any]]) -> list[LaneEdge]:
     return [
         LaneEdge(
@@ -1414,6 +1463,24 @@ def main(argv: list[str] | None = None) -> int:
     tpl.add_argument("--regime", default="neutral")
     tpl.add_argument("--drawdown-pct", type=float, default=0.0)
     tpl.set_defaults(func=cmd_tca_profit_loop)
+    tdc = tca_sub.add_parser(
+        "daily-compound",
+        help="Day-over-day compound: defund BLEEDING, feed HEALTHY, track equity/ATH",
+    )
+    tdc.add_argument("--dry-run", action="store_true", help="Plan only; no ledger/defund writes")
+    tdc.add_argument(
+        "--equity",
+        type=float,
+        default=None,
+        help="Override equity (default: capital portfolio balance)",
+    )
+    tdc.add_argument("--regime", default="neutral")
+    tdc.add_argument("--drawdown-pct", type=float, default=0.0)
+    tdc.add_argument("--policy", default=None, help="Policy YAML for daily_compound knobs")
+    tdc.add_argument("--no-send", action="store_true", help="Skip Telegram money summary")
+    tdc.add_argument("--format-only", action="store_true", help="Print Telegram text only")
+    tdc.add_argument("--safety-dir", default=None)
+    tdc.set_defaults(func=cmd_tca_daily_compound)
 
     p_edge = sub.add_parser("edge", help="5-PoP edge mesh routing (venue/strategy → PoP)")
     edge_sub = p_edge.add_subparsers(dest="edge_cmd", required=True)

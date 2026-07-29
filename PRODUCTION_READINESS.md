@@ -1,7 +1,7 @@
 # TITAN Production Readiness
 
-**Last updated:** deploy bundle v2.3 — bounded autonomy + portfolio risk + MRM + **profit engine** (capital allocator, execution-quality/TCA, statistical promotion gates)  
-**Honest assessment:** This bundle adds real, tested software controls for both **capital preservation** and **profit compounding**. It does **not** make live trading with real capital safe or profitable by itself. Treat everything below as necessary but not sufficient.
+**Last updated:** deploy bundle v2.4 — bounded autonomy + portfolio risk + MRM + **profit engine** (capital allocator, TCA, statistical promotion gates) + **daily compound** (equity/ATH ledger, green-day Kelly boost, red-day de-gross, BLEEDING auto-defund)  
+**Honest assessment:** This bundle adds real, tested software controls for both **capital preservation** and **profit compounding**. It does **not** make live trading with real capital safe or profitable by itself — **no system guarantees profit every calendar day**. Daily compound feeds measured winners and cuts bleeders; markets can still lose. Treat everything below as necessary but not sufficient.
 
 **Operator walkthrough for real capital:** [`LIVE_CAPITAL_PRODUCTION_GUIDE.md`](./LIVE_CAPITAL_PRODUCTION_GUIDE.md) — beginner-complete path from paper/shadow → Phase 5 human YES → first live trade. Does **not** bypass `:19001` or auto-promote on TIMEOUT. Cockpit `VITE_DATA_MODE=live` is UI data mode only (see [`WEB_UI_LIVE_PRODUCTION_GUIDE.md`](./WEB_UI_LIVE_PRODUCTION_GUIDE.md)).
 
@@ -46,6 +46,8 @@ Specs: `~/.openclaw/infra/power_requirements.yaml`, `signing_node.yaml`, `gpu_sc
 | Forward capital allocator | `allocator.py` + HTTP `:19006` | Fractional-Kelly within envelope |
 | Execution-quality / TCA | `tca.py` + HTTP `:19007` | Scorecard + bleeding-lane flag |
 | TCA→allocator profit loop | `profit_loop.py` + `POST /v1/profit_loop` | Auto-defund BLEEDING; refund needs human |
+| Daily compound engine | `daily_compound.py` + `titan-safety tca daily-compound` + timer | Equity/ATH ledger; green Kelly boost; red de-gross; starve MARGINAL |
+| Production readiness check | `scripts/production_ready_check.py` | Fail-closed checklist (paper vs live) |
 | Unbypassable execution gate | `execution_gate.py` (recon→kernel→receipt) | DENY if any stage fails / unreachable |
 | Signing receipt gate | `signing_service.SigningNode` (in-process) | 401 without fresh `X-Titan-Gate-Receipt` |
 | Flatten / key-revoke executor | `flatten_executor.py` | Enqueues closes + mock revoke + SIGNING_HALTED |

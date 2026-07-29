@@ -3,14 +3,15 @@
 # Loaded every request in MAIN session only (not groups/shared).
 
 ## System State
-- Version: v49.7 — OPENCLAW UNIFIED FRAMEWORK | Build: 2026-05-28
+- Version: v49.7 — OPENCLAW UNIFIED FRAMEWORK | Build: 2026-07-19 (daily compound v2.4)
 - Operating mode: Rust+Python hybrid
-- Capital: $2,500 starting + $2,500 biweekly injections | Target: $1M+
+- Capital: $2,500 seeded (paper profile) + $2,500 biweekly injections | Target: $1M+
 - Growth phase: 100% reinvest until portfolio ≥$15K
+- Profit engine: TCA → profit_loop (15m) → daily_compound (00:10 UTC) — feed HEALTHY, defund BLEEDING
 - Active agents: 23 (15 GPU TP=2 + 8 TITANSPARK utility) | Quantum agents: DORMANT
-- Pipelines: 47 active (P1-P34, P37-P48) | Workflows: 26
-- Autonomy: ROUTINE — human gates for promotion/evolution/leverage/>1% equity
-- Rollout: Phase 0-3 each 3 days (operator directive; all gates + human YES unchanged)
+- Pipelines: catalog only — selective activation (max 2 funded lanes); not all-on
+- Autonomy: ROUTINE — human gates for promotion/evolution/leverage/>1% equity; TIMEOUT=HOLD
+- Rollout: paper-ready software; live requires Phase 5 YES + TITAN_LIVE_SIGNING_READY=1
 
 ## Infrastructure Pointers
 - **TITANHOME (primary):** 9995WX + 2× RTX PRO 6000 + Tier 1/2 inference + safety → memory/hardware/workstation.md

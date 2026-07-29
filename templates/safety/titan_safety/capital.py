@@ -349,6 +349,7 @@ class CapitalManager:
             "available_usd": 0.0,
             "reserved_usd": 0.0,
             "weekly_profit_usd": 0.0,
+            "realized_pnl_usd": 0.0,
             "assets": {},
             "pending_withdrawals": [],
             "last_sweep_at": None,
@@ -416,7 +417,60 @@ class CapitalManager:
             "harvest_phase": state["equity_usd"]
             >= self.config.trezor_sweep.harvest_threshold_usd,
             "pending_withdrawals": state.get("pending_withdrawals", []),
+            "weekly_profit_usd": float(state.get("weekly_profit_usd") or 0.0),
+            "realized_pnl_usd": float(state.get("realized_pnl_usd") or 0.0),
         }
+
+    def apply_realized_pnl(
+        self,
+        amount_usd: float,
+        *,
+        operator: str = "daily_compound",
+        reason: str = "realized trading PnL",
+    ) -> CapitalResult:
+        """Apply trading PnL (can be negative) to equity/available — not a deposit.
+
+        Deposits and withdrawals stay separate so day-over-day compound math
+        can exclude capital injections (R38).
+        """
+        state = self.load_state()
+        before = float(state.get("equity_usd") or 0.0)
+        after = round(before + amount_usd, 2)
+        if after < 0:
+            return CapitalResult(
+                False,
+                "pnl_denied",
+                f"Realized PnL would drive equity negative (${after:,.2f})",
+                self.balance(),
+            )
+        state["equity_usd"] = after
+        # Keep available in step with equity delta when not reserved
+        state["available_usd"] = round(
+            max(0.0, float(state.get("available_usd") or 0.0) + amount_usd), 2
+        )
+        state["realized_pnl_usd"] = round(
+            float(state.get("realized_pnl_usd") or 0.0) + amount_usd, 2
+        )
+        self.save_state(state)
+        self._log_audit(
+            "capital_realized_pnl",
+            operator,
+            {
+                "amount_usd": amount_usd,
+                "reason": reason,
+                "equity_before": before,
+                "equity_after": after,
+            },
+        )
+        return CapitalResult(
+            True,
+            "pnl_applied",
+            (
+                f"Applied realized PnL ${amount_usd:+,.2f} — equity now "
+                f"${after:,.2f} ({reason})"
+            ),
+            self.balance(),
+        )
 
     def deposit(
         self,

@@ -1,0 +1,12 @@
+[Unit]
+Description=Run TITAN daily compound at 00:10 UTC and after boot
+Requires=titan-daily-compound.service
+
+[Timer]
+OnCalendar=*-*-* 00:10:00 UTC
+OnBootSec=10min
+Persistent=true
+Unit=titan-daily-compound.service
+
+[Install]
+WantedBy=timers.target

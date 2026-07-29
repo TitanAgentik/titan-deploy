@@ -1,0 +1,21 @@
+# TITANSPARK / bring-up only — proxy :30003 -> local Ollama OpenAI API.
+# Prefer colibri-glm52.service or llama-server-glm-5.2-offload.service on TITANHOME.
+# If Ollama only has glm-5.2:cloud, this is a temporary operator convenience — not a live-path voter.
+
+# System unit (TITANSPARK). For linger/user sessions prefer ~/.config/systemd/user copy without User=.
+
+[Unit]
+Description=TITAN temporary GLM :30003 bridge to Ollama
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hyperion
+Group=hyperion
+ExecStart=/usr/bin/python3 "/home/hyperion/Documents/Cursor Projects/titan-deploy/scripts/glm30003_ollama_bridge.py" --host 127.0.0.1 --port 30003
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

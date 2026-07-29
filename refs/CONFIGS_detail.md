@@ -348,7 +348,7 @@ edge_mesh:
   note: "Full 5-PoP from paper — scale instance size with capital; routing identical to live"
 
 capital:
-  capital_profile: live
+  capital_profile: paper
   state_path: ~/.openclaw/capital/portfolio_state.json
   audit_path: ~/.openclaw/capital/capital_audit.jsonl
   min_operating_capital_usd: 500
@@ -1002,19 +1002,33 @@ capital:
     "note": "Set regimeFeed=file and have AUGUR write regimeFile for live portfolio scaling"
   },
   "allocator": {
-    "maxActivePipelines": 4,
-    "note": "Concentrate capital on \u22644 TCA-HEALTHY lanes"
+    "maxActivePipelines": 2,
+    "selectiveActivation": true,
+    "v1SurfaceEnforced": true,
+    "note": "v1: \u22642 TCA-HEALTHY lanes; catalog \u2260 checklist (iron law 14)"
+  },
+  "v1SurfaceLockdown": {
+    "enabled": true,
+    "configPath": "~/.openclaw/risk_kernel/v1_surface_lockdown.yaml",
+    "chain": "hyperliquid",
+    "venueClass": "perp_dex",
+    "maxActiveStrategies": 2,
+    "disabledForV1": {
+      "memecoinP22": true,
+      "flashLoans": true,
+      "predatoryHoneypots": true,
+      "quantumInspiredLive": true,
+      "multiCexAllowlists": true,
+      "fullEdgeMesh5Pop": true
+    },
+    "note": "Does NOT auto-enable live capital \u2014 Phase 5 YES still required"
   },
   "edgeMesh": {
-    "mode": "full_mesh",
-    "phase1": "full_five_pop",
+    "mode": "single_pop",
+    "phase1": "single_pop",
     "defaultPop": "EDGE-FRA",
     "activePops": [
-      "EDGE-FRA",
-      "EDGE-TKY",
-      "EDGE-SIN",
-      "EDGE-USE",
-      "EDGE-AMS"
+      "EDGE-FRA"
     ],
     "paperLatencyFaithful": true,
     "meshConfigPath": "~/.openclaw/infra/edge_mesh.yaml",
@@ -1026,12 +1040,12 @@ capital:
       "nostrDispatch": 3,
       "warmPathGateP95": 150
     },
-    "phase1ApacDeferred": false,
+    "phase1ApacDeferred": true,
     "routingPolicy": "lowest_live_p50_rtt",
-    "note": "Full 5-PoP from paper \u2014 same routing as live for TCA/latency measurement"
+    "note": "v1 single PoP (EDGE-FRA) \u2014 expand to full_mesh only after operator unlock"
   },
   "capital": {
-    "capital_profile": "live",
+    "capital_profile": "paper",
     "state_path": "~/.openclaw/capital/portfolio_state.json",
     "audit_path": "~/.openclaw/capital/capital_audit.jsonl",
     "min_operating_capital_usd": 500,
@@ -1092,10 +1106,10 @@ capital:
 # Deploy target: ~/.openclaw/risk_kernel/policy.yaml
 # Agents propose; kernel vetoes. Cannot be modified by agent runtime.
 
-version: "2.1"
+version: "2.2"
 mode: enforce
-# Live capital profile + paper shadow lane. Fill ~/.openclaw/.env from templates/infra/live.env.example
-capital_profile: live
+# Default deploy profile — paper until Phase 5 YES + operator checklist.
+capital_profile: paper
 
 trading_limits:
   max_notional_usd_per_trade: 500.0
@@ -1107,20 +1121,7 @@ trading_limits:
   equity_usd: 2500.0
 
 allowed_venues:
-  - paper  # shadow / unpromoted lanes — no real capital; live lanes use venues below
-  - binance_spot
-  - okx_spot
-  - hyperliquid
-  - bybit_spot
-  - coinbase_spot
-  - uniswap_v3
-  - curve
-  - aave_v3
-  - solana_jupiter
-  - solana_pumpfun
-  - solana_pumpswap
-  - jito
-  - flashbots_protect
+  - paper  # paper-only default — live profile adds DEX venues via tier1 merge
 
 allowed_contracts:
   - "0x0000000000000000000000000000000000000000"  # paper sentinel
@@ -1136,7 +1137,7 @@ position_limits:
 # Agent-autonomous sign/verify — replaces human approval on the trade path.
 # Safety retained: reconciliation → risk kernel → confidence → BFT → gate receipt → in-process sign.
 autonomous_signing:
-  enabled: true
+  enabled: false  # paper default — enable only in live profile after evidence
   min_confidence_reduced: 0.50
   min_confidence_full: 0.70
   paper_min_confidence: 0.30
@@ -1146,7 +1147,7 @@ autonomous_signing:
   require_typed_data_live: true
   note: "Human gates remain for promotion, evolution, leverage, large withdrawals; flash-loan live autonomous per policy"
 
-# Portfolio drawdown — notify-only; trading continues autonomously (no pause/halt gates).
+# Portfolio drawdown — paper default notify-only; live profile enforces tiers (tier1_capital_risk).
 drawdown_notify_only: true
 
 drawdown_volatile_exempt:
@@ -1184,8 +1185,8 @@ portfolio_risk:
   max_cvar_pct_equity: 12.0
   max_correlated_cluster_pct: 25.0
   min_return_samples: 20
-  augur_regime_stub: neutral
-  augur_feed: file
+  augur_regime_stub: neutral  # paper only — live profile uses augur_feed: file
+  augur_feed: stub
   augur_regime_file: ~/.openclaw/safety/augur_regime.json
   regime_limits:
     risk_off: 50.0
@@ -1200,9 +1201,28 @@ portfolio_risk:
 reconciliation:
   divergence_threshold_usd: 25.0
   divergence_threshold_pct: 1.0
-  adapter: live
-  recon_module: "titan_safety.adapters.live_bundle:build_position_fetcher"
-  live_profile_note: "Fill TITAN_RECON_FETCHER_URL or exchange keys in ~/.openclaw/.env"
+  adapter: mock  # paper default; live profile overrides to live adapter
+  recon_halt_on_divergence: true
+
+# Tier 0 money path — one venue depth-first (Hyperliquid). Does NOT auto-enable live capital.
+tier0_money_path:
+  enabled: false  # operator sets true after Phase 5 YES + checklist in docs/TIER0_MONEY_PATH.md
+  venue: hyperliquid
+  venue_adapter: "titan_safety.adapters.hyperliquid_live:HyperliquidLiveAdapter"
+  broadcast_authority_enforced: true
+  require_payload_hash_binding: true
+  recon_halt_on_divergence: true
+  builtin_aggregator: true
+  dual_control_withdrawals: true
+  agent_submit_denied: true
+  allowed_callers: [trench-ops, execution_daemon, flatten_executor]
+  session_envelope:
+    enabled: false  # set true when session keys armed
+    max_notional_usd: 500.0
+    allowed_venues: [hyperliquid]
+    require_typed_data: true
+  deferred_venues: [solana_jupiter, jito, solana_pumpfun, solana_pumpswap, flashbots_protect]
+  note: "Hyperliquid first — Solana/Jito/P22/Flashbots deferred explicitly"
 
 # Control-plane HMAC auth (X-Titan-Auth) required on mutating POSTs:
 # FLATTEN, REGIME, HEARTBEAT, TCA_INGEST, PROFIT_LOOP, REFUND, ALLOCATE
@@ -1215,6 +1235,27 @@ control_plane:
   secret_mode: "0600"
   note: "Host compromise = auth compromise — keep secret off agent FS where possible"
 
+# Daily compound engine — day-over-day equity tracking + winner feed / loser cut.
+# Does NOT guarantee profit every calendar day; enforces measured-edge compounding.
+daily_compound:
+  enabled: true
+  growth_threshold_usd: 15000.0
+  min_green_streak_for_boost: 2
+  green_day_kelly_boost: 0.05
+  max_kelly_fraction: 0.35
+  min_kelly_fraction: 0.15
+  base_kelly_fraction: 0.25
+  red_day_degross_mult: 0.70
+  red_day_kelly_cut: 0.05
+  max_active_on_red: 1
+  max_active_on_green: 2
+  min_trades_for_deploy: 30
+  min_net_bps_for_deploy: 1.0
+  starve_marginal: true
+  marginal_weight_scale: 0.35
+  apply_tca_pnl_to_equity: false  # set true only when TCA is the sole equity source
+  note: "Green days reinvest within Kelly envelope; red days de-gross; BLEEDING auto-defund"
+
 # Capital allocator — attribution -> forward fractional-Kelly allocation.
 # Humans own the gross envelope (base_gross_pct); the machine allocates within it.
 allocator:
@@ -1224,20 +1265,109 @@ allocator:
   max_cluster_pct: 40.0           # per-correlation-cluster cap as % equity
   min_net_bps: 1.0               # lanes below this net-of-cost edge get zero capital
   min_trades: 100                # lanes below this sample size get zero capital
-  max_active_pipelines: 4        # hard concentration — fund few HEALTHY lanes; catalog ≠ all-on
-  # Selective activation: pipelines/skills/security modules in TITAN docs are optional until funded/needed.
+  max_active_pipelines: 2        # hard concentration — fund few HEALTHY lanes; catalog ≠ all-on
+  # v1 surface lockdown caps this to 2 when enabled (v1_surface_lockdown.yaml)
   selective_activation: true
-  advisory_mode: true   # Phase 1: log targets; Phase 2+: set false to enforce
+  advisory_mode: true   # paper default; live profile sets false (enforced de-gross)
   note: "Do not enable every strategy or feature mentioned in specs — use only what is necessary"
   regime_multipliers:
     risk_off: 0.5
     neutral: 1.0
     risk_on: 1.2
-  degross_ladder:                 # [drawdown_pct, gross_multiplier] — progressive de-grossing
-    - [3.0, 0.75]
+  degross_ladder:                 # [drawdown_pct, gross_multiplier] — enforced when advisory_mode false
+    - [2.0, 0.75]
     - [5.0, 0.5]
-    - [7.0, 0.25]
+    - [8.0, 0.25]
     - [10.0, 0.0]
+
+# Tier 1 capital risk — profile overrides (items 6–10). load_policy merges active profile.
+tier1_capital_risk:
+  version: "1.0"
+  slo:
+    gate_p99_ms: 250
+    gate_fast_p99_ms: 150
+    kill_resume_dual_control: true
+  profiles:
+    paper:
+      allowed_venues:
+        - paper
+      drawdown_notify_only: true
+      autonomous_signing:
+        enabled: false
+      reconciliation:
+        adapter: mock
+      allocator:
+        advisory_mode: true
+        max_active_pipelines: 2
+      portfolio_risk:
+        augur_feed: stub
+        allow_augur_stub: true
+      kill_switch:
+        dual_control_resume: false
+      drawdown_tiers:
+        - pct: 2.0
+          action: notify_operator
+          severity: MEDIUM
+        - pct: 5.0
+          action: notify_operator
+          severity: HIGH
+        - pct: 8.0
+          action: notify_operator
+          severity: HIGH
+        - pct: 10.0
+          action: notify_critical_continue
+          severity: CRITICAL
+        - pct: 12.0
+          action: notify_critical_continue
+          severity: CRITICAL
+    live:
+      allowed_venues:
+        - paper
+        - hyperliquid
+        - uniswap_v3
+        - curve
+        - aave_v3
+        - solana_jupiter
+        - solana_pumpfun
+        - solana_pumpswap
+        - jito
+        - flashbots_protect
+      drawdown_notify_only: false
+      autonomous_signing:
+        enabled: true
+      reconciliation:
+        adapter: live
+        recon_module: "titan_safety.adapters.live_bundle:build_position_fetcher"
+        recon_halt_on_divergence: true
+      allocator:
+        advisory_mode: false
+        max_active_pipelines: 2
+      portfolio_risk:
+        augur_feed: file
+        augur_feed_live: file
+        allow_augur_stub: false
+      kill_switch:
+        dual_control_resume: true
+      drawdown_tiers:
+        - pct: 2.0
+          action: soft_de_gross
+          severity: MEDIUM
+        - pct: 5.0
+          action: hard_de_gross
+          severity: HIGH
+        - pct: 8.0
+          action: halt_new_risk
+          severity: HIGH
+        - pct: 10.0
+          action: halt_new_risk
+          severity: CRITICAL
+        - pct: 12.0
+          action: full_halt_flatten
+          severity: CRITICAL
+          note: "Immediate flatten — operator dual-control RESUME required to clear kill"
+
+kill_switch:
+  dual_control_resume: false  # overridden to true in live profile
 
 # Execution-quality / transaction-cost analysis thresholds.
 tca:
@@ -1283,9 +1413,48 @@ memecoin_trench:
 
   min_net_bps: 1.0
   require_cost_model: true         # backtests with zero modeled cost are rejected
+  require_walk_forward: true
+  min_walk_forward_folds: 5
+  require_purged_cv: true
+  min_fat_slippage_bps: 5.0
+  require_capacity_curve: true
+  min_shadow_days: 3
+  require_shadow_gas_tip_sim: true
+
+# Tier 2 promotion quality — items 11–14 (research / promotion gates)
+tier2_promotion_quality:
+  version: "1.0"
+  micro_live_caps:
+    calendar_is_gate: false
+    default_phase: micro_live_conservative
+    max_jump_notional_usd: 500.0
+    phases:
+      micro_live_conservative:
+        max_equity_pct_per_trade: 0.05
+        max_aggregate_equity_pct: 0.25
+        min_fills_before_scale: 50
+      micro_live:
+        max_equity_pct_per_trade: 0.10
+        max_aggregate_equity_pct: 0.50
+        min_fills_before_scale: 50
+      validated_scale:
+        max_equity_pct_per_trade: 0.50
+        max_aggregate_equity_pct: 2.0
+        min_fills_before_scale: 200
+  promotion_registry:
+    enabled: true
+    registry_file: ~/.openclaw/safety/promotion_registry.jsonl
+    note: "Global trial count feeds deflated Sharpe multiple-testing correction"
+  tca_daily_scorecard:
+    enabled: true
+    herald_agent: HERALD
+    schedule_utc: "08:00"
+  v1_surface_lockdown:
+    enabled: true
+    config_ref: ~/.openclaw/risk_kernel/v1_surface_lockdown.yaml
 
 flash_loan_live:
-  enabled: false  # set true + flashLoanRouter.enabled for live (no human YES required)
+  enabled: false  # default off — enable explicitly after boring profit; autonomous when enabled
   max_amount_usd: 500000.0
   max_fee_bps: 9.0
   paper_sim_required_days: 3
@@ -1354,7 +1523,7 @@ signing:
 
 # Flatten adapters — live profile (mock banned at startup)
 flatten:
-  closer: in_process  # alias: signing_node (same in-process SigningNode)
+  closer: broadcast_authority  # Tier 0: single submit path; aliases: signing_node, in_process, mock
   revoker: "titan_safety.adapters.live_bundle:LiveKeyRevoker"
   signing_endpoint: ""  # unused when signing.mode=in_process
 
@@ -1493,6 +1662,44 @@ ghost_evasion:
     P12: [intent_solver, uniswapx, cowswap, across_intent]
     P30: [flashbots_protect, intent_solver]
   doctrine: invisible_to_them_visible_to_us
+
+# Tier 4 ultimate — gated scaffold; requires tiers 0–3 complete. Does NOT enable live capital.
+tier4_ultimate:
+  enabled: false  # operator sets true ONLY after Tier 0–3 checklists + explicit tier*_complete flags
+  requires_tiers: [0, 1, 2, 3]
+  tier_checklist:
+    tier0_complete: false
+    tier1_complete: false
+    tier2_complete: false
+    tier3_complete: false
+  shadow_twin:
+    enabled: false
+    max_divergence_pct: 15.0
+    block_live_on_divergence: true
+  multi_pop:
+    rtt_probe_interval_s: 30
+    unhealthy_rtt_p95_ms: 50.0
+    failover_enabled: true
+    rtt_routing: true
+    note: "STUB RTT probes until wireguard/HTTP probe wired on edge workers"
+  intent_solver:
+    enabled: false
+    stub_submit: true
+    networks: [cowswap, uniswapx, across_intent, mev_share]
+    note: "Honest STUB — no live solver RPC until operator wires endpoints"
+  mev_tip_optimizer:
+    enabled: false
+    advisory_only: true
+    max_tip_bps: 40.0
+  red_team_continuous:
+    enabled: false
+    interval_minutes: 60
+    note: "Runs tests/adversarial/adversarial_harness.py on schedule — not checklist YAML only"
+  portfolio_construction:
+    borrow_rate_cap_annual_pct: 25.0
+    funding_rate_cap_8h_pct: 0.15
+    capacity_curve_enabled: false
+  note: "Evolution shadow-only unchanged; kernel DENY absolute; Phase 5 YES still required for live"
 
 # Millisecond hot path — combined gate validate for latency-critical pipelines
 latency:

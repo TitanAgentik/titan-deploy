@@ -9,7 +9,7 @@
 | Model/skill promotion to live | — | YES (Phase 5) |
 | Evolution deploy (DGM-H, GEPA, etc.) | Shadow only | YES for live |
 | Leverage change | — | YES |
-| Flash-loan live | YES (when `flash_loan_live.enabled` + policy) | — |
+| Flash-loan live | — | YES |
 | CB tier response (within policy) | YES | — |
 | Drawdown velocity breach | HALT (kernel) | Alert operator |
 | TIMEOUT on promotion prompt | HOLD/de-risk | Never auto-promote |
@@ -32,44 +32,17 @@ Optional legacy HTTP (`signing.mode=http` / `titan-signing-node.service`) is not
 
 ## Trade Voting Honesty (Survivability)
 
-**This is not Byzantine fault tolerance.** Votes are advisory consensus checks before the
-kernel ALLOW path — they do not constitute cryptographic BFT, independent hosts, or
-guaranteed disagreement detection. The label "BFT" in older docs means "2-of-3 agreement"
-only.
+Trade authorization uses 2-of-3 votes from **AUGUR + PREDATOR + ATLAS** (advisory).
+AUGUR/PREDATOR share Tier 1 Qwen3-30B; ATLAS uses utility tier — partially heterogeneous,
+not cryptographic BFT. **Authoritative gate:** out-of-process risk kernel (`:19001`).
 
-### Trade-path voters (AUGUR + PREDATOR + ATLAS)
+**Orchestrator-tier heterogeneous BFT (ARCHON / CORTEX / GUARDIAN):**
+- **GUARDIAN** → Tier 1 `:30000` Qwen3-30B FP8 (live risk — critical path, unchanged)
+- **ARCHON** → Tier 2 `:30001` Qwen3-Coder-80B (live orchestration — unchanged)
+- **CORTEX** → DeepSeek V4 Pro `:30005` (Tier 3) for deep reflection / GEPA / PRM votes when available; fallback Tier 2 `:30001` if offline
 
-| Voter | Model | Host | Independence |
-|-------|-------|------|--------------|
-| AUGUR | Qwen3-30B FP8 `:30000` | TITANHOME GPU 0 | **Correlated** with PREDATOR (same weights) |
-| PREDATOR | Qwen3-30B FP8 `:30000` | TITANHOME GPU 0 | **Correlated** with AUGUR |
-| ATLAS | Qwen3-30B utility `:30002` | TITANSPARK | Partial — different host + weights |
-
-2-of-3 threshold when trade > `bft_required_above_equity_pct` (policy default 1%).
-Same-family voters fail together → not independent. ATLAS provides partial heterogeneity only.
-
-### Orchestrator-tier voters (ARCHON / CORTEX / GUARDIAN)
-
-Used for escalation / GEPA / PRM — not the hot trade sign path:
-
-- **GUARDIAN** → Tier 1 `:30000` Qwen3-30B FP8 (live risk — critical path)
-- **ARCHON** → Tier 2 `:30001` Qwen3-Coder-80B (orchestration)
-- **CORTEX** → DeepSeek V4 Pro `:30005` when available; fallback Tier 2 `:30001`
-
-Distinct model families fail differently → more meaningful 2-of-3 than AUGUR/PREDATOR pair.
-
-### Authoritative gates (non-negotiable)
-
-1. **Risk kernel** (`:19001`) — DENY is absolute; agents never override DENY.
-2. **ExecutionGate** — fresh `X-Titan-Gate-Receipt` required before in-process sign.
-3. **Human YES** — Phase 5 promotion, evolution live, leverage change, new pipeline (per policy).
-4. **Deterministic policy** — `policy.yaml` caps, kill switch, reconciliation HALT.
-
-Votes that pass still receive kernel DENY if limits breached. Votes that fail may still be
-blocked even if kernel would ALLOW (fail-closed on missing quorum when required).
-
-**No closed/cloud models** on any voter or live path. GLM-5.2 (`:30003`) and DeepSeek V4 Pro
-(`:30005`) are offline R&D / optional CORTEX deep-vote only — never TRENCH-OPS / GUARDIAN / EXECUTOR.
+Same-family voters = correlated consensus. Distinct families (Qwen3-30B ≠ Qwen3-Coder ≠ DeepSeek) fail differently → meaningful 2-of-3. Votes remain advisory; risk kernel DENY is authoritative.
+**No closed/cloud models** on any voter or live path. GLM-5.2 (`:30003`) and DeepSeek V4 Pro (`:30005`) are offline R&D / optional CORTEX deep-vote only — never TRENCH-OPS / GUARDIAN / EXECUTOR.
 
 ## Security
 

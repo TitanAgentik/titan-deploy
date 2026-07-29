@@ -1,0 +1,28 @@
+# TITANHOME — Tier 3b GLM-5.2 via Colibrì (CPU/RAM/disk, NO GPU) :30003
+# Install after scripts/colibri-setup.sh (titan-launch). Does NOT touch :30000/:30001.
+# Policy: offline R&D only. Schedule: 22:00–06:00 UTC + maintenance window.
+
+[Unit]
+Description=TITAN Colibrì GLM-5.2 (RAM+disk, no GPU) offline R&D :30003
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/data/colibri/models/GLM-5.2-colibri-int4-with-int8-mtp
+
+[Service]
+Type=simple
+User=hyperion
+EnvironmentFile=-/data/colibri/colibri.env
+Environment=COLI_CUDA=0
+Environment=DRAFT=1
+Environment=COLI_SERVE_HOST=127.0.0.1
+Environment=COLI_SERVE_PORT=30003
+WorkingDirectory=/data/colibri
+ExecStart=/home/hyperion/Documents/Cursor Projects/titan-launch/scripts/colibri-run-max.sh serve
+Restart=on-failure
+RestartSec=10
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=4
+
+[Install]
+WantedBy=multi-user.target

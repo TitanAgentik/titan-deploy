@@ -1,0 +1,18 @@
+# Daily compound oneshot — equity tracking + profit loop + allocation plan
+# Install: copy to ~/.config/systemd/user/ and enable titan-daily-compound.timer
+# Paper default uses --dry-run until capital_profile: live and operator removes dry-run.
+
+[Unit]
+Description=TITAN daily compound (equity / ATH / feed winners / cut bleeders)
+After=titan-tca.service titan-allocator.service network-online.target
+Wants=titan-tca.service
+
+[Service]
+Type=oneshot
+Environment=PYTHONPATH=%h/.openclaw/safety
+# Remove --dry-run only after Phase 2 enforced allocator + live capital ready
+ExecStart=%h/.openclaw/safety/bin/titan-safety tca daily-compound --no-send
+Nice=10
+
+[Install]
+WantedBy=default.target

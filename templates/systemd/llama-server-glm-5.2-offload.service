@@ -1,0 +1,33 @@
+# TITANHOME — Tier 3b GLM-5.2 offline R&D (:30003)
+# Preferred path on TITANHOME: Colibrì CPU/RAM/disk (see colibri-glm52.service).
+# This unit is the llama.cpp expert-offload fallback when GGUF weights exist.
+# Policy: NEVER on live critical path (TRENCH-OPS / GUARDIAN / EXECUTOR).
+# Schedule: gpu_schedule.yaml priority 4 — maintenance + 22:00–06:00 UTC only.
+
+[Unit]
+Description=TITAN Tier 3b Inference — GLM-5.2 offload R&D (:30003)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/data/models/GLM-5.2-Q4_K_M.gguf
+
+[Service]
+Type=simple
+User=hyperion
+Environment=CUDA_VISIBLE_DEVICES=0,1
+ExecStart=/home/hyperion/llama.cpp/build/bin/llama-server \
+  --host 127.0.0.1 --port 30003 \
+  --model /data/models/GLM-5.2-Q4_K_M.gguf \
+  --alias zai-org/GLM-5.2 \
+  --ctx-size 32768 --parallel 4 \
+  --n-gpu-layers 999 --n-cpu-moe 48 \
+  --tensor-split 50,50 \
+  --flash-attn on --cont-batching \
+  --cache-type-k f8 --cache-type-v f8 \
+  --threads 48 --threads-batch 96
+Restart=on-failure
+RestartSec=10
+LimitNOFILE=1048576
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

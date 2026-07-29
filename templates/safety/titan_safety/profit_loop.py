@@ -198,10 +198,14 @@ class ProfitLoop:
             for card in cards:
                 if card.verdict == "INSUFFICIENT_DATA":
                     continue
+                # Prefer HEALTHY: scale MARGINAL edge down so Kelly starves weak lanes
+                net = card.net_bps
+                if card.verdict == "MARGINAL" and net > 0:
+                    net = net * 0.35
                 lanes.append(
                     LaneEdge(
                         pipeline_id=card.pipeline_id,
-                        net_bps=card.net_bps,
+                        net_bps=net,
                         return_std=max(0.01, abs(card.net_bps) / 1e4 * 2),
                         trade_count=card.fill_count,
                         capacity_usd=0.0,
